@@ -1,0 +1,22 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <OtherFlags>--warnon:1182</OtherFlags>
+    <WarningLevel>5</WarningLevel>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="Scratch.Evaluator.Environments.fs" />
+    <Compile Include="Scratch.Evaluator.ObjectState.fs" />
+    <Compile Include="Scratch.Evaluator.Validators.fs" />
+    <Compile Include="Scratch.Evaluator.EvaluateState.fs" />
+    <Compile Include="Scratch.Evaluator.Expressions.fs" />
+    <Compile Include="Scratch.Evaluator.Blocks.fs" />
+    <Compile Include="Scratch.Evaluator.fs" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Scratch.Runtime\Scratch.Runtime.fsproj" />
+  </ItemGroup>
+  <Import Project="..\..\.paket\Paket.Restore.targets" />
+</Project>

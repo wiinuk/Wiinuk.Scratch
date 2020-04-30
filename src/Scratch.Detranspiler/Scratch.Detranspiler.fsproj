@@ -1,0 +1,20 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <OtherFlags>--warnon:1182</OtherFlags>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Scratch.Runtime\Scratch.Runtime.fsproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="Scratch.Detranspiler.FSharpFakeFriends.fs" />
+    <Compile Include="Scratch.Detranspiler.Environments.fs" />
+    <Compile Include="Scratch.Detranspiler.Typing.fs" />
+    <Compile Include="Scratch.Detranspiler.Core.fs" />
+    <Compile Include="Scratch.Detranspiler.PredefinedPlugins.fs" />
+    <Compile Include="Scratch.Detranspiler.Main.fs" />
+  </ItemGroup>
+  <Import Project="..\..\.paket\Paket.Restore.targets" />
+</Project>

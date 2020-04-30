@@ -1,0 +1,23 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <OtherFlags>--warnon:1182</OtherFlags>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="Scratch.Transformers.types.fs" />
+    <Compile Include="Scratch.Transformers.TransformResult.fs" />
+    <Compile Include="Scratch.Transformers.Transformer.fs" />
+    <Compile Include="Scratch.Ast.Transformers.types.fs" />
+    <Compile Include="Scratch.Ast.Transformers.Helpers.fs" />
+    <Compile Include="Scratch.Ast.Transformers.Transformer.fs" />
+    <Compile Include="Scratch.Ast.Transformers.PredefinedTransformer.Helpers.fs" />
+    <Compile Include="Scratch.Ast.Transformers.PredefinedTransformers.fs" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Scratch.Evaluator\Scratch.Evaluator.fsproj" />
+    <ProjectReference Include="..\Scratch.Runtime\Scratch.Runtime.fsproj" />
+  </ItemGroup>
+  <Import Project="..\..\.paket\Paket.Restore.targets" />
+</Project>

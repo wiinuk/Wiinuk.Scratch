@@ -1,0 +1,29 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <OtherFlags>--warnon:1182</OtherFlags>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Scratch.IR\Scratch.IR.fsproj" />
+    <ProjectReference Include="..\Scratch.Runtime\Scratch.Runtime.fsproj" />
+    <ProjectReference Include="..\Scratch.Transformers\Scratch.Transformers.fsproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="Scratch.Transpiler.SourceCode.fs" />
+    <Compile Include="Scratch.Transpiler.Class.fs" />
+    <Compile Include="Scratch.Transpiler.Format.fs" />
+    <Compile Include="Scratch.Transpiler.Environments.fs" />
+    <Compile Include="Scratch.Transpiler.TypeSpec.fs" />
+    <Compile Include="Scratch.Transpiler.Core.fs" />
+    <Compile Include="Scratch.Transpiler.PredefinedPlugin.Helpers.fs" />
+    <Compile Include="Scratch.Transpiler.PredefinedPlugin.FSharpCore.fs" />
+    <Compile Include="Scratch.Transpiler.PredefinedPlugin.ScratchRuntime.fs" />
+    <Compile Include="Scratch.Transpiler.PredefinedPlugin.AsyncPlugin.fs" />
+    <Compile Include="Scratch.Transpiler.PredefinedPlugin.CollectorPlugin.fs" />
+    <Compile Include="Scratch.Transpiler.PredefinedPlugins.fs" />
+    <Compile Include="Scratch.Transpiler.Main.fs" />
+  </ItemGroup>
+  <Import Project="..\..\.paket\Paket.Restore.targets" />
+</Project>

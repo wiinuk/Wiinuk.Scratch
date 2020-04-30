@@ -1,0 +1,32 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <OtherFlags>--warnon:1182</OtherFlags>
+    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Scratch.Executor\Scratch.Executor.fsproj" />
+    <ProjectReference Include="..\Scratch.Packaging\Scratch.Packaging.fsproj" />
+    <ProjectReference Include="..\Scratch.Transpiler\Scratch.Transpiler.fsproj" />
+    <ProjectReference Include="..\Scratch.Detranspiler\Scratch.Detranspiler.fsproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="paket.template" />
+    <None Include="post-build.fsx" />
+  </ItemGroup>
+  <Target Name="RunAssemblyAnalyzer" AfterTargets="Build">
+    <PropertyGroup>
+      <CommandFile>$(MSBuildProjectDirectory)/$(IntermediateOutputPath)post-build.input.txt</CommandFile>
+      <ExecCommand>dotnet fsi post-build.fsx --command-file "$(CommandFile)"</ExecCommand>
+    </PropertyGroup>
+    <ItemGroup>
+      <CommandInput Include="--output-path $(MSBuildProjectDirectory)/$(OutputPath)" />
+      <CommandInput Include="@(ReferencePath->'--reference-path %(FullPath)')" />
+    </ItemGroup>
+    <WriteLinesToFile File="$(CommandFile)" Lines="@(CommandInput)" Overwrite="true" Encoding="UTF-8" />
+    <Exec Command="$(ExecCommand)" ConsoleToMsBuild="true" />
+  </Target>
+  <Import Project="..\..\.paket\Paket.Restore.targets" />
+</Project>

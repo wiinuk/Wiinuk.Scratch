@@ -1,0 +1,37 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <OtherFlags>--warnon:1182</OtherFlags>
+    <WarningLevel>5</WarningLevel>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="types.fs" />
+    <Compile Include="global.Map.fs" />
+    <Compile Include="global.Array.fs" />
+    <Compile Include="global.List.fs" />
+    <Compile Include="global.FSharp.Quotations.DerivedPatterns.fs" />
+    <Compile Include="global.RuntimeHelpersExtensions.fs" />
+    <Compile Include="MathExtensions.fs" />
+    <Compile Include="ValueFunc.fs" />
+    <Compile Include="The.fs" />
+    <Compile Include="HasDefault.fs" />
+    <Compile Include="HeteloList.fs" />
+    <Compile Include="Buffer.fs" />
+    <Compile Include="PooledBuffer.fs" />
+    <Compile Include="ImmutableArray.fs" />
+    <Compile Include="Option.fs" />
+    <Compile Include="Result.fs" />
+    <Compile Include="VOption.fs" />
+    <Compile Include="OrderedMap.fs" />
+    <Compile Include="ValueTuple.fs" />
+    <Compile Include="Fun.fs" />
+    <Compile Include="Field.fs" />
+    <Compile Include="Fiber.Types.fs" />
+    <Compile Include="Fiber.fs" />
+    <Compile Include="Generator.fs" />
+    <Compile Include="FiberBuilders.fs" />
+  </ItemGroup>
+  <Import Project="..\..\.paket\Paket.Restore.targets" />
+</Project>

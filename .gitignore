@@ -1,0 +1,13 @@
+obj/
+packages/
+paket-files/
+bin/
+build/
+.vs/
+.fake/
+.ionide/
+*.log
+privates/
+.paket/load/
+.paket/
+lcov.info

@@ -1,0 +1,22 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <OtherFlags>--warnon:1182</OtherFlags>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="Scratch.Serialization.Sb2.Syntax.fs" />
+    <Compile Include="Scratch.Serialization.Sb3.Ast.fs" />
+    <Compile Include="Scratch.Serialization.Sb3.Syntax.fs" />
+    <Compile Include="types.fs" />
+    <Compile Include="Packaging.fs" />
+    <Compile Include="Internal.fs" />
+    <Compile Include="Scratch.Package.fs" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Scratch.Json\Scratch.Json.fsproj" />
+    <ProjectReference Include="..\Scratch.Runtime\Scratch.Runtime.fsproj" />
+  </ItemGroup>
+  <Import Project="..\..\.paket\Paket.Restore.targets" />
+</Project>

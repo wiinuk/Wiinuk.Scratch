@@ -1,0 +1,27 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <OtherFlags>--warnon:1182</OtherFlags>
+    <WarningLevel>5</WarningLevel>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="types.fs" />
+    <Compile Include="Internal.fs" />
+    <Compile Include="MemberPatterns.fs" />
+    <Compile Include="Expr.fs" />
+    <Compile Include="Member.fs" />
+    <Compile Include="ExprPatterns.fs" />
+    <Compile Include="TypedMembers.fs" />
+    <Compile Include="TypedExprs.fs" />
+    <Compile Include="TypedExpression.fs" />
+    <Compile Include="Transformers.Transformer.fs" />
+    <Compile Include="Transformers.PredefinedTransformer.Helpers.fs" />
+    <Compile Include="Transformers.PredefinedTransformers.fs" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Scratch.Primitives\Scratch.Primitives.fsproj" />
+  </ItemGroup>
+  <Import Project="..\..\.paket\Paket.Restore.targets" />
+</Project>

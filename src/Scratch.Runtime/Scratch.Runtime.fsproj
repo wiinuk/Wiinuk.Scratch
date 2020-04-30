@@ -1,0 +1,42 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <OtherFlags>--warnon:1182</OtherFlags>
+    <WarningLevel>5</WarningLevel>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="Context.fs" />
+    <Compile Include="Document.fs" />
+    <Compile Include="Scratch.Primitives.LowerName.fs" />
+    <Compile Include="Scratch.Threading.fs" />
+    <Compile Include="Scratch.SValue.fs" />
+    <Compile Include="Scratch.Ast.fs" />
+    <Compile Include="Scratch.Attributes.fs" />
+    <Compile Include="Scratch.AstDefinitions.fs" />
+    <Compile Include="Scratch.Symbol.fs" />
+    <Compile Include="Scratch.Ast.rec.fs" />
+    <Compile Include="Scratch.Ast.operations.fs" />
+    <Compile Include="Scratch.runtimeTypes.fs" />
+    <Compile Include="Scratch.viewTypes.fs" />
+    <Compile Include="Scratch.Control.fs" />
+    <Compile Include="Scratch.fs" />
+    <Compile Include="Scratch.Console.fs" />
+    <Compile Include="Scratch.MemoryModel.word.fs" />
+    <Compile Include="Scratch.Reflection.MemberId.fs" />
+    <Compile Include="Scratch.MemoryModel.fs" />
+    <Compile Include="Scratch.MemoryModel.Vector.fs" />
+    <Compile Include="Scratch.MemoryModel.Allocator.fs" />
+    <Compile Include="Scratch.MemoryModel.VectorAllocateOperations.fs" />
+    <Compile Include="Scratch.MemoryModel.Collector.fs" />
+    <Compile Include="Scratch.Pretty.types.fs" />
+    <Compile Include="Scratch.PrettyInternal.fs" />
+    <Compile Include="Scratch.Pretty.fs" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Scratch.Primitives\Scratch.Primitives.fsproj" />
+    <ProjectReference Include="..\Scratch.Reflection\Scratch.Reflection.fsproj" />
+  </ItemGroup>
+  <Import Project="..\..\.paket\Paket.Restore.targets" />
+</Project>

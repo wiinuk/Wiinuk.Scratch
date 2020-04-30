@@ -1,0 +1,34 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <OtherFlags>--warnon:1182</OtherFlags>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="IdentityBuilder.fs" />
+    <Compile Include="PartialIsomorphisms.fs" />
+    <Compile Include="PartialIsomorphisms.Iso.fs" />
+    <Compile Include="PartialIsomorphisms.Internal.fs" />
+    <Compile Include="PartialIsomorphisms.Reflected.Iso.fs" />
+    <Compile Include="Json.fs" />
+    <Compile Include="Utf8.fs" />
+    <Compile Include="Utf8.JsonParsingException.fs" />
+    <Compile Include="Utf8.JsonReader.fs" />
+    <Compile Include="Utf8.JsonWriter.fs" />
+    <Compile Include="Utf8.DoubleSyntax.fs" />
+    <Compile Include="Utf8.CollectionOperations.fs" />
+    <Compile Include="Utf8.CollectionSyntax.fs" />
+    <Compile Include="Utf8.KeyValueCollectionSyntax.fs" />
+    <Compile Include="Utf8.Internal.fs" />
+    <Compile Include="Utf8.Syntaxes.fs" />
+    <Compile Include="Utf8.ArraySyntaxes.fs" />
+    <Compile Include="Utf8.ObjectSyntaxes.fs" />
+    <Compile Include="Utf8.Syntax.fs" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Scratch.Primitives\Scratch.Primitives.fsproj" />
+    <ProjectReference Include="..\Scratch.Reflection\Scratch.Reflection.fsproj" />
+  </ItemGroup>
+  <Import Project="..\..\.paket\Paket.Restore.targets" />
+</Project>

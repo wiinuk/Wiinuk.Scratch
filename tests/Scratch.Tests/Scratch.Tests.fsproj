@@ -1,0 +1,56 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>netcoreapp3.1</TargetFramework>
+    <IsPackable>false</IsPackable>
+    <GenerateProgramFile>false</GenerateProgramFile>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Scratch.Evaluator\Scratch.Evaluator.fsproj" />
+    <ProjectReference Include="..\..\src\Scratch\Scratch.fsproj">
+      <Name>Scratch.fsproj</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\scratch-tester\scratch-tester.fsproj" />
+    <ProjectReference Include="..\Scratch.IsolatedTester\Scratch.IsolatedTester.fsproj" />
+    <ProjectReference Include="..\Scratch.Runtime.Tests\Scratch.Runtime.Tests.fsproj" />
+    <ProjectReference Include="..\Scratch.Test.Helpers\Scratch.Test.Helpers.fsproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="default.win32manifest">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="Sprite1.sprite2">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="Stage1.sb2">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <Compile Include="Scratch.Tests.fs" />
+    <Compile Include="Scratch.Value.Tests.fs" />
+    <Compile Include="Scratch.Evaluator.VersionCompatibility.Tests.fs" />
+    <Compile Include="Scratch.Evaluator.Tests.fs" />
+    <Compile Include="Scratch.Executor.Tests.fs" />
+    <Compile Include="Scratch.Transformers.Tests.fs" />
+    <Compile Include="Scratch.Ast.Transformers.Tests.fs" />
+    <Compile Include="Scratch.Transpiler.Sprite1.Tests.fs" />
+    <Compile Include="Scratch.Package.Tests.fs" />
+    <Compile Include="Scratch.Detranspiler.Typing.Tests.fs" />
+    <Compile Include="..\..\Shell.fsx" Link="Shell.fsx" />
+    <Compile Include="Scratch.Detranspiler.Test.CompilerProcess.fs" />
+    <Compile Include="Scratch.Detranspiler.Tests.fs" />
+    <Compile Include="Program.fs" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Diff.Match.Patch" Version="2.1.0" />
+    <PackageReference Include="FsCheck" Version="2.14.0" />
+    <PackageReference Include="coverlet.msbuild" Version="2.7.0">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="16.2.0" />
+    <PackageReference Include="xunit" Version="2.4.0" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="2.4.0" />
+    <PackageReference Include="coverlet.collector" Version="1.0.1" />
+  </ItemGroup>
+  <Import Project="..\..\.paket\Paket.Restore.targets" />
+</Project>

@@ -1,0 +1,26 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <OtherFlags>--warnon:1182</OtherFlags>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="Value.fs" />
+    <Compile Include="Codes.fs" />
+    <Compile Include="Types.fs" />
+    <Compile Include="Diagnostics.Printer.fs" />
+    <Compile Include="Builder.fs" />
+    <Compile Include="Blocks.fs" />
+    <Compile Include="Compiler.fs" />
+    <Compile Include="Executions.types.fs" />
+    <Compile Include="Executions.fs" />
+    <Compile Include="ExecutionConfig.fs" />
+    <Compile Include="Executor.fs" />
+    <Compile Include="Reflection.fs" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Scratch.Runtime\Scratch.Runtime.fsproj" />
+  </ItemGroup>
+  <Import Project="..\..\.paket\Paket.Restore.targets" />
+</Project>
