@@ -42,8 +42,9 @@ start "dotnet tool restore"
 start "dotnet paket restore"
 start "dotnet build --configuration Release src/Scratch"
 let parent = "src/Scratch/bin/Release"
-let package = Directory.EnumerateFiles(parent, "*.nupkg") |> Seq.exactlyOne
 start "dotnet paket pack --template src/Scratch/paket.template %s --version %s" parent args.version
+
+let package = Directory.EnumerateFiles(parent, "*.nupkg") |> Seq.exactlyOne
 if args.test
 then
     printfn "[test mode] dotnet nuget push %s --api-key %s --source https://api.nuget.org/v3/index.json" package (mask args.key 5)
