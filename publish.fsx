@@ -1,27 +1,37 @@
 #load "Shell.fsx"
-#load ".paket/load/netstandard2.0/Argu.fsx"
+//#r "nuget: Argu"
+//open Argu
 open System.IO
-open Argu
 
-type Argument =
-    | [<Mandatory; Unique>] Version of string
-    | [<Mandatory; Unique>] Key of string
-    | Test
-with
-    interface IArgParserTemplate with
-        member x.Usage =
-            match x with
-            | Version _ -> "package version."
-            | Key _ -> "nuget api key."
-            | Test -> "run of test mode."
+//type Argument =
+//    | [<Mandatory; Unique>] Version of string
+//    | [<Mandatory; Unique>] Key of string
+//    | Test
+//with
+//    interface IArgParserTemplate with
+//        member x.Usage =
+//            match x with
+//            | Version _ -> "package version."
+//            | Key _ -> "nuget api key."
+//            | Test -> "run of test mode."
 
 let args =
-    let parser = ArgumentParser.Create(programName = __SOURCE_FILE__)
-    let results = parser.ParseCommandLine(Array.tail fsi.CommandLineArgs)
+    //let parser = ArgumentParser.Create(programName = __SOURCE_FILE__)
+    //let results = parser.ParseCommandLine(Array.tail fsi.CommandLineArgs)
+    //{|
+    //    test = results.Contains Test
+    //    version = results.GetResult Version
+    //    key = results.GetResult Key
+    //|}
+    let args = List.ofArray fsi.CommandLineArgs
+    let find key xs =
+        xs
+        |> Seq.pairwise
+        |> Seq.pick (fun (k, v) -> if k = key then Some v else None)
     {|
-        test = results.Contains Test
-        version = results.GetResult Version
-        key = results.GetResult Key
+        test = List.contains "--test" args
+        version = find "--version" args
+        key = find "--key" args
     |}
 
 let mask s n =
