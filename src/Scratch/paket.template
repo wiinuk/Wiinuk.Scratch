@@ -1,7 +1,6 @@
 type project
 licenseUrl http://opensource.org/licenses/MIT
 id Wiinuk.Scratch
-version 0.1.4
 description scratch package
 authors Wiinuk
 include-referenced-projects true
