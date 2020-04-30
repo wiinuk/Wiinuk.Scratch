@@ -41,6 +41,7 @@ jobs:
 
   publish:
     if: contains(github.ref, 'tags/v')
+    needs: [test]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
@@ -57,4 +58,5 @@ jobs:
         with:
           dotnet-version: 3.1.201
 
-      - run: 'dotnet fsi ./publish.fsx --version ${GITHUB_REF##*/v} --key ${{ secrets.NUGET_OLG_API_KEY }} --test'
+      - name: Run publish script
+        run: 'dotnet fsi ./publish.fsx --version ${GITHUB_REF##*/v} --key ${{ secrets.NUGET_OLG_API_KEY }}'
