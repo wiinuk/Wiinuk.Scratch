@@ -38,3 +38,23 @@ jobs:
 
       - name: Run test script
         run: dotnet fsi ./test.fsx
+
+  publish:
+    if: contains(github.ref, 'tags/v')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+
+      - uses: actions/cache@v1
+        with:
+          path: ${{ env.NUGET_PACKAGES }}
+          key: ${{ runner.os }}-nuget-${{ hashFiles('**/packages.lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-nuget-
+
+      - name: Setup .NET Core
+        uses: actions/setup-dotnet@v1
+        with:
+          dotnet-version: 3.1.201
+
+      - run: 'dotnet fsi ./publish.fsx --version ${GITHUB_REF##*/v} --key ${{ secrets.NUGET_OLG_API_KEY }} --test'
