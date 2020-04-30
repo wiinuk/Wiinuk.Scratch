@@ -72,6 +72,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "files", "files", "{479ED87F
 		global.json = global.json
 		pack.fsx = pack.fsx
 		paket.dependencies = paket.dependencies
+		publish.fsx = publish.fsx
 		Shell.fsx = Shell.fsx
 		test.fsx = test.fsx
 	EndProjectSection
