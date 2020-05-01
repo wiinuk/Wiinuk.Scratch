@@ -196,17 +196,17 @@ let copyPropagationDoRepeatTest() =
     let stage = stageFromNoAtomicProcedure "p" [] [
         "x" <-. read "a"
         "y" <-. read "x"
-        A.doRepeat () (read "count") <| BlockExpression((), [
+        A.doRepeat () (read "count") () [
             "z" <-. read "x"
-        ])
+        ]
         "w" <-. read "x"
     ]
     let optimized = stageFromNoAtomicProcedure "p" [] [
         "x" <-. read "a"
         "y" <-. read "a"
-        A.doRepeat () (read "count") <| BlockExpression((), [
+        A.doRepeat () (read "count") () [
             "z" <-. read "x"
-        ])
+        ]
         "w" <-. read "x"
     ]
     stage
@@ -713,7 +713,7 @@ let eliminateDeadConditionExpressionTest() =
     // `doRepeat 1 $body` ( atomic ) => `$body`
     quickcheck <| fun count (NormalFloat body) ->
         let body = ["a" <-. n body]
-        let repeat = A.doRepeat () (Literal((), SNumber(double count))) (BlockExpression((), body))
+        let repeat = A.doRepeat () (Literal((), SNumber(double count))) () body
         stageFromAtomicDo [
             repeat
         ]
@@ -727,14 +727,14 @@ let eliminateDeadConditionExpressionTest() =
     // `doUntil $test $ifFalse` ( atomic, truthy $test ) => ``
     // `doUntil $test $ifFalse` ( false $test ) => `doForever $ifFalse`
     quickcheck <| fun test (NormalFloat ifFalse) ->
-        let ifFalse = BlockExpression((), ["a" <-. n ifFalse])
+        let ifFalse = ["a" <-. n ifFalse]
 
         stageFromAtomicDo [
-            A.doUntil () (Literal((), test)) ifFalse
+            A.doUntil () (Literal((), test)) () ifFalse
         ]
         |> optimize
         =? stageFromAtomicDo (
-            if SValue.toBool test then [] else [A.doForever () ifFalse]
+            if SValue.toBool test then [] else [A.doForever () () ifFalse]
         )
 
 [<Fact>]
