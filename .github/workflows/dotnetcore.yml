@@ -59,4 +59,4 @@ jobs:
           dotnet-version: 3.1.201
 
       - name: Run publish script
-        run: 'dotnet fsi ./publish.fsx --version ${GITHUB_REF##*/v} --key ${{ secrets.NUGET_OLG_API_KEY }}'
+        run: 'dotnet fsi ./publish.fsx --version ${GITHUB_REF##*/v} --project-url ${{ github.event.repository.html_url }} --key ${{ secrets.NUGET_OLG_API_KEY }}'
