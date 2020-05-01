@@ -27,7 +27,8 @@ let args =
     let find key xs =
         xs
         |> Seq.pairwise
-        |> Seq.pick (fun (k, v) -> if k = key then Some v else None)
+        |> Seq.tryPick (fun (k, v) -> if k = key then Some v else None)
+        |> Option.defaultWith (fun _ -> failwithf "ERROR: missing parameter: '%s'" key)
     {|
         test = List.contains "--test" args
         version = find "--version" args
