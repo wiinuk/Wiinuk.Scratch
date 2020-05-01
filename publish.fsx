@@ -15,13 +15,25 @@ open System.IO
 //            | Key _ -> "nuget api key."
 //            | Test -> "run of test mode."
 
+#nowarn "0386"
+[<Struct; StructuredFormatDisplay "{Display}"; NoEquality; NoComparison>]
+type SensitiveString = private SensitiveString of string with
+    member private x.Display = let (SensitiveString x) = x in String.replicate x.Length "*"
+    override x.ToString() = x.Display
+    override _.Equals _ = failwith ""
+    override _.GetHashCode() = failwith ""
+
+module SensitiveString =
+    let ofString x = SensitiveString x
+    let toString (SensitiveString x) = x
+
 let args =
     //let parser = ArgumentParser.Create(programName = __SOURCE_FILE__)
     //let results = parser.ParseCommandLine(Array.tail fsi.CommandLineArgs)
     //{|
     //    test = results.Contains Test
     //    version = results.GetResult Version
-    //    key = results.GetResult Key
+    //    key = SensitiveString.ofString <| results.GetResult Key
     //|}
     let args = List.ofArray fsi.CommandLineArgs
     let find key xs =
@@ -32,22 +44,21 @@ let args =
     {|
         test = List.contains "--test" args
         version = find "--version" args
-        key = find "--key" args
+        key = SensitiveString.ofString <| find "--key" args
+        projectUrl = find "--project-url" args
     |}
-
-let mask s n =
-    let n = max 0 (min n (String.length s))
-    s.[0..n-1] + String.replicate (s.Length - n) "*"
+printfn "args: %A" args
 
 start "dotnet tool restore"
 start "dotnet paket restore"
 start "dotnet build --configuration Release src/Scratch"
 let parent = "src/Scratch/bin/Release"
-start "dotnet paket pack --template src/Scratch/paket.template %s --version %s" parent args.version
+start "dotnet paket pack --template src/Scratch/paket.template --version %s --project-url %s %s" args.version args.projectUrl parent
 
 let package = Directory.EnumerateFiles(parent, "*.nupkg") |> Seq.exactlyOne
 if args.test
 then
-    printfn "[test mode] dotnet nuget push %s --api-key %s --source https://api.nuget.org/v3/index.json" package (mask args.key 5)
+    printfn "[test mode] dotnet nuget push %s --api-key %A --source https://api.nuget.org/v3/index.json" package args.key
 else
-    start "dotnet nuget push %s --api-key %s --source https://api.nuget.org/v3/index.json" package args.key
+    start "dotnet nuget push %s --api-key %s --source https://api.nuget.org/v3/index.json"
+        package (SensitiveString.toString args.key)
