@@ -182,7 +182,7 @@ let footerStatementValidationFailureTest() =
         StageData.defaultValue with
             scripts = [
                 A.whenGreenFlag "A" [
-                    A.doForever "B" (BlockExpression("", []))
+                    A.doForever "B" "" []
                     A.show "Show"
                 ]
             ]
@@ -231,9 +231,9 @@ let checkListMaxCountLimitTest() =
             ]
             scripts = [
                 A.whenGreenFlag () [
-                    A.doRepeat () (A.eNumber () 11.) (BlockExpression((), [
+                    A.doRepeat () (A.eNumber () 11.) () [
                         A.``append:toList:`` () "list" (A.eString () "abc")
-                    ]))
+                    ]
                 ]
             ]
     }

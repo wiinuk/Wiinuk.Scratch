@@ -332,9 +332,9 @@ module Expressions =
     let ``setLine:ofList:to:`` p name line value = ComplexExpression(p, O.``setLine:ofList:to:``, [line; sString p name; value])
     let ``insert:at:ofList:`` p name line value = ComplexExpression(p, O.``insert:at:ofList:``, [value; line; sString p name])
 
-    let doForever p body = ComplexExpression(p, O.doForever, [Block body])
-    let doRepeat p count body = ComplexExpression(p, O.doRepeat, [count; Block body])
-    let doUntil p test ifFalse = ComplexExpression(p, O.doUntil, [test; Block ifFalse])
+    let doForever p pBody body = ComplexExpression(p, O.doForever, [Block(block pBody body)])
+    let doRepeat p count pBody body = ComplexExpression(p, O.doRepeat, [count; Block(block pBody body)])
+    let doUntil p test pIfFalse ifFalse = ComplexExpression(p, O.doUntil, [test; Block(block pIfFalse ifFalse)])
     let doWaitUntil p test = ComplexExpression(p, O.doWaitUntil, [test])
     let ``wait:elapsed:from:`` p seconds = ComplexExpression(p, O.``wait:elapsed:from:``, [seconds])
     let broadcast p name = ComplexExpression(p, O.``broadcast:``, [sString p name])

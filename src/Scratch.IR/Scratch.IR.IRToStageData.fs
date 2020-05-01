@@ -605,9 +605,9 @@ module private BuilderHelpers =
                     s (A.``=`` s (A.``lineCountOfList:`` s stackPool) (A.eNumber s 0.))
                     s [
                         A.``setVar:to:`` s resultName (A.``+`` s (A.``lineCountOfList:`` s stackMemory) (A.eNumber s 1.))
-                        A.doRepeat s (A.eNumber s (capacity + 1.)) (BlockExpression(s, [
+                        A.doRepeat s (A.eNumber s (capacity + 1.)) s [
                             A.``append:toList:`` s stackMemory (Literal(s, c.uninitValue))
-                        ]))
+                        ]
                         A.``setLine:ofList:to:`` s stackMemory result (A.``+`` s result (A.eNumber s (capacity + 1.)))
                     ]
                     s [
@@ -1161,7 +1161,7 @@ module private Emitters =
         let bodyAcc = List.ofSeq bodyAcc
 
         Builder.accumulateStatements b countAcc
-        A.doRepeat state count' (BlockExpression(body.source, bodyAcc)) |> Builder.accumulateStatement b
+        A.doRepeat state count' body.source bodyAcc |> Builder.accumulateStatement b
 
     // `doUntil test ifFalse` =>
     // acc: `acc...; testAcc..; doUntil test { ifFalseAcc...; testAcc...; }`
@@ -1178,7 +1178,7 @@ module private Emitters =
 
         Builder.accumulateStatements b acc
         Builder.accumulateStatements b testAcc
-        Builder.accumulateStatement b <| A.doUntil state test' (BlockExpression(test.source, ifFalseBody))
+        Builder.accumulateStatement b <| A.doUntil state test' test.source ifFalseBody
 
     // `doWaitUntil waitIfFalse` =>
     // acc: `doWaitUntil waitIfFalse`
@@ -1213,7 +1213,7 @@ module private Emitters =
         let bodyAcc = Builder.dropAccumulatedStatements b
 
         Builder.accumulateStatements b acc
-        Builder.accumulateStatement b <| A.doForever state (BlockExpression(body.source, List.ofSeq bodyAcc))
+        Builder.accumulateStatement b <| A.doForever state body.source (List.ofSeq bodyAcc)
 
     and convertOperand b (operand, spec) =
         match spec with
