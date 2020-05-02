@@ -125,6 +125,11 @@ module SensingOperations =
     // TODO:
     let mouseY<'a> = 0.
 
+    // TODO:
+    let answer<'a> = ""
+    // TODO:
+    let doAsk (_: string) = fiber { ThreadYieldForce }
+
 [<AutoOpen>]
 module SpriteOperations =
     let defineSprite sprite =
