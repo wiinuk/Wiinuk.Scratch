@@ -388,6 +388,10 @@ let asyncCallExpressions() = [
 
         | _ -> return! skip()
     }
+    single <@@ SensingOperations.doAsk @@> unaryWithE <| fun senv question e -> context {
+        let! question = transpileExpression senv question
+        return Exp.doAsk (getLoc e) question
+    }
 ]
 
 let asyncExpressionPlugin() = { new ExpressionPluginProcess() with member _.Invoke senv e = asyncExpressionPlugin' senv e }

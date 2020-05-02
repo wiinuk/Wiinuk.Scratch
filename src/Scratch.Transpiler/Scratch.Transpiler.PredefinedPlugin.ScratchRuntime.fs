@@ -405,6 +405,9 @@ let scratchCallExpressions() = [
     single <@@ SensingOperations.mouseY @@> nullaryWithS <| fun _ s -> context {
         return Exp.mouseY (SourceCode.tag s)
     }
+    single <@@ SensingOperations.answer @@> nullaryWithS <| fun _ s -> context {
+        return Exp.answer (SourceCode.tag s)
+    }
 ]
 
 let blockLikeCalls() = [
