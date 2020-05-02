@@ -2115,8 +2115,11 @@ let emptyRentStackTest() =
 [<Fact>]
 let doAskAndAnswerTest() =
     let view() =
+        let mutable question = ""
         StageView.poly { new StageView.IgnoreBase<_>() with
-              override _.ShowInputBox(v, f) = HUnit.toUnit <| Func.invoke &f (String.replicate 2 v)
+            override _.ShowStageQuestion q = question <- q
+            override _.HideStageQuestion() = question <- ""
+            override _.ShowInputBox(_, f) = HUnit.toUnit <| Func.invoke &f (String.replicate 2 question)
         }
     <@
     whenGreenFlag {
