@@ -13,6 +13,7 @@ open Scratch.Reflection.Member
 open Scratch.Ast
 open Scratch.Ast.Transformers
 open Scratch.Evaluator
+open Scratch.Executor
 open Scratch.Operators
 open Scratch.Transpiler
 open Pretty
@@ -408,7 +409,7 @@ let inlineProcedureTest2() =
                 ]
     }
 
-let startAsStdSpriteWith withTranspileConfig withEvaluateConfig e =
+let startAsStdSpriteWith' withTranspileConfig withEvaluateConfig withExecuteConfig e =
     let getOutput { Evaluator.stage = stage } =
         match Map.tryFind "output" stage.lists with
         | ValueNone -> []
@@ -433,7 +434,7 @@ let startAsStdSpriteWith withTranspileConfig withEvaluateConfig e =
 
         let state =
             image
-            |> Executor.Executor.runImage
+            |> Executor.Executor.runImageWith withExecuteConfig
 
         let stage = state.mainStage.stageState
         stage.entityImage.listVariables
@@ -449,6 +450,7 @@ let startAsStdSpriteWith withTranspileConfig withEvaluateConfig e =
     output2 =? output1
     output1
 
+let startAsStdSpriteWith withTranspileConfig withEvaluateConfig e = startAsStdSpriteWith' withTranspileConfig withEvaluateConfig id e
 let startAsStdSprite e = startAsStdSpriteWith id id e
 
 [<Fact>]
@@ -2109,3 +2111,23 @@ let emptyRentStackTest() =
     stage.lists
     |> Seq.tryFind (fun l -> l.listName <> "output")
     =? None
+
+[<Fact>]
+let doAskAndAnswerTest() =
+    let view() =
+        let mutable question = ""
+        StageView.poly { new StageView.IgnoreBase<_>() with
+            override _.ShowStageQuestion q = question <- q
+            override _.HideStageQuestion() = question <- ""
+            override _.ShowInputBox(_, f) = HUnit.toUnit <| Func.invoke &f (String.replicate 2 question)
+        }
+    <@
+    whenGreenFlag {
+        do! doAsk "abc"
+        outLine answer
+    }
+    startMainLoop()
+    @>
+
+    |> startAsStdSpriteWith' id (EvaluateConfig.withView <| view()) (ExecutionConfig.withView <| view())
+    =? ["abcabc"; ""]

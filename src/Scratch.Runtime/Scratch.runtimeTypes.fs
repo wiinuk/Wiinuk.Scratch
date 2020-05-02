@@ -39,6 +39,8 @@ type IStageView<'State> =
 
 module StageView =
     let moved (v: 'V byref when 'V :> IStageView<_> and 'V : struct) sprite oldIndex newIndex = v.Moved(sprite, oldIndex, newIndex)
+    let showInputBox (v: 'V byref when 'V :> IStageView<_> and 'V : struct) initialValue (onSubmit: _ byref) = v.ShowInputBox(initialValue, &onSubmit)
+    let showStageQuestion (v: 'V byref when 'V :> IStageView<_> and 'V : struct) question = v.ShowStageQuestion question
     let hideStageQuestion (v: 'V byref when 'V :> IStageView<_> and 'V : struct) = v.HideStageQuestion()
     let setPenArgb (v: 'V byref when 'V :> IStageView<_> and 'V : struct) sprite argb = v.SetPenArgb(sprite, argb)
     let penSize (v: 'V byref when 'V :> IStageView<_> and 'V : struct) sprite size = v.PenSize(sprite, size)
@@ -48,6 +50,9 @@ module StageView =
     let playSound (v: 'V byref when 'V :> IStageView<_> and 'V : struct) sprite index = v.PlaySound(sprite, index)
     let variableMonitorChanged (v: 'V byref when 'V :> IStageView<_> and 'V : struct) selfSprite variableName visibility = v.VariableMonitorChanged(selfSprite, variableName, visibility)
     let queryTouchingColor (v: 'V byref when 'V :> IStageView<_> and 'V : struct) self argb = v.QueryTouchingColor(self, argb)
+    let clearCanvas (v: 'V byref when 'V :> IStageView<_> and 'V : struct) = v.ClearCanvas()
+    let stampToCanvas (v: 'V byref when 'V :> IStageView<_> and 'V : struct) entity = v.StampToCanvas entity
+    let penDown (v: 'V byref when 'V :> IStageView<_> and 'V : struct) sprite isDown = v.PenDown(sprite, isDown)
 
     [<Struct; NoEquality; NoComparison>]
     type Ignore<'a> = | Ignore
@@ -70,6 +75,64 @@ module StageView =
             override _.QueryTouchingColor(_,_) = false
 
     let ignore = Ignore
+
+    [<AbstractClass>]
+    type IgnoreBase<'State>() =
+        let mutable view = Ignore
+
+        abstract Added: sprite: 'State -> unit
+        default _.Added sprite = added &view sprite
+        abstract Cloned: prototypeSprite: 'State * clonedSprite: 'State * insertedIndex: int -> unit
+        default _.Cloned(prototypeSprite, clonedSprite, insertedIndex) = cloned &view prototypeSprite clonedSprite insertedIndex
+        abstract Moved: sprite: 'State * oldIndex: int * newIndex: int -> unit
+        default _.Moved(sprite, oldIndex, newIndex) = moved &view sprite oldIndex newIndex
+        abstract Removed: cloneSprite: 'State * index: int -> unit
+        default _.Removed(cloneSprite, index) = removed &view cloneSprite index
+
+        abstract ClearCanvas: unit -> unit
+        default _.ClearCanvas() = clearCanvas &view
+        abstract StampToCanvas: entity: 'State -> unit
+        default _.StampToCanvas entity = stampToCanvas &view entity
+
+        abstract PenDown: sprite: 'State * isDown: bool -> unit
+        default _.PenDown(sprite, isDown) = penDown &view sprite isDown
+        abstract SetPenArgb: sprite: 'State * argb: struct(byte * byte * byte * byte) -> unit
+        default _.SetPenArgb(sprite, argb) = setPenArgb &view sprite argb
+        abstract PenSize: sprite: 'State * size: double -> unit
+        default _.PenSize(sprite, size) = penSize &view sprite size
+
+        abstract HideStageQuestion: unit -> unit
+        default _.HideStageQuestion() = hideStageQuestion &view
+        abstract ShowStageQuestion: question: string -> unit
+        default _.ShowStageQuestion question = showStageQuestion &view question
+        abstract ShowInputBox: initialValue: string * onSubmit: #IFunc<string, HUnit> byref -> unit
+        default _.ShowInputBox(initialValue, onSubmit) = showInputBox &view initialValue &onSubmit
+
+        abstract PlaySound: sprite: 'State * index: int -> unit
+        default _.PlaySound(sprite, index) = playSound &view sprite index
+
+        abstract VariableMonitorChanged: selfSprite: 'State * variableName: string * visibility: Visibility -> unit
+        default _.VariableMonitorChanged(selfSprite, variableName, visibility) = variableMonitorChanged &view selfSprite variableName visibility
+
+        abstract QueryTouchingColor: selfSprite: 'State * argb: struct(byte * byte * byte * byte) -> bool
+        default _.QueryTouchingColor(selfSprite, argb) = queryTouchingColor &view selfSprite argb
+
+        interface IStageView<'State> with
+            member v.Added sprite = v.Added sprite
+            member v.ClearCanvas() = v.ClearCanvas()
+            member v.Cloned(prototypeSprite, clonedSprite, insertedIndex) = v.Cloned(prototypeSprite, clonedSprite, insertedIndex)
+            member v.HideStageQuestion() = v.HideStageQuestion()
+            member v.Moved(sprite, oldIndex, newIndex) = v.Moved(sprite, oldIndex, newIndex)
+            member v.PenDown(sprite, isDown) = v.PenDown(sprite, isDown)
+            member v.PenSize(sprite, size) = v.PenSize(sprite, size)
+            member v.PlaySound(sprite, index) = v.PlaySound(sprite, index)
+            member v.QueryTouchingColor(selfSprite, argb) = v.QueryTouchingColor(selfSprite, argb)
+            member v.Removed(cloneSprite, index) = v.Removed(cloneSprite, index)
+            member v.SetPenArgb(sprite, argb) = v.SetPenArgb(sprite, argb)
+            member v.ShowInputBox(initialValue, onSubmit) = v.ShowInputBox(initialValue, &onSubmit)
+            member v.ShowStageQuestion question = v.ShowStageQuestion question
+            member v.StampToCanvas entity = v.StampToCanvas entity
+            member v.VariableMonitorChanged(selfSprite, variableName, visibility) = v.VariableMonitorChanged(selfSprite, variableName, visibility)
 
     [<Struct; NoEquality; NoComparison>]
     type Poly<'a,'O> when 'O :> IStageView<'a> and 'O : not struct = private { view: 'O }

@@ -948,6 +948,7 @@ module ExpSmartConstructorExtensions =
             let ``broadcast:`` source name = op source O.``broadcast:`` [name]
             let doBroadcastAndWait source name = op source O.doBroadcastAndWait [name]
             let doWaitUntil source isNext = op source O.doWaitUntil [isNext]
+            let doAsk source question = op source O.doAsk [question]
 
             let stopScripts source kind =
                 let kind = match kind with StopScriptKind.All -> "all" | StopScriptKind.ThisScript -> "this script"
@@ -958,6 +959,7 @@ module ExpSmartConstructorExtensions =
             let mousePressed source = op source O.mousePressed []
             let mouseX source = op source O.mouseX []
             let mouseY source = op source O.mouseY []
+            let answer source = op source O.answer []
 
             let xpos source = op source O.xpos []
             let ypos source = op source O.ypos []
