@@ -72,7 +72,7 @@ type RuntimeVersion =
     | Sb3
 
 [<NoComparison; NoEquality>]
-type EvaluateConfig<'a,'I,'O> = {
+type EvaluateConfig<'a,'I,'O,'C> = {
     version: RuntimeVersion
     showState: 'a -> string
     randomNext: struct(int * int) -> int
@@ -81,6 +81,7 @@ type EvaluateConfig<'a,'I,'O> = {
     useFilterNameCheck: bool
     useVariableDefinitionCheck: bool
     useLengthCheck: bool
+    useCloudValueCheck: bool
     listMaxLength: int option
     schedulerConfig: SchedulerConfig
 
@@ -89,6 +90,7 @@ type EvaluateConfig<'a,'I,'O> = {
 
     initialInput: 'I
     initialView: 'O
+    initialCloud: 'C
 }
 
 module EvaluateConfig =
@@ -103,6 +105,7 @@ module EvaluateConfig =
             useFilterNameCheck = false
             useVariableDefinitionCheck = false
             useLengthCheck = false
+            useCloudValueCheck = false
             listMaxLength = None
 
             schedulerConfig = {
@@ -117,6 +120,7 @@ module EvaluateConfig =
             userName = ""
             initialView = StageView.ignore
             initialInput = Input.nil
+            initialCloud = Cloud.offline()
         }
 
     let withView view config = {
@@ -128,12 +132,14 @@ module EvaluateConfig =
         useVariableDefinitionCheck = config.useVariableDefinitionCheck
         useFilterNameCheck = config.useFilterNameCheck
         useLengthCheck = config.useLengthCheck
+        useCloudValueCheck = config.useCloudValueCheck
         listMaxLength = config.listMaxLength
         schedulerConfig = config.schedulerConfig
         userId = config.userId
         userName = config.userName
         initialView = view
         initialInput = config.initialInput
+        initialCloud = config.initialCloud
     }
     let withInput input config = {
         version = config.version
@@ -144,12 +150,32 @@ module EvaluateConfig =
         useFilterNameCheck = config.useFilterNameCheck
         useVariableDefinitionCheck = config.useVariableDefinitionCheck
         useLengthCheck = config.useLengthCheck
+        useCloudValueCheck = config.useCloudValueCheck
         listMaxLength = config.listMaxLength
         schedulerConfig = config.schedulerConfig
         userId = config.userId
         userName = config.userName
         initialView = config.initialView
         initialInput = input
+        initialCloud = config.initialCloud
+    }
+    let withCloud cloud config = {
+        version = config.version
+        showState = config.showState
+        randomNext = config.randomNext
+        randomNextDouble = config.randomNextDouble
+        useRangeCheck = config.useRangeCheck
+        useFilterNameCheck = config.useFilterNameCheck
+        useVariableDefinitionCheck = config.useVariableDefinitionCheck
+        useLengthCheck = config.useLengthCheck
+        useCloudValueCheck = config.useCloudValueCheck
+        listMaxLength = config.listMaxLength
+        schedulerConfig = config.schedulerConfig
+        userId = config.userId
+        userName = config.userName
+        initialView = config.initialView
+        initialInput = config.initialInput
+        initialCloud = cloud
     }
 
 type SharedState = {
@@ -163,10 +189,11 @@ type SharedState = {
 }
 
 [<NoComparison; NoEquality>]
-type EvaluateState<'a,'I,'O> = {
+type EvaluateState<'a,'I,'O,'C> = {
     data: StageData<'a>
-    config: EvaluateConfig<'a,'I,'O>
+    config: EvaluateConfig<'a,'I,'O,'C>
 
+    clouds: string Set
     scheduler: 'a ObjectState Scheduler
     stage: 'a ObjectState
     sharedState: SharedState
@@ -178,6 +205,7 @@ type EvaluateState<'a,'I,'O> = {
     // サイズが不明な値型のコピーを回避するのと、値型フィールドの内部状態を変更することを許可するため、`mutable` にする
     mutable input: 'I
     mutable view: 'O
+    mutable cloud: 'C
 }
 
 [<Struct>]
@@ -186,8 +214,8 @@ type StackFlame<'a> = StackFlame of callerLocation: 'a * script: 'a Script * arg
 
 [<Struct>]
 [<NoComparison; NoEquality>]
-type BlockState<'a,'I,'O> = {
-    blockState: EvaluateState<'a,'I,'O>
+type BlockState<'a,'I,'O,'C> = {
+    blockState: EvaluateState<'a,'I,'O,'C>
     args: Map<string, SValue>
     isAtomic: bool
     self: 'a ObjectState
@@ -260,3 +288,13 @@ module internal Internals =
         match Map.tryFind name state.self.shared.procs with
         | ValueNone -> cfailwithf state location "procedure '%s' not found" name
         | ValueSome proc -> proc
+
+    let setCloudValue (state: _ inref) location name v =
+        if not <| SValue.isCloudValue v then
+            if state.blockState.config.useCloudValueCheck then
+                cfailwithf state location "invalid cloud value: serVar:to:, '%s' '%A'" name v
+        else
+            Cloud.set &state.blockState.cloud name v
+
+    let getCloudValue (state: _ inref) name =
+        Cloud.get &state.blockState.cloud name

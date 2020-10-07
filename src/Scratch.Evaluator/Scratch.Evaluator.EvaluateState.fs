@@ -12,6 +12,14 @@ let private addOriginalSprites state =
         StageView.added &state.view sprite
 
 let private ofStageDataCore config data =
+    let clouds =
+        data.variables
+        |> List.fold (fun xs v ->
+            match v.isPersistent with
+            | Persistent -> Set.add v.name xs
+            | NoPersistent -> xs
+        ) Set.empty
+
     let stage = ObjectState.ofEntityData (fun _ -> ValueNone) data
     let scheduler = Scheduler.make config.schedulerConfig
     let originalSprites =
@@ -31,6 +39,7 @@ let private ofStageDataCore config data =
         EvaluateState.data = data
         config = config
 
+        clouds = clouds
         scheduler = scheduler
         stage = stage
         sharedState = {
@@ -47,6 +56,7 @@ let private ofStageDataCore config data =
 
         input = config.initialInput
         view = config.initialView
+        cloud = config.initialCloud
     }
     state
 

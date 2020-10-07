@@ -114,7 +114,12 @@ and evaluateComplexExpression (state: _ inref) (ComplexExpression(location, op, 
     | O.costumeName, _ -> SString(getCostumeName state.self)
     | O.sceneName, _ -> SString(getCostumeName state.blockState.stage)
 
-    | O.readVariable, [Literal(_, SString name)] -> (getValueOrRaise &state location name).contents
+    | O.readVariable, [Literal(_, SString name)] ->
+        if Set.contains name state.blockState.clouds then
+            getCloudValue &state name
+        else
+            (getValueOrRaise &state location name).contents
+
     | O.``contentsOfList:``, [Literal(_, SString name)] -> SString(contentsOfList (getListOrRaise &state location name))
 
     | O.``getLine:ofList:``, [nth; Literal(_, SString name)] ->

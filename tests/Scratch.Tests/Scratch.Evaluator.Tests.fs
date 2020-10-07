@@ -284,3 +284,96 @@ let insertToListMaxLengthLimitTest() =
 
     state.stage.lists.["list"] |> Seq.map SValue.toString |> Seq.toList
     =? ["A"; "X"; "B"]
+
+[<Fact>]
+let cloudListValidationFailureTest() =
+    let stage = {
+        StageData.defaultValue with
+            lists = [
+                { ListData.make () "list" [] with isPersistent = Persistent }
+            ]
+    }
+    throws (lazy evaluateStage id stage)
+
+[<Fact>]
+let cloudVariableCountValidationFailureTest() =
+    let stage = {
+        StageData.defaultValue with
+            variables = [
+                for i in 1..11 do
+                    { VariableData.make () (sprintf "☁ x%d" i) SType.S with isPersistent = Persistent }
+            ]
+    }
+    throws (lazy evaluateStage id stage)
+
+[<Fact>]
+let cloudVariableInSpriteValidationFailureTest() =
+    let stage = {
+        StageData.defaultValue with
+            ObjectDataExtension = {
+                StageData.defaultValue.ObjectDataExtension with
+                    children = [
+                        Choice2Of3 {
+                            SpriteData.defaultValue with
+                                variables = [
+                                    { VariableData.make () "☁ x" SType.S with isPersistent = Persistent }
+                                ]
+                        }
+                    ]
+            }
+    }
+    throws (lazy evaluateStage id stage)
+
+[<Fact>]
+let cloudVariableSetStringFailureTest() =
+    let stage = {
+        StageData.defaultValue with
+            variables = [
+                { VariableData.make () "☁ x" SType.S with isPersistent = Persistent }
+            ]
+            scripts = [
+                A.whenGreenFlag () [
+                    A.``setVar:to:`` () "☁ x" (A.eString () "abc")
+                ]
+            ]
+    }
+    throws (lazy evaluateStage (fun c -> { c with useCloudValueCheck = true }) stage)
+
+[<Fact>]
+let changeCloud() =
+    let stage = {
+        StageData.defaultValue with
+            lists = [
+                ListData.make () "list" []
+            ]
+            variables = [
+                { VariableData.make () "☁ x" SType.N with isPersistent = Persistent }
+            ]
+            scripts = [
+                A.whenGreenFlag () [
+                    A.doRepeat () (A.eNumber () 3.) () [
+                        A.``append:toList:`` () "list" (A.readVariable () "☁ x")
+                    ]
+                ]
+            ]
+    }
+    let mutable map = Map.empty
+    let incrementCloud = Cloud.poly {
+        new ICloud with
+            override _.Get n =
+                let v =
+                    match Map.tryFind n map with
+                    | ValueSome v -> SNumber <| SValue.toNumber v + 1.
+                    | _ -> SValue.sZero
+
+                map <- Map.add n v map
+                v
+
+            override _.Set(n, x) = map <- Map.add n x map
+    }
+    let state =
+        stage
+        |> evaluateStage (EvaluateConfig.withCloud incrementCloud)
+
+    state.stage.lists.["list"] |> Seq.map SValue.toString |> Seq.toList
+    =? ["0"; "1"; "2"]
