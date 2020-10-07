@@ -48,7 +48,6 @@ let buildToBinary outDirectory source references assemblyName = async {
 
     do! File.WriteAllTextAsync(sourcePath, source) |> Async.AwaitTask
     do! XDocument(project).AsyncSave projectPath
-    do! File.WriteAllTextAsync(projectPath, project |> XDocument |> string) |> Async.AwaitTask
 
     do! startAsync "dotnet build --nologo \"%s\"" projectPath
     return outPath

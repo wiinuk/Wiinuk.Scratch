@@ -63,8 +63,13 @@ module IsTagValue =
     let obj (_: The<'t>) = the<Obj<'t>>
 
     module P = NativeInterop.NativePtr
-    let private enumToInt32 (x: 't when 't : enum<int32> and 't : unmanaged): int32 = P.read(P.ofVoidPtr<int32>(P.toVoidPtr &&x))
-    let private int32ToEnum (x: int32): 't when 't : enum<int32> and 't : unmanaged = P.read(P.ofVoidPtr<'t>(P.toVoidPtr &&x))
+    let private enumToInt32 (x: 't when 't : enum<int32> and 't : unmanaged): int32 =
+        let mutable x = x
+        P.read(P.ofVoidPtr<int32>(P.toVoidPtr &&x))
+
+    let private int32ToEnum (x: int32): 't when 't : enum<int32> and 't : unmanaged =
+        let mutable x = x
+        P.read(P.ofVoidPtr<'t>(P.toVoidPtr &&x))
 
     [<Struct>]
     type EnumInt32<'t> when 't : enum<int32> and 't : unmanaged =
