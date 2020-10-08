@@ -1,4 +1,4 @@
-module Scratch.Executor.Compiler
+﻿module Scratch.Executor.Compiler
 open System
 open Scratch
 open Scratch.Primitives
@@ -18,6 +18,11 @@ module CompilerConfig =
         convertStringLiteralsToNumbersIfPossible = true
     }
 
+type VariableHome = Stage | Sprite
+type VariableStorage =
+    | LocalStorage of VariableHome * Value Index
+    | CloudStorage
+
 type EmitEnvironment<'Ex,'a> = {
     config: CompilerConfig
 
@@ -29,6 +34,7 @@ type EmitEnvironment<'Ex,'a> = {
     entity: EntityData<'Ex,'a>
     sprite: SpriteDataExtension option
 
+    variableNameToStorage: Map<string, VariableStorage>
     parameterNameToIndex: Map<string, Value index>
     procedureNameToIndex: Map<ProcedureId, Procedure index> Lazy
     broadcastNameToIndex: Map<LowerName, Broadcast index> Lazy
@@ -53,21 +59,8 @@ let emit e code = emit' DVoid e code ()
 let defineLabel name e = defineLabel name e.withoutLocation.builder
 let markLabel e label = markLabel e.withoutLocation.builder label
 
-type VariableHome = Stage | Sprite
-
 let resolveScalarVariable env name =
-    match env.entity.variables |> List.tryFindIndex (fun v -> v.name = name) with
-    | Some i ->
-        let home = if env.entity.objName = env.stage.objName then Stage else Sprite
-        Some(home, Index.create<Value> i)
-
-    | None ->
-
-    match env.stage.variables |> List.tryFindIndex (fun v -> v.name = name) with
-    | Some i -> Some(Stage, Index.create<Value> i)
-
-    // TODO: undeclared variable to stage variable
-    | None -> None
+    Map.tryFind name env.variableNameToStorage
 
 let resolveListVariable env name =
     match env.entity.lists |> List.tryFindIndex (fun v -> v.listName = name) with
@@ -141,9 +134,10 @@ and emitComplexExpression env (ComplexExpression(location, operator, operands)) 
 
     | O.readVariable, [Literal(_, SString name)] ->
         match resolveScalarVariable env name with
-        | Some(Stage, i) -> emit' DScalar b Code.StageVariable i
-        | Some(Sprite, i) -> emit' DScalar b Code.SpriteVariable i
-        | None -> emit' DString b Code.String ""
+        | ValueSome(LocalStorage(Stage, i)) -> emit' DScalar b Code.StageVariable i
+        | ValueSome(LocalStorage(Sprite, i)) -> emit' DScalar b Code.SpriteVariable i
+        | ValueSome CloudStorage -> emit' DString b Code.CloudVariable name
+        | ValueNone -> emit' DString b Code.String ""
 
     | O.``contentsOfList:``, [Literal(_, SString name)] ->
         match resolveListVariable env name with
@@ -621,25 +615,23 @@ let rec emitStatement env (ComplexExpression(location, operator, operands)) =
     | O.``setVar:to:``, [Literal(_, SString name); e] ->
         emitExpression env e
         match resolveScalarVariable env name with
-        | Some(Stage, i) -> emit' DScalar b Code.SetStageVariable i
-        | Some(Sprite, i) -> emit' DScalar b Code.SetSpriteVariable i
-        | None -> emit b Code.Pop
+        | ValueSome(LocalStorage(Stage, i)) -> emit' DScalar b Code.SetStageVariable i
+        | ValueSome(LocalStorage(Sprite, i)) -> emit' DScalar b Code.SetSpriteVariable i
+        | ValueSome CloudStorage -> emit' DString b Code.SetCloudVariable name
+        | ValueNone -> emit b Code.Pop
 
     | O.``changeVar:by:``, [Literal(_, SString name); e] ->
+        let emitLocalChange operandDef get set env b i e =
+            emit' operandDef b get i    // ..., value
+            emitExpression env e        // ..., value, addValue
+            emit b Code.Add             // ..., value+addValue
+            emit' operandDef b set i    // ...
+
         match resolveScalarVariable env name with
-        | Some(Stage, i) ->
-            emit' DScalar b Code.StageVariable i    // ..., value
-            emitExpression env e                    // ..., value, addValue
-            emit b Code.Add                         // ..., value+addValue
-            emit' DScalar b Code.SetStageVariable i // ...
-
-        | Some(Sprite, i) ->
-            emit' DScalar b Code.SpriteVariable i
-            emitExpression env e
-            emit b Code.Add
-            emit' DScalar b Code.SetSpriteVariable i
-
-        | _ ->
+        | ValueSome(LocalStorage(Stage, i)) -> emitLocalChange DScalar Code.StageVariable Code.SetStageVariable env b i e
+        | ValueSome(LocalStorage(Sprite, i)) -> emitLocalChange DScalar Code.SpriteVariable Code.SetSpriteVariable env b i e
+        | ValueSome CloudStorage -> emitLocalChange DString Code.CloudVariable Code.SetCloudVariable env b name e
+        | ValueNone ->
             emitExpression env e
             emit b Code.Pop
 
@@ -872,6 +864,17 @@ let rec emitStatement env (ComplexExpression(location, operator, operands)) =
 and emitBlock env (BlockExpression(_, list)) =
     for e in list do emitStatement env e
 
+let collectStorageSpecs initialVariableEnv home entity =
+    entity.variables
+    |> Seq.mapi (fun i v ->
+        let storage =
+            match v.isPersistent with
+            | Persistent -> CloudStorage
+            | NoPersistent -> LocalStorage(home, Index.create<Value> i)
+        v.name, storage
+    )
+    |> Seq.fold (fun map (k, v) -> Map.add k v map) initialVariableEnv
+
 let collectStageProcedureIndexes stage =
     let collectEntityProcedures s entity =
         let objName = entity.objName
@@ -1052,6 +1055,7 @@ let compileToImageWith withConfig stage =
             |> Map.ofSeq
 
     let procedureNameToIndex = lazy collectStageProcedureIndexes stage
+    let variableNameToStorage = collectStorageSpecs Map.empty Stage stage
 
     let env = {
         config = config
@@ -1060,6 +1064,7 @@ let compileToImageWith withConfig stage =
         procedures = ResizeArray()
         instructionIndexToLocation = ref Map.empty
 
+        variableNameToStorage = variableNameToStorage
         parameterNameToIndex = Map.empty
         procedureNameToIndex = procedureNameToIndex
         broadcastNameToIndex = broadcastNameToIndex
@@ -1080,6 +1085,8 @@ let compileToImageWith withConfig stage =
             builder = env.builder
             procedures = env.procedures
             instructionIndexToLocation = env.instructionIndexToLocation
+
+            variableNameToStorage = collectStorageSpecs env.variableNameToStorage Sprite sprite
             parameterNameToIndex = env.parameterNameToIndex
             procedureNameToIndex = env.procedureNameToIndex
             broadcastNameToIndex = env.broadcastNameToIndex

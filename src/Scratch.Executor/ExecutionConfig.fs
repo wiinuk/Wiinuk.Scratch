@@ -19,11 +19,12 @@ module RuntimeVersion =
     let sb3 = Sb3
 
 
-type ExecutionConfig<'a,'Random,'Observer,'Input,'View,'Version> = {
+type ExecutionConfig<'a,'Random,'Observer,'Input,'View,'Cloud,'Version> = {
     random: 'Random
     observer: 'Observer
     input: 'Input
     view: 'View
+    cloud: 'Cloud
     version: 'Version
     showLocation: 'a -> string
 
@@ -38,6 +39,7 @@ module ExecutionConfig =
         input = config.input
         version = config.version
         view = config.view
+        cloud = config.cloud
 
         userId = config.userId
         userName = config.userName
@@ -49,6 +51,7 @@ module ExecutionConfig =
         input = config.input
         version = config.version
         view = config.view
+        cloud = config.cloud
 
         userId = config.userId
         userName = config.userName
@@ -60,6 +63,7 @@ module ExecutionConfig =
         input = value
         version = config.version
         view = config.view
+        cloud = config.cloud
 
         userId = config.userId
         userName = config.userName
@@ -71,6 +75,19 @@ module ExecutionConfig =
         input = config.input
         version = config.version
         view = value
+        cloud = config.cloud
+
+        userId = config.userId
+        userName = config.userName
+    }
+    let withCloud value config = {
+        showLocation = config.showLocation
+        random = config.random
+        observer = config.observer
+        input = config.input
+        version = config.version
+        view = config.view
+        cloud = value
 
         userId = config.userId
         userName = config.userName
@@ -82,6 +99,7 @@ module ExecutionConfig =
         input = config.input
         version = value
         view = config.view
+        cloud = config.cloud
 
         userId = config.userId
         userName = config.userName
@@ -91,6 +109,7 @@ module ExecutionConfig =
         observer = ExecutionObserver.ignore
         input = Input.nil
         view = StageView.ignore
+        cloud = Cloud.offline()
         version = RuntimeVersion.sb2
         showLocation = sprintf "%A"
 

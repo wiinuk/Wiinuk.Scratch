@@ -105,7 +105,7 @@ let registerWhenGreenFlags state =
     registerWhenGreenFlags &state.env state.mainStage
 
 [<Struct; RequireQualifiedAccess; NoEquality; NoComparison>]
-type AggregateCostom<'a,'Random,'Observer,'Input,'View,'Version>
+type AggregateCustom<'a,'Random,'Observer,'Input,'View,'Cloud,'Version>
     when
         'Random :> IRandom and
         'Random : struct and
@@ -115,6 +115,8 @@ type AggregateCostom<'a,'Random,'Observer,'Input,'View,'Version>
         'Input : struct and
         'View :> IStageView<'a EntityState> and
         'View : struct and
+        'Cloud :> ICloud and
+        'Cloud : struct and
         'Version :> IRuntimeVersion and
         'Version : struct
     = private {
@@ -122,6 +124,7 @@ type AggregateCostom<'a,'Random,'Observer,'Input,'View,'Version>
     mutable observer: 'Observer
     mutable input: 'Input
     mutable view: 'View
+    mutable cloud: 'Cloud
     mutable version: 'Version
 }
 with
@@ -154,6 +157,10 @@ with
         member this.ShowStageQuestion(question) = this.view.ShowStageQuestion(question)
         member this.StampToCanvas(entity) = this.view.StampToCanvas(entity)
         member this.VariableMonitorChanged(selfSprite, variableName, visibility) = this.view.VariableMonitorChanged(selfSprite, variableName, visibility)
+
+    interface ICloud with
+        member this.Set(n, v) = this.cloud.Set(n, v)
+        member this.Get n = this.cloud.Get n
 
     interface IRuntimeVersion with
         member this.LetterOf(env, target, nth) = this.version.LetterOf(&env, target, nth)
@@ -192,11 +199,12 @@ let makeEmptyStageState withConfig scheduler image =
         env = {
             scheduler = scheduler
             custom = {
-                AggregateCostom.random = config.random
-                AggregateCostom.observer = config.observer
-                AggregateCostom.input = config.input
-                AggregateCostom.view = config.view
-                AggregateCostom.version = config.version
+                AggregateCustom.random = config.random
+                AggregateCustom.observer = config.observer
+                AggregateCustom.input = config.input
+                AggregateCustom.view = config.view
+                AggregateCustom.cloud = config.cloud
+                AggregateCustom.version = config.version
             }
         }
         mainStage = stage
