@@ -1318,17 +1318,25 @@ module private TranspileExternalItemSpecs =
         let source = SourceCode.ofExpr init
         match p.PropertyType with
         | GenericType(d, [UnderlyingType _]) when d = typedefof<SList<_>> ->
+            let persistence = Persistence.ofMemberAttributes p
+            match persistence with
+            | Persistent -> InvalidPropertyPersistence(p, persistence) |> raiseError source
+            | NoPersistent ->
+
             let var = Var.newSimpleFromPropertyInfo senv.e p
-            let spec = registerList senv source (exportOfMember p) None var NoPersistent IArray.empty
+            let spec = registerList senv source (exportOfMember p) None var persistence IArray.empty
             addExternalSpec senv (propertyId p) (ListSpec spec)
 
             let senv' = senv |> map FE (map FItemEnvironment (fun e -> { e with depth = e.depth + 1 }))
             TranspileExternalItemSpecs(senv', init)**TranspileExternalPropertySpecs_2(senv, spec, init)**stack
 
         | UnderlyingType _ ->
+            match Persistence.ofMemberAttributes p, T.IsModule p.DeclaringType && p.CanWrite with
+            | Persistent, false -> PersistentVariablesMustBeWritable p |> raiseError source
+            | persistence, isMutable ->
+
             let t = underlyingMemberTypeOrRaise senv.e source p.PropertyType
-            let isMutable = T.IsModule p.DeclaringType && p.CanWrite
-            let spec = declareVariable (exportOfMember p) NoPersistent isMutable (config.propertyName p) t
+            let spec = declareVariable (exportOfMember p) persistence isMutable (config.propertyName p) t
             addExternalSpec senv (propertyId p) (VarSpec spec)
             let senv' = senv |> map FE (map FItemEnvironment (fun e -> { e with depth = e.depth + 1 }))
             TranspileExternalItemSpecs(senv', init)**TranspileExternalPropertySpecs_3(senv, spec, init)**stack

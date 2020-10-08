@@ -1,4 +1,4 @@
-[<AutoOpen>]
+ï»¿[<AutoOpen>]
 module Scratch.Transpiler.Environments
 open System
 open System.Diagnostics
@@ -162,6 +162,9 @@ module Error =
         | StorageVarNotFound of Id
 
         | WaitUntilAsyncConditionTooComplicated
+
+        | InvalidPropertyPersistence of PropertyInfo * Persistence
+        | PersistentVariablesMustBeWritable of PropertyInfo
 
     [<Struct>]
     type TranspileError = TranspileError of info: TranspileErrorInfo * source: SourceCode * stackTrace: StackTrace option
@@ -824,7 +827,7 @@ let removeClassInitCheck sprite body =
 module internal FixScratch3BoolExpr =
     let xunused = 10
 
-    // NOTE: Scratch3 ‚Å‚ÍAbool ‘¦’l‚Í•Û‘¶‚Å‚«‚È‚¢
+    // NOTE: Scratch3 ã§ã¯ã€bool å³å€¤ã¯ä¿å­˜ã§ããªã„
     /// `true` => `0 = 0`
     /// `false` => `0 = 1`
     let boolToKnownBooleanExpression l x =
@@ -933,7 +936,7 @@ let devirtualize thisType (m: MethodInfo) =
 
     match implMethod thisType m with
 
-    // m' ‚ª override ‚³‚ê‚È‚¢‚©Šm”F
+    // m' ãŒ override ã•ã‚Œãªã„ã‹ç¢ºèª
     | Some m' when thisType.IsValueType || thisType.IsSealed || m'.IsFinal -> Some m'
 
     | _ -> None
@@ -944,3 +947,11 @@ let (|NonVirtualInstanceCall|_|) = function
         | None -> None
         | Some m -> Some(this, m, args)
     | _ -> None
+
+[<AutoOpen>]
+module TranspilerPersistenceExtensions =
+    module Persistence =
+        let ofMemberAttributes (p: MemberInfo) =
+            if p.GetCustomAttributes<PersistentAttribute>(``inherit`` = true) |> Seq.isEmpty
+            then NoPersistent
+            else Persistent
