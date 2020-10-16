@@ -1,4 +1,4 @@
-module Scratch.Transpiler.Tests
+﻿module Scratch.Transpiler.Tests
 open Xunit
 open FSharp.Quotations
 open Scratch
@@ -2131,3 +2131,39 @@ let doAskAndAnswerTest() =
 
     |> startAsStdSpriteWith' id (EvaluateConfig.withView <| view()) (ExecutionConfig.withView <| view())
     =? ["abcabc"; ""]
+
+[<Fact>]
+let joinSingleListItemTest() =
+    <@
+    let list = defineList []
+    SList.push list "A"
+    SList.push list "B"
+
+    out (SList.join list)
+    @>
+    |> startAsStdSprite
+    =? ["AB"]
+
+[<Fact>]
+let joinNonSingleListItemTest() =
+    <@
+    let list = defineList []
+    SList.push list "A"
+    SList.push list "BC"
+
+    out (SList.join list)
+    @>
+    |> startAsStdSprite
+    =? ["A BC"]
+
+[<Fact>]
+let joinEmptyListItemTest() =
+    <@
+    let list = defineList []
+    SList.push list "A"
+    SList.push list ""
+
+    out (SList.join list)
+    @>
+    |> startAsStdSprite
+    =? ["A "]
