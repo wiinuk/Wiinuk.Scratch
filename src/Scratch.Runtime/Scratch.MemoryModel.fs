@@ -1,4 +1,4 @@
-namespace rec Scratch.MemoryModel
+ï»¿namespace rec Scratch.MemoryModel
 open FSharp.Reflection
 open Scratch
 open Scratch.Ast
@@ -23,6 +23,7 @@ type Member =
     | RecordField of PropertyId
     | UnionCaseField of UnionCaseFieldInfo
 
+[<CompilationRepresentation(CompilationRepresentationFlags.UseNullAsTrueValue)>]
 type MemberPath =
     | UnderlyingValue
     | UnionCaseTagField of unionDeclaringType: TypeId
@@ -36,6 +37,13 @@ type Kind =
 
 [<Struct>]
 type UnderlyingTypeSpec = UnderlyingTypeSpec of vType: VType * path: MemberPath * kind: Kind
+
+type ICustomLayoutShape =
+    inherit IShape
+    abstract ValueLayout: UnderlyingTypeSpec list option
+
+type ICustomLayout<'Shape> when 'Shape :> ICustomLayoutShape and 'Shape : struct = interface end
+
 module internal TypeSpecHelpers =
     open Scratch.Threading
     open System
@@ -68,6 +76,24 @@ module internal TypeSpecHelpers =
         |> dict
         |> Dictionary
         :> IReadOnlyDictionary<_,_>
+
+    [<Struct>]
+    type private DummyCustomLayoutShape =
+        interface ICustomLayoutShape with
+            member _.ValueLayout = None
+
+    let (|CustomLayoutShape|_|) (t: Type) =
+        t.GetInterfaces()
+        |> Seq.tryPick (function
+
+            // type t = interface ICustomLayout<shapeT>
+            // new shapeT().ValueLayout
+            | GenericType(d, [shapeT]) when d = typedefof<ICustomLayout<DummyCustomLayoutShape>> ->
+                let shape = Activator.CreateInstance shapeT :?> ICustomLayoutShape
+                Some shape.ValueLayout
+
+            | _ -> None
+        )
 
     let rec isZeroSizedType = function
         | t when t = typeof<unit> -> true
@@ -105,6 +131,10 @@ module internal TypeSpecHelpers =
         | None ->
 
         match t with
+
+        // type T = interface ICustomLayout
+        | CustomLayoutShape x -> x
+        
         | t when isZeroSizedType t -> Some []
 
         | t when t = typeof<obj> -> Some TypeSpec.collectableType
@@ -341,8 +371,8 @@ module TypeSpec =
             let cases = cases |> Seq.map fst |> Seq.toList
             ComplexUnion(case1, case2, cases) |> Some
 
-    // t ‚ª class ‚È‚ç t ‚Ì’l‚Ìƒƒ‚ƒŠã‚ÌƒŒƒCƒAƒEƒg‚ð•Ô‚·
-    // t ‚ª class ‚Å‚È‚¢‚È‚ç t ‚Ì’l‚ðƒƒ‚ƒŠã‚Éƒ{ƒbƒNƒX‰»‚µ‚½Žž‚ÌƒŒƒCƒAƒEƒg‚ð•Ô‚·
+    // t ãŒ class ãªã‚‰ t ã®å€¤ã®ãƒ¡ãƒ¢ãƒªä¸Šã®ãƒ¬ã‚¤ã‚¢ã‚¦ãƒˆã‚’è¿”ã™
+    // t ãŒ class ã§ãªã„ãªã‚‰ t ã®å€¤ã‚’ãƒ¡ãƒ¢ãƒªä¸Šã«ãƒœãƒƒã‚¯ã‚¹åŒ–ã—ãŸæ™‚ã®ãƒ¬ã‚¤ã‚¢ã‚¦ãƒˆã‚’è¿”ã™
     let memoryLayout = function
         | Choice1Of2 t ->
             match t with
@@ -368,7 +398,7 @@ module TypeSpec =
 
     let valueLayout = function
         | GeneratorType t
-        | AtomicType t -> TypeSpecHelpers.valueLayout t
+        | AtomicType t
         | t -> TypeSpecHelpers.valueLayout t
 
     let internal valueLayoutCached: Type -> _ = Fun.memoize valueLayout
@@ -386,10 +416,6 @@ module TypeSpec =
     let isZeroSizedType t = match underlyingType t with Some [] -> true | _ -> false
 
     let internal sizeRaw = function
-
-        // type 'T Sequence
-        | GenericTypeDefinition t when t = typedefof<_ Sequence> -> failwithf "sequence type size is undefined"
-
         | UnderlyingType t -> List.length t
         | t -> failwithf "size is undefined: %A" t
 
@@ -469,8 +495,13 @@ with
 module PointerOperations =
     let nil = Nil
 
+[<Struct>]
+type SequenceLayoutShape =
+    interface ICustomLayoutShape with
+        member _.ValueLayout = None
+
 type 'T Sequence = | Sequence with
-    interface ISyntaxInfrastructure
+    interface ICustomLayout<SequenceLayoutShape>
 
 module Sequence =
     let unsafeReference (Reference p: 'T Sequence Reference) index (Size size: 'T Size): 'T Reference = Reference <| p + index * size

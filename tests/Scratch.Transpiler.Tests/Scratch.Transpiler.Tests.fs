@@ -2167,3 +2167,28 @@ let joinEmptyListItemTest() =
     @>
     |> startAsStdSprite
     =? ["A "]
+
+[<Struct>]
+type CustomLayout1Shape =
+    interface ICustomLayoutShape with
+        member _.ValueLayout = Some [UnderlyingTypeSpec(Any, UnderlyingValue, Kind.Primitive)]
+
+type CustomLayout1 = class interface ICustomLayout<CustomLayout1Shape> end
+
+[<Struct>]
+type CustomLayout2Shape =
+    interface ICustomLayoutShape with
+        member _.ValueLayout =
+            let u = UnderlyingTypeSpec(Any, UnderlyingValue, Kind.Primitive)
+            Some [u; u]
+
+type CustomLayout2 = class interface ICustomLayout<CustomLayout2Shape> end
+
+[<Fact>]
+let customSizeTest() =
+    <@
+    Size.typeSize<CustomLayout1> |> Size.toNumber |> string |> outLine
+    Size.typeSize<CustomLayout2> |> Size.toNumber |> string |> outLine
+    @>
+    |> startAsStdSprite
+    =? ["1"; "2"; ""]
