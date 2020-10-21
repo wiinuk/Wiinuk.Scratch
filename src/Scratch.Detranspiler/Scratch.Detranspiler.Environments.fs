@@ -585,7 +585,7 @@ let registerCoreGlobalNames env specs =
     |> registerGlobalNames (fsharpCoreGlobalNames env)
     |> registerGlobalNames (coreGlobalNames env)
     
-let fleshLongName baseName specs =
+let freshLongName baseName specs =
     let enumName n i = n + "'" + string i
     if Map.containsKey (LongName([], baseName)) specs.fsNamespace then
         let rec aux i =
@@ -599,7 +599,7 @@ let fleshLongName baseName specs =
         baseName
 
 let registerVarOrList name specs =
-    let uniqueName = fleshLongName name specs
+    let uniqueName = freshLongName name specs
     let spec = { ValueSpec.uniqueName = uniqueName }
     let specs =
         { specs with
@@ -609,7 +609,7 @@ let registerVarOrList name specs =
     spec, specs
 
 let registerParameter (ParameterDefinition(name = name)) specs =
-    let uniqueName = fleshLongName name specs
+    let uniqueName = freshLongName name specs
     let spec = { ValueSpec.uniqueName = uniqueName }
     let specs =
         { specs with
@@ -630,7 +630,7 @@ let registerDataSpecs data specs =
 
         // 名前の型情報 ( `%s` など ) を削除
         let varName = escapeRegex.Replace(formatRegex.Replace(name, ""), "$1")
-        let uniqueName = fleshLongName varName specs
+        let uniqueName = freshLongName varName specs
 
         let spec = { uniqueName = uniqueName; procedure = p }
         let specs =
@@ -653,7 +653,7 @@ let registerDataSpecs data specs =
 
 let registerSpriteSpec sprite specs =
     let name = sprite.objName
-    let uniqueName = fleshLongName name specs
+    let uniqueName = freshLongName name specs
     let spec = { SpriteSpec.uniqueName = uniqueName }
     { specs with
         fsNamespace = Map.add (LongName([], uniqueName)) (SpriteSpec spec) specs.fsNamespace

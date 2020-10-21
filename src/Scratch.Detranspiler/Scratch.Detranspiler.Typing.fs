@@ -56,13 +56,13 @@ let getVariableOrAddWarning env location name = tryGetOrAddWarning env.procedure
 let getListOrAddWarning env location name = tryGetOrAddWarning env.procedureEnv location name env.procedureEnv.listSpecs ListNotFound
 let getProcedureOrAddWarning env location name = tryGetOrAddWarning env location name env.procedureSpecs ProcedureNotFound
 
-let fleshName vs baseName =
-    let isFleshName vs name = List.forall (fun (n, _) -> n <> name) vs
-    if isFleshName vs baseName then baseName else
+let freshName vs baseName =
+    let isFreshName vs name = List.forall (fun (n, _) -> n <> name) vs
+    if isFreshName vs baseName then baseName else
 
     let rec aux tvars baseName i =
         let name = baseName + "#" + string i
-        if isFleshName tvars name then name else aux tvars baseName (i + 1)
+        if isFreshName tvars name then name else aux tvars baseName (i + 1)
 
     aux vs baseName 1
 
@@ -75,7 +75,7 @@ let rec freeVarsType typeMap tvars = function
         | ValueSome t -> freeVarsType typeMap tvars t
         | ValueNone ->
             if List.exists (fun (_, vt) -> vt = var) tvars then tvars
-            else (fleshName tvars varName, var)::tvars
+            else (freshName tvars varName, var)::tvars
 
 let rec generalizeType typeMap tvars = function
     | V.Named(n, ts) -> T.Named(n, List.map (generalizeType typeMap tvars) ts)
