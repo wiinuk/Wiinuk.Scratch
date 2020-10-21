@@ -25,7 +25,7 @@ module private Helpers =
     module Namespace =
         let newNamespace naming = { names = HashSet(); keyToName = Dictionary(); naming = naming }
 
-        let private fleshName key { names = set; naming = naming } =
+        let private freshName key { names = set; naming = naming } =
             let rec aux i =
                 let n = naming(key, i)
                 if set.Add n then n else
@@ -36,7 +36,7 @@ module private Helpers =
             let mutable r = Unchecked.defaultof<_>
             if keyToName.TryGetValue(key, &r) then UniqueName r else
 
-            let uniqueName = fleshName key ns
+            let uniqueName = freshName key ns
             keyToName.Add(key, uniqueName)
             UniqueName uniqueName
 
