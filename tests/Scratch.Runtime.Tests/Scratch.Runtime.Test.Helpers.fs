@@ -25,6 +25,8 @@ let getNonNull = function NonNull x -> x
 [<Struct>]
 type FooterStatement<'a> = FooterStatement of 'a ComplexExpression
 
+let knownListenerHeaderMap = Map knownListenerHeaders
+
 type Arbs =
     static member KnownFooterStatementName() =
         knownAllOperatorMap
@@ -93,16 +95,41 @@ type Arbs =
         Arb.fromGenShrink(g, s)
 
     static member ListenerDefinition() =
+        let argumentGen spec = gen {
+            let! state = Arb.generate<_>
+            match spec with
+            | ListenerHeaderType.AnyOrKeyName
+            | ListenerHeaderType.EventName
+            | ListenerHeaderType.String ->
+                let! x = Arb.generate<_>
+                return Literal(state, SString x)
+
+            | ListenerHeaderType.Bool ->
+                let! x = Arb.generate<_>
+                return Literal(state, SBool x)
+
+            | ListenerHeaderType.Null ->
+                return Block(BlockExpression(state, []))
+        }
+        let isValidListenerArguments name arguments =
+            let specs = knownListenerHeaderMap.[name]
+            if List.length arguments <> List.length specs then false else
+
+            // TODO:
+            true
+
         let g = gen {
             let! state = Arb.generate<_>
             let! KnownListenerHeaderName name = Arb.generate<_>
-            let! arguments = Arb.generate<_>
+            let! arguments = knownListenerHeaderMap.[name] |> Gen.collectToSeq argumentGen
+            let arguments = arguments |> Seq.toList
             let! body = Arb.generate<_>
             return ListenerDefinition(state, name, arguments, body)
         }
         let s (ListenerDefinition(state, name, arguments, body)) = seq {
-            for state, KnownListenerHeaderName name, arguments, body in Arb.shrink (state, KnownListenerHeaderName name, arguments, body) ->
-                ListenerDefinition(state, name, arguments, body)
+            for state, KnownListenerHeaderName name, arguments, body in Arb.shrink (state, KnownListenerHeaderName name, arguments, body) do
+                if isValidListenerArguments name arguments then
+                    ListenerDefinition(state, name, arguments, body)
         }
         Arb.fromGenShrink(g, s)
 

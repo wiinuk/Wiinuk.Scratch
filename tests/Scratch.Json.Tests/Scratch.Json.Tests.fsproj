@@ -6,6 +6,9 @@
     <GenerateProgramFile>false</GenerateProgramFile>
   </PropertyGroup>
   <ItemGroup>
+    <None Include="adaptor.js">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
     <Compile Include="Scratch.Json.Test.Helpers.fs" />
     <Compile Include="Scratch.Json.Tests.fs" />
     <Compile Include="Scratch.Json.PartialIsomorphisms.Tests.fs" />
@@ -13,6 +16,7 @@
     <Compile Include="Scratch.Json.Parser.Test.Helpers.fs" />
     <Compile Include="Scratch.Json.Parser.Tests.fs" />
     <Compile Include="Scratch.Json.Utf8Syntax.Tests.fs" />
+    <Compile Include="Scratch.Serialization.Sb3.Test.Helpers.fs" />
     <Compile Include="Scratch.Serialization.Sb3.Tests.fs" />
     <Compile Include="Program.fs" />
   </ItemGroup>

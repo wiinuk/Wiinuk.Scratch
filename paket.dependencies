@@ -7,5 +7,8 @@ framework: netcore3.1, netstandard2.0, netstandard2.1
 nuget Argu
 nuget FParsec ~> 1.1
 nuget FSharp.Compiler.Service ~> 34.0
+nuget FSharp.SystemTextJson
 nuget Mono.Cecil ~> 0.11
+nuget SocketIoClientDotNet 1.0.2-beta1 beta
+nuget System.Text.Json
 nuget Utf8Json ~> 1.3

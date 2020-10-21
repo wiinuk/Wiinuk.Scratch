@@ -1,4 +1,4 @@
-[<AutoOpen>]
+﻿[<AutoOpen>]
 module Scratch.Package
 open System
 open System.IO
@@ -41,7 +41,7 @@ let readSb2Package sb2Path = async {
     use zip = ZipFile.OpenRead sb2Path
 
     let tryNameToInt n =
-        match Path.GetFileNameWithoutExtension n |> Int32.TryParse with
+        match Path.GetFileNameWithoutExtension(n + "") |> Int32.TryParse with
         | false, _ -> None
         | true, n -> Some n
 

@@ -23,7 +23,7 @@ let variableData = isoFromUnion3 <@ VariableData @>
 let jVariableData = jArray (jString ** jSValue ** jOptionalBoolItem) |>> variableData
 
 let listData = isoFromUnion3 <@ ListData @>
-let jListData = jArray (jString ** jList jSValue ** jOptionalBoolItem) |>> listData
+let jListData = jArray (jString ** jImmutableArray jSValue ** jOptionalBoolItem) |>> listData
 
 let broadcastData = {
     forward = BroadcastData >> Ok

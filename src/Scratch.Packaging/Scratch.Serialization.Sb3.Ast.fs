@@ -13,7 +13,8 @@ type 'a nullable = 'a option
 type VariableData = VariableData of name: string * initial: SValue * isCloud: bool
 
 // e.g. ["listName", []], ["listName", ["a"], true]
-type ListData = ListData of name: string * initial: SValue list * isCloud: bool
+type ListData = ListData of name: string * initial: SValue ImmutableArray * isCloud: bool
+[<Struct>]
 type BroadcastData = BroadcastData of name: string
 
 [<Struct>]
@@ -303,10 +304,10 @@ type Meta = {
     // e.g. "0.2.0-prerelease.20190116202234"
     vm: string
     // e.g. "Mozilla/5.0 ...", null
-    agent: string option
+    agent: string nullable
 }
-type Project<'Block> = {
-    targets: 'Block Target list
+type Project = {
+    targets: CompressedBlock Target list
     monitors: Monitor list
     // e.g. "pen"
     extensions: string list
