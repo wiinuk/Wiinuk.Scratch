@@ -105,6 +105,7 @@ with
     interface IsoR<'b,'a> with
         member f.Forward(x, result) = f.f.Reverse(&x, &result)
         member f.Reverse(x, result) = f.f.Forward(&x, &result)
+let reverseIso f = { Reverse.f = f }
 
 type ValueToTuple1<'a> = | ValueToTuple1 with
     interface IsoR<'a,HCons<'a,HUnit>> with

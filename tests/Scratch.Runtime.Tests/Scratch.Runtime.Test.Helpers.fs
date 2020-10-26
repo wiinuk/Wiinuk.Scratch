@@ -69,15 +69,103 @@ type Arbs =
         Arb.fromGenShrink(g, s)
 
     static member ComplexExpression() =
+        let literalGen = Arb.generate<_> |> Gen.map Literal
+        let literalOrComplexGen = Gen.sized <| fun size ->
+            if size <= 0 then literalGen else
+            Gen.oneof [
+                literalGen
+                Arb.generate<_> |> Gen.scaleSize (fun x -> x / 2) |> Gen.map Complex
+            ]
+        let stringsGen strings = gen {
+            let! state = Arb.generate<_>
+            let! x = Gen.elements strings
+            return [Expression.eString state x]
+        }
+        let blockGen = gen {
+            let! x = Arb.generate<_> |> Gen.scaleSize (fun x -> x / 2)
+            return [Block x]
+        }
+        let expressionGen = gen {
+            let! x = literalOrComplexGen
+            return [x]
+        }
+        let listVarGen = gen {
+            let! state = Arb.generate<_>
+            let! NonNull x = Arb.generate<_>
+            return [Expression.eString state x]
+        }
+        let reporterGen = stringsGen ["r"]
+        let rotationGen = stringsGen ["left-right"; "don't rotate"; "normal"]
+        let stopGen = stringsGen ["other scripts in sprite"; "other scripts in stage"]
+        let stopScriptGen = stringsGen ["all"; "this script"]
+        let varGen = gen {
+            let! state = Arb.generate<_>
+            let! NonNull x = Arb.generate<_>
+            return [Expression.eString state x]
+        }
+        let expressionsGen = Gen.listOf literalOrComplexGen
+        let operandGen = function
+            | OperandType.Block -> blockGen
+            | OperandType.Expression _ -> expressionGen
+            | OperandType.ListVariableExpression _ -> listVarGen
+            | OperandType.Reporter -> reporterGen
+            | OperandType.Rotation -> rotationGen
+            | OperandType.Stop -> stopGen
+            | OperandType.StopScript -> stopScriptGen
+            | OperandType.Variable -> varGen
+            | OperandType.VariadicExpressions -> expressionsGen
+
+        let isValidComplexExpressionOperands operand operands =
+            match Map.tryFind operand knownAllOperatorMap with
+            | ValueNone -> false
+            | ValueSome { operands = specs } ->
+
+            let (|ExpressionKind|_|) = function
+                | Literal _ -> Some Kind.Expression
+                | Block _ -> Some Kind.Statement
+                | Complex(ComplexExpression(operator = KnownOperatorInfo(ValueSome { kind = kind }))) -> Some kind
+                | _ -> None
+                
+            let validateAndTakeOperands = function
+                | OperandType.Expression _, ExpressionKind Kind.Expression::operands
+                | OperandType.Block, Block _::operands
+                | OperandType.ListVariableExpression _, EString _::operands
+                | OperandType.Reporter, EString _::operands
+                | OperandType.Rotation, EString _::operands
+                | OperandType.Stop, EString _::operands
+                | OperandType.StopScript, EString _::operands
+                | OperandType.Variable, EString _::operands ->
+                    Some operands
+
+                | OperandType.VariadicExpressions, operands ->
+                    operands |> List.takeWhile (function ExpressionKind Kind.Expression -> true | _ -> false) |> Some
+
+                | _ -> None
+
+            let rec isValidOperands operands specs =
+                match operands, specs with
+                | [], [] -> true
+                | _::_, [] -> false
+                | operands, s::specs ->
+
+                match validateAndTakeOperands (s, operands) with
+                | Some operands -> isValidOperands operands specs
+                | _ -> false
+
+            isValidOperands operands specs
+
         let g = gen {
             let! state = Arb.generate<_>
             let! KnownComplexExpressionName operator = Arb.generate<_>
-            let! operands = Arb.generate<_>
+        
+            let! operands = knownAllOperatorMap.[operator].operands |> Gen.collectToSeq operandGen
+            let operands = Seq.concat operands |> Seq.toList
             return ComplexExpression(state, operator, operands)
         }
         let s (ComplexExpression(state, operator, operands)) = seq {
-            for state, KnownComplexExpressionName operator, operands in Arb.shrink(state, KnownComplexExpressionName operator, operands) ->
-                ComplexExpression(state, operator, operands)
+            for state, KnownComplexExpressionName operator, operands in Arb.shrink(state, KnownComplexExpressionName operator, operands) do
+                if isValidComplexExpressionOperands operator operands then
+                    ComplexExpression(state, operator, operands)
         }
         Arb.fromGenShrink(g, s)
 
@@ -112,7 +200,10 @@ type Arbs =
                 return Block(BlockExpression(state, []))
         }
         let isValidListenerArguments name arguments =
-            let specs = knownListenerHeaderMap.[name]
+            match Map.tryFind name knownListenerHeaderMap with
+            | ValueNone -> false
+            | ValueSome specs ->
+
             if List.length arguments <> List.length specs then false else
 
             // TODO:
@@ -121,8 +212,7 @@ type Arbs =
         let g = gen {
             let! state = Arb.generate<_>
             let! KnownListenerHeaderName name = Arb.generate<_>
-            let! arguments = knownListenerHeaderMap.[name] |> Gen.collectToSeq argumentGen
-            let arguments = arguments |> Seq.toList
+            let! arguments = knownListenerHeaderMap.[name] |> Gen.collect argumentGen
             let! body = Arb.generate<_>
             return ListenerDefinition(state, name, arguments, body)
         }

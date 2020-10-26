@@ -30,6 +30,9 @@ const sb3ToSb3Json = async sb3ProjectJson => {
     const runtime = new Runtime()
     // runtime.attachStorage(newDummyStorage())
 
+    try { JSON.parse(sb3ProjectJson) }
+    catch (e) { e.source = sb3ProjectJson; throw e }
+
     const { targets } = await Sb3.deserialize(JSON.parse(sb3ProjectJson), runtime, undefined, undefined)
     runtime.targets = targets
 
@@ -114,33 +117,46 @@ let createInnerArgv = () => Yargs()
 
 let innerArgv = createInnerArgv()
 
+const errorToJsonable = (/** @type {Error} */ error) => {
+    /**
+     * @type {{ [K in keyof Error]: Error[K] }}
+     */
+    const result = Object.create(null)
+    function copyProps(error) {
+        if (error == null) { return }
 
-/*
-        ["roundtrip-json <jsonPath>"],
-        "Read and save the sb3 project.json file",
-        p => p
-            .positional("jsonPath", { type: "string", demandOption: true })
-            .option("encoding", { type: "string", default: "utf8" })
-            .option("outPath", { type: "string" }),
+        copyProps(Object.getPrototypeOf(error))
 
-        sb3ToSb3JsonFile
-    )
-    .command(
-        ["import-sb2-json <jsonPath>"],
-        "Read sb2 project.json and save the sb3 project.json file",
-        p => p
-            .positional("jsonPath", { type: "string", demandOption: true })
-            .option("encoding", { type: "string", default: "utf8" })
-            .option("outPath", { type: "string" }),
+        Object.getOwnPropertyNames(error).forEach(key =>
+            result[key] = error[key]
+        )
+        Object.getOwnPropertySymbols(error).forEach(key =>
+            result[key] = error[key]
+        )
+    }
+    copyProps(error)
+    return result
+}
 
-        sb2ToSb3JsonFile
-    )
-    .command(
-        ["write-specs <path>"],
-        "Write Sb2 spec map json file",
-        p => p.positional("path", { type: "string", demandOption: true }),
-        async ({ path }) => writeSb2Spec({ path })
-        */
+/**
+ * @template T
+ * @typedef {{ tag: "Ok", value: T } | { tag: "Error", value: unknown }} Result
+ */
+/**
+ * @template T
+ * @param {() => Promise<T>} asyncAction
+ * @returns {Promise<Result<T>>}
+ */
+const protectedCallAsync = async asyncAction => {
+    try {
+        return { tag: "Ok", value: await asyncAction() }
+    }
+    catch (e) {
+        if (e instanceof Error) { e = errorToJsonable(e) }
+        return { tag: "Error", value: e }
+    }
+}
+
 /**
  * @template {string} TName
  * @template TArgs
@@ -162,11 +178,12 @@ const startServer = (/** @type {{ id: string }} */ { id }) => {
             ipc.server.emit(socket, "echo", data)
         })
         ipc.server.on("exec", async (/** @type {CommandArgs} */ data, /** @type {import("net").Socket} */ socket) => {
-            let result = null
-            switch (data.name) {
-                case "roundtrip-json": result = await sb3ToSb3Json(data.args.projectJson); break
-                case "import-sb2-json": result = await sb2ToSb3Json(data.args.projectJson); break
-            }
+            const result = await protectedCallAsync(async () => {
+                switch (data.name) {
+                    case "roundtrip-json": return { projectJson: await sb3ToSb3Json(data.args.projectJson) }
+                    case "import-sb2-json": return { projectJson: await sb2ToSb3Json(data.args.projectJson) }
+                }
+            })
             ipc.server.emit(socket, "exec", result)
         })
         ipc.server.on("stop", () => {
@@ -175,20 +192,6 @@ const startServer = (/** @type {{ id: string }} */ { id }) => {
     })
     ipc.server.start()
 }
-
-// ipc.connectTo("world", function() {
-//   ipc.of.world.on("connect", function() {
-//     ipc.log("## connected to world ##", ipc.config.delay);
-//     ipc.of.world.emit("app.message", "ping");
-//   });
-//   ipc.of.world.on("disconnect", function() {
-//     ipc.log("disconnected from world");
-//   });
-//   ipc.of.world.on("app.message", function(data) {
-//     ipc.log("got a message from world : ", data);
-//   });
-//   console.log(ipc.of.world.destroy);
-// });
 
 createInnerArgv()
     .command(
