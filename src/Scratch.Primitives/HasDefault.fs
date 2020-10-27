@@ -16,11 +16,11 @@ module HasDefault =
             member _.GetDefault() = None
 
     [<Struct; NoEquality; NoComparison>]
-    type UncheckedDefult<'T> =
+    type UncheckedDefault<'T> =
         interface IHasDefaultShape<'T> with
             member _.GetDefault() = Unchecked.defaultof<_>
 
     let option: 't Option The = The
     /// Unchecked.defaultof<_>
-    let unchecked: 't UncheckedDefult The = The
-     
+    let unchecked: 't UncheckedDefault The = The
+    let unit: unit UncheckedDefault The = The

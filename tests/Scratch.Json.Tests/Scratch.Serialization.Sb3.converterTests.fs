@@ -168,7 +168,6 @@ module Helpers =
     let qcheck = Scratch.Json.Tests.qcheck
 
 
-
 namespace Scratch.Serialization.Sb3.Converter
 open Scratch
 open Scratch.Ast
@@ -182,27 +181,6 @@ open System
 open Xunit
 
 
-(*
-{OMap
-[(Id "rj:B4VJLj4jETz4ej?X.",
-  Complex
-    { opcode = Some "operator_mod"
-      next = None
-      parent = None
-      inputs =
-              OMap
-                [(Id "NUM1", SameBlockShadow (MathNumber (SNumber 10.0)));
-                 (Id "NUM2", SameBlockShadow (MathNumber (SNumber 20.0)))]
-      fields = OMap []
-      shadow = false
-      topLevel = true
-      x = Some 0.0
-      y = Some 0.0
-      comment = None
-      mutation = None });
- (Id "OS!sgNM;bF*w7n[x)i*F", Simple (MathNumber (SNumber 10.0)));
- (Id "L.)eLz%k(MNK9Lb~iEfR", Simple (MathNumber (SNumber 20.0)))]}
-*)
 module Tests =
     [<Fact>]
     let complexExpressionCompressTest() =
@@ -306,4 +284,16 @@ type IpcTests() =
     member _.exportAbsToSb3Test() =
         ComplexExpression((), O.abs, [Literal((), SNumber 0.)])
         |> Expression
+        |> exportScriptToSb3Property
+
+    [<Fact>]
+    member _.exportAnswerToSb3Test() =
+        ComplexExpression((), O.answer, [])
+        |> Expression
+        |> exportScriptToSb3Property
+
+    [<Fact>]
+    member _.exportEmptyWhenIReceiveToSb3Test() =
+        ListenerDefinition((), O.whenIReceive, [Literal((), SString "A")], BlockExpression((), []))
+        |> Listener
         |> exportScriptToSb3Property
