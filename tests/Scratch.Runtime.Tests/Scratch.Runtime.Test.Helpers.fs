@@ -69,7 +69,13 @@ let complexExpressionArb wrapSymbol (|UnwrapSymbol|) =
     let valueExpressionsGen = Gen.listOf literalOrValueComplexGen
     let operandGen = function
         | OperandType.Block -> blockGen
-        | OperandType.Expression _ -> valueExpressionGen
+        | OperandType.Expression t ->
+            match t with
+            | TsType.StringSs strings -> stringsGen strings
+
+            // TODO:
+            | _ -> valueExpressionGen
+
         | OperandType.ListVariableExpression _ -> listVarGen
         | OperandType.Reporter -> reporterGen
         | OperandType.Rotation -> rotationGen

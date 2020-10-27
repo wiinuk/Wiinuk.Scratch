@@ -68,6 +68,9 @@ let choiceTest() =
 let numberRoundtripEqualsTest() = qcheck <| roundtripEqualsProperty jNumber
 
 [<Fact>]
+let stringRoundtripEqualsTest() = qcheck <| roundtripEqualsProperty jString
+
+[<Fact>]
 let jsonTest() =
     parse json "[null, true, false]" =? Ok(Json.jarray [Json.jnull; Json.jtrue; Json.jfalse])
 
@@ -78,3 +81,8 @@ let optionalTupleItemTest() =
     print s ("a"^^None^^HUnit) =? Ok "[\"a\"]"
     parse s "[\"a\",true]" =? Ok("a"^^Some true^^HUnit)
     parse s "[\"a\"]" =? Ok("a"^^None^^HUnit)
+
+[<Fact>]
+let stringEscapeTest() =
+    let s = jString
+    print s "\u0019" =? Ok "\"\\u0019\""

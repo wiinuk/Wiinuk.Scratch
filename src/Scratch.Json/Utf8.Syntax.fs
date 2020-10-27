@@ -62,6 +62,7 @@ let box (syntax: _ ISyntax) = syntax
 
 // syntaxes
 open Scratch.Json.Utf8.Syntaxes
+
 let jNull = NullToHUnit
 let jString = StringToString
 let jNumber = NumberToDouble
@@ -80,7 +81,7 @@ let jNumberLiteral literal = {
 let jStringLiteral literal =
     let quoted =
         let mutable w = JsonWriter()
-        w.WriteString literal
+        writeString &w literal
         w.ToUtf8ByteArray()
     {
         literal = literal
