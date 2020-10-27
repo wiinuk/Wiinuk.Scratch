@@ -157,7 +157,6 @@ let makeScriptData (_s: The<'_s>) =
 
     let listener' = isoFromUnion1 <@ Listener @>
     let procedure' = isoFromUnion1 <@ Procedure @>
-    let expression' = isoFromUnion1 <@ Expression @>
 
     let expression =
         complexExpression ** jEmptyArray |> jArray |>> {

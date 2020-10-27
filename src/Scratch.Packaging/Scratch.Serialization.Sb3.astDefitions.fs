@@ -92,14 +92,13 @@ module Id =
 
         String builder
 
-    let idForEmptyBroadcastName = newUniqueId()
-    let createBroadcastId name =
-        let name =
-            match name with
-            | "" -> idForEmptyBroadcastName
-            | n -> n.ToLowerInvariant()
-
+    let createBroadcastIdCore (name: string) =
+        let name = name.ToLowerInvariant()
         escape name |> sprintf "broadcastMsgId-%s" |> create the<BroadcastPhantom>
+
+    let createBroadcastId = function
+        | "" -> ValueNone
+        | n -> createBroadcastIdCore n |> ValueSome
 
 module Color =
     /// 0x0099EE ⇒ "#0099ee"
@@ -139,28 +138,33 @@ module Project =
         meta = Meta.defaultValue
     }
 
-    let collectBroadcastsAtEntity map entity =
+    let collectBroadcastsAtEntity uniqueId map entity =
         entity.scripts
         |> List.fold (fun map s ->
+            let map =
+                match s.script with
+                | Listener(ListenerDefinition(name = O.whenIReceive; arguments = Literal(_, SString name)::_)) ->
+                    OMap.add (Id.createBroadcastId name |> VOption.defaultValue uniqueId) (BroadcastData <| name.ToLowerInvariant()) map
+                | _ -> map
+
             s.script
             |> Script.fold (fun map e ->
                 match e with
                 | ComplexExpression(operator = O.``broadcast:`` | O.doBroadcastAndWait; operands = Literal(value = SString name)::_) ->
-                    OMap.add (Id.createBroadcastId name) (BroadcastData name) map
-
+                    OMap.add (Id.createBroadcastId name |> VOption.defaultValue uniqueId) (BroadcastData <| name.ToLowerInvariant()) map
                 | _ -> map
             ) map
         ) map
 
-    let collectAllBroadcasts stage children =
+    let collectAllBroadcasts emptyNameId stage children =
         let map =
             children
             |> List.fold (fun map -> function
-                | Choice2Of3 s -> collectBroadcastsAtEntity map s
+                | Choice2Of3 s -> collectBroadcastsAtEntity emptyNameId map s
                 | _ -> map
             ) OMap.empty
 
-        collectBroadcastsAtEntity map stage
+        collectBroadcastsAtEntity emptyNameId map stage
 
     type InputSkeleton = {
         name: InputId
@@ -193,6 +197,8 @@ module Project =
         currentTargetIsStage: bool
         currentTargetId: string
         parentOperandSpec: ArgInfo voption
+        broadcastIdForEmptyBroadcastName: BroadcastId
+        broadcastNameForEmptyBroadcastName: SValue
 
         globalVariableNameToId: Map<struct(string * VariableType), VariableOrListId> ref
     }
@@ -539,7 +545,21 @@ module Project =
 
             | "VARIABLE" -> { field with id = Builder.createVariableId builder (SValue.toString operand) VariableType.Scalar |> Id.toString |> Some }
             | "LIST" -> { field with id = Builder.createVariableId builder (SValue.toString operand) VariableType.List |> Id.toString |> Some }
-            | "BROADCAST_OPTION" -> { field with id = Id.createBroadcastId (SValue.toString operand) |> Id.toString |> Some }
+            | "BROADCAST_OPTION" ->
+                let name = SValue.toString operand
+                { field with
+                    id =
+                        name
+                        |> Id.createBroadcastId
+                        |> VOption.defaultValue builder.broadcastIdForEmptyBroadcastName
+                        |> Id.toString
+                        |> Some
+
+                    value =
+                        match operand with
+                        | SString "" -> builder.broadcastNameForEmptyBroadcastName
+                        | _ -> operand
+                }
 
             | _ -> field
 
@@ -918,6 +938,59 @@ module Project =
             ) ids
         ) Set.empty
 
+    let fleshKey makeKey xs =
+        let rec aux i =
+            let newId = makeKey i
+            if Set.contains newId xs
+            then aux (i + 1)
+            else newId
+        aux 1
+
+    let broadcastNameForEmptyName broadcastIdForEmptyName broadcasts =
+        if not <| OMap.containsKey broadcastIdForEmptyName broadcasts then "message0" else
+
+        broadcasts
+        |> OMap.toSeqOrdered
+        |> Seq.map (fun kv ->
+            let (BroadcastData name) = kv.Value
+            name
+        )
+        |> Set
+        |> fleshKey (sprintf "message%d")
+
+    let collectAllBroadcastsAndEmptyId entity entityExtension =
+
+        // "broadcastMsgId-<uniqueId>"
+        let broadcastIdForEmptyName = Id.createBroadcastIdCore <| Id.newUniqueId()
+
+        // [""; "a"; "A"] ⇒
+        // OMap [
+        //     Id broadcastIdForEmptyName, BroadcastData ""
+        //     Id "broadcastMsgId-a", BroadcastData "a"
+        // ]
+        let broadcasts =
+            match entityExtension with
+            | Choice2Of2 _ -> OMap.empty
+            | Choice1Of2 { StageDataExtension.children = children } -> collectAllBroadcasts broadcastIdForEmptyName entity children
+
+        // "message<uniqueNumber>"
+        let broadcastNameForEmptyName = broadcastNameForEmptyName broadcastIdForEmptyName broadcasts
+        
+        // OMap [
+        //     Id broadcastIdForEmptyName, BroadcastData ""
+        //     Id "broadcastMsgId-a", BroadcastData "a"
+        // ] ⇒
+        // OMap [
+        //     Id broadcastIdForEmptyName, BroadcastData broadcastNameForEmptyName
+        //     Id "broadcastMsgId-a", BroadcastData "a"
+        // ]
+        let broadcasts =
+            match OMap.tryFind broadcastIdForEmptyName broadcasts with
+            | ValueNone -> broadcasts
+            | ValueSome _ -> OMap.add broadcastIdForEmptyName (BroadcastData broadcastNameForEmptyName) broadcasts
+
+        broadcasts, broadcastIdForEmptyName, broadcastNameForEmptyName
+
     let entityAsTarget globalVariableNameToId (entity, entityExtension) =
         let targetId = Id.newUniqueId()
 
@@ -926,11 +999,16 @@ module Project =
             | Choice1Of2 _ -> true
             | Choice2Of2 _ -> false
 
+        let broadcasts, broadcastIdForEmptyName, broadcastNameForEmptyName =
+            collectAllBroadcastsAndEmptyId entity entityExtension
+
         let builder = {
             currentTargetIsStage = isStage
             currentTargetId = targetId
             parentOperandSpec = ValueNone
             globalVariableNameToId = globalVariableNameToId
+            broadcastNameForEmptyBroadcastName = SString broadcastNameForEmptyName
+            broadcastIdForEmptyBroadcastName = broadcastIdForEmptyName
         }
         let variables = OMap.fromSeq <| seq {
             for { VariableData.name = name } as v in entity.variables do
@@ -947,11 +1025,6 @@ module Project =
                 KeyValuePair(id, ListData(v.listName, v.contents', isCloud = false))
         }
         let blocks = scriptDataListAsBlocks builder entity.scripts
-
-        let broadcasts =
-            match entityExtension with
-            | Choice1Of2 { StageDataExtension.children = children } -> collectAllBroadcasts entity children
-            | _ -> OMap.empty
 
         let costumes = [ for costume in entity.costumes do convertCostume isStage costume ]
         let sounds = [ for sound in entity.sounds do convertSound sound ]

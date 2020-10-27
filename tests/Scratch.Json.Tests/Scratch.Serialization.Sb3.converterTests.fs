@@ -31,6 +31,25 @@ type RenameState = {
 
 [<AutoOpen>]
 module Helpers =
+    open Scratch.Serialization.Sb3.OpCodeSpecs
+
+    let sb3OpcodeToBlockSpec =
+        sb2ExpressionSpecs
+        |> Seq.map (fun kv ->
+            let v = kv.Value
+            let inputs, fields =
+                v.argMap
+                |> List.fold (fun (inputs, fields) arg ->
+                    match arg with
+                    | EmptyArg -> inputs, fields
+                    | FieldArg(name, variableType) -> inputs, Map.add (Id.create the<FieldPhantom> name) {| variableType = variableType |} fields
+                    | InputArg(op, name, variableType) -> Map.add (Id.create the<InputPhantom> name) {| op = op; variableType = variableType |} inputs, fields
+                ) (Map.empty, Map.empty)
+
+            v.opcode, {| inputs = inputs; fields = fields |}
+        )
+        |> Map
+
     let newRenameState() = {
         oldIdToNewId = Dictionary()
         nextVariableIndex = 1
@@ -104,12 +123,32 @@ module Helpers =
         | Simple b -> normalizeSimpleBlock state b |> Simple
         | Complex b ->
 
+        let fieldNameToSpec =
+            sb3OpcodeToBlockSpec
+            |> Map.tryFind (Option.defaultValue "" b.opcode)
+            |> VOption.map (fun spec -> spec.fields)
+            |> VOption.defaultValue Map.empty
+
         { b with
             comment = b.comment |> Option.map (renameCommentId state)
             inputs =
                 b.inputs
-                |> OMap.map (fun _ input ->
+                |> OMap.map (fun name input ->
                     normalizeSimpleBlock state input
+                )
+
+            fields =
+                b.fields
+                |> OMap.map (fun name field ->
+                    let variableType = Map.tryFind name fieldNameToSpec |> VOption.bind (fun x -> x.variableType |> VOption.unbox)
+                    match variableType with
+                    | ValueSome VariableType.BroadcastMessage ->
+                        { field with
+                            name =
+                                let rename = Id.create the<_> >> renameBroadcastId state >> Id.toString
+                                field.name |> Option.map (Option.map rename)
+                        }
+                    | _ -> field
                 )
 
             next = b.next |> Option.map (renameBlockId state)
@@ -293,7 +332,7 @@ type IpcTests() =
         |> exportScriptToSb3Property
 
     [<Fact>]
-    member _.exportEmptyWhenIReceiveToSb3Test() =
-        ListenerDefinition((), O.whenIReceive, [Literal((), SString "A")], BlockExpression((), []))
+    member _.exportWhenIReceiveToSb3Test() =
+        ListenerDefinition((), O.whenIReceive, [Literal((), SString "")], BlockExpression((), []))
         |> Listener
         |> exportScriptToSb3Property
