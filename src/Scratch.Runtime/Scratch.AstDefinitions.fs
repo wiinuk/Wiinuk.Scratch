@@ -1,4 +1,4 @@
-module Scratch.AstDefinitions
+﻿module Scratch.AstDefinitions
 open Scratch.Ast
 open Scratch.Reflection
 open System.Text.RegularExpressions

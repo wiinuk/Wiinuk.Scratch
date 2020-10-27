@@ -66,63 +66,6 @@ type Monitor = {
     max: double option
 }
 
-(*
-/**
- * @template T
- * @typedef {[T, string|null]} StringOrNullInput
- */
-/**
- * @template T
- * @typedef {[T, string|null, string|null]} StringOrNullStringOrNullInput
- */
-/**
- * @template T
- * @typedef {[T, Value]} ValueInput
- */
-/**
- * @template T
- * @typedef {[T, Value, string]} ValueStringInput
- */
-/**
- * @template T
- * @typedef {[T, Value, string, number, number]} ValueStringNumberNumberInput
- */
-/**
- * @typedef { StringOrNullInput<typeof INPUT_SAME_BLOCK_SHADOW> | StringOrNullInput<typeof INPUT_BLOCK_NO_SHADOW> } StringOrNullInputs
- * @typedef { StringOrNullStringOrNullInput<typeof INPUT_DIFF_BLOCK_SHADOW> } StringOrNullStringOrNullInputs
- * @typedef { ValueInput<typeof MATH_NUM_PRIMITIVE> | ValueInput<typeof POSITIVE_NUM_PRIMITIVE> | ValueInput<typeof WHOLE_NUM_PRIMITIVE> | ValueInput<typeof INTEGER_NUM_PRIMITIVE> | ValueInput<typeof ANGLE_NUM_PRIMITIVE> | ValueInput<typeof COLOR_PICKER_PRIMITIVE> | ValueInput<typeof TEXT_PRIMITIVE> } ValueInputs
- * @typedef { ValueStringInput<typeof BROADCAST_PRIMITIVE> | ValueStringInput<typeof VAR_PRIMITIVE> | ValueStringInput<typeof LIST_PRIMITIVE> } ValueStringInputs
- * @typedef { ValueStringNumberNumberInput<typeof VAR_PRIMITIVE> | ValueStringNumberNumberInput<typeof LIST_PRIMITIVE> } ValueStringNumberNumberInputs
- * 
- * @typedef { StringOrNullInputs | ValueInputs | ValueStringInputs | StringOrNullStringOrNullInputs | ValueStringNumberNumberInputs } InputDescriptor
- * @typedef {InputDescriptor} CompressedInputData
- */
-
-const INPUT_SAME_BLOCK_SHADOW = 1; // unobscured shadow
-const INPUT_BLOCK_NO_SHADOW = 2; // no shadow
-const INPUT_DIFF_BLOCK_SHADOW = 3; // obscured shadow
-
-// math_number
-const MATH_NUM_PRIMITIVE = 4; // there's no reason these constants can't collide
-// math_positive_number
-const POSITIVE_NUM_PRIMITIVE = 5; // with the above, but removing duplication for clarity
-// math_whole_number
-const WHOLE_NUM_PRIMITIVE = 6;
-// math_integer
-const INTEGER_NUM_PRIMITIVE = 7;
-// math_angle
-const ANGLE_NUM_PRIMITIVE = 8;
-// colour_picker
-const COLOR_PICKER_PRIMITIVE = 9;
-// text
-const TEXT_PRIMITIVE = 10;
-// event_broadcast_menu
-const BROADCAST_PRIMITIVE = 11;
-// data_variable
-const VAR_PRIMITIVE = 12;
-// data_listcontents
-const LIST_PRIMITIVE = 13;
-*)
 type SimpleBlock =
     // null
     | EmptyBlock

@@ -113,6 +113,8 @@ module OMap =
 
     let empty = { nextIndex = 0; map = Map.empty; imap = Map.empty }
     let isEmpty map = Map.isEmpty map.map
+    let containsKey key map = Map.containsKey key map.map
+
     let add key value { nextIndex = i; map = map; imap = imap } =
         let imap =
             match Map.tryFind key map with

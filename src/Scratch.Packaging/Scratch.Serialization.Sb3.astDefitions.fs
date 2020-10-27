@@ -230,18 +230,16 @@ module Project =
         procedureNameAsArgMap procedureName
         |> List.choose (function InputArg(inputName = x) -> Some x | _ -> None)
 
-    let blockSpecFromOperator operator =
-        match Map.tryFind operator sb2ExpressionSpecs with
-        | ValueSome spec -> spec
-        | _ -> failwithf "undefined spec: %A" operator
-
+    let blockSpecFromOperator operator = Map.tryFind operator sb2ExpressionSpecs
     let blockSpecFromExpression (ComplexExpression(operator = operator) as expression) =
-        let spec = blockSpecFromOperator operator
-        match expression with
-        | ComplexExpression(_, O.call, Literal(_, SString procedureName)::_) ->
-            { spec with argMap = procedureNameAsArgMap procedureName }
+        blockSpecFromOperator operator
+        |> VOption.map (fun spec ->
+            match expression with
+            | ComplexExpression(_, O.call, Literal(_, SString procedureName)::_) ->
+                { spec with argMap = procedureNameAsArgMap procedureName }
 
-        | _ -> spec
+            | _ -> spec
+        )
 
     [<Struct>]
     type BlocksAcc<'Input> = {
@@ -370,6 +368,10 @@ module Project =
 
     let rec complexExpressionAsBlock builder (ComplexExpression(operator = operator; operands = operands) as expression) =
         let blockSpec = blockSpecFromExpression expression
+        match blockSpec with
+        | ValueNone -> ValueNone
+        | ValueSome blockSpec ->
+
         let block =
             { emptyBlock with
                 id = Id.newUniqueId() |> Id.create the<_>
@@ -442,13 +444,14 @@ module Project =
                 | _ -> block
 
             | _ -> block
-        block
+        ValueSome block
 
     and blockExpressionAsBlocks builder acc (BlockExpression(body = expressions)) =
         expressions
         |> List.fold (fun acc expression ->
-            let block = complexExpressionAsBlock builder expression
-            BlocksAcc.add acc block
+            match complexExpressionAsBlock builder expression with
+            | ValueSome block -> BlocksAcc.add acc block
+            | _ -> acc
         ) acc
 
     and convertInputOperand builder (inputOperator, inputName, _) block operand =
@@ -463,7 +466,7 @@ module Project =
         let operandBlocks, shadowObscured =
             match operand with
             | Block block -> blockExpressionAsBlocks builder BlocksAcc.empty block |> BlocksAcc.toList, true
-            | Complex operand -> [complexExpressionAsBlock builder operand], true
+            | Complex operand -> complexExpressionAsBlock builder operand |> ValueOption.toList, true
             | Literal _ -> [], false
 
         let struct(block, input) = appendInputOperandBlocks block input operandBlocks
@@ -597,9 +600,8 @@ module Project =
         |> blockExpressionAsBlocks builder BlocksAcc.empty
         |> BlocksAcc.toList
 
-    let scriptAsBlocks builder script =
-        match script with
-        | Expression e -> [complexExpressionAsBlock builder e]
+    let scriptAsBlocks builder = function
+        | Expression e -> complexExpressionAsBlock builder e |> ValueOption.toList
         | Statements body -> blockExpressionAsBlocks builder BlocksAcc.empty body |> BlocksAcc.toList
         | Procedure p -> procedureAsBlocks builder p
         | Listener l -> listenerAsBlocks builder l
@@ -783,6 +785,8 @@ module Project =
     let compressInputsInBlocks blocks =
         blocks
         |> OMap.foldOrdered (fun blocks id b ->
+            if not <| OMap.containsKey id blocks then blocks else
+
             match b with
             | CompressedBlock.Complex b ->
                 let struct(blocks, b) = compressInputsInBlock blocks b
@@ -903,7 +907,10 @@ module Project =
         |> List.fold (fun ids s ->
             s.script
             |> Script.fold (fun ids (ComplexExpression(operator = op)) ->
-                let spec = blockSpecFromOperator op
+                match blockSpecFromOperator op with
+                | ValueNone -> ids
+                | ValueSome spec ->
+
                 let id = spec.category
                 if id = "" || Set.contains id defaultExtensionIds then ids else
 

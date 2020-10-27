@@ -6,7 +6,20 @@ open Scratch.Primitives
 open System.Collections.Generic
 open Xunit
 
-
+module ComplexBlock =
+    let defaultValue = {
+        opcode = None
+        next = None
+        parent = None
+        inputs = OMap.empty
+        fields = OMap.empty
+        shadow = false
+        topLevel = false
+        x = None
+        y = None
+        comment = None
+        mutation = None
+    }
 type RenameState = {
     oldIdToNewId: Dictionary<string, string>
     mutable nextVariableIndex: int
@@ -154,17 +167,81 @@ module Helpers =
 
     let qcheck = Scratch.Json.Tests.qcheck
 
+
+
 namespace Scratch.Serialization.Sb3.Converter
 open Scratch
 open Scratch.Ast
+open Scratch.Primitives
 open Scratch.Serialization.Sb3
+open Scratch.Serialization.Sb3.Ast
 open Scratch.Serialization.Sb3.Test.Helpers
+open Scratch.Serialization.Sb3.Converter.Test
 open Scratch.Serialization.Sb3.Converter.Test.Helpers
 open System
 open Xunit
 
 
-type Tests() =
+(*
+{OMap
+[(Id "rj:B4VJLj4jETz4ej?X.",
+  Complex
+    { opcode = Some "operator_mod"
+      next = None
+      parent = None
+      inputs =
+              OMap
+                [(Id "NUM1", SameBlockShadow (MathNumber (SNumber 10.0)));
+                 (Id "NUM2", SameBlockShadow (MathNumber (SNumber 20.0)))]
+      fields = OMap []
+      shadow = false
+      topLevel = true
+      x = Some 0.0
+      y = Some 0.0
+      comment = None
+      mutation = None });
+ (Id "OS!sgNM;bF*w7n[x)i*F", Simple (MathNumber (SNumber 10.0)));
+ (Id "L.)eLz%k(MNK9Lb~iEfR", Simple (MathNumber (SNumber 20.0)))]}
+*)
+module Tests =
+    [<Fact>]
+    let complexExpressionCompressTest() =
+        let blockId = Id.create the<_>
+        let fieldId = Id.create the<_>
+
+        let e =
+            ComplexExpression((), Symbol.``%``, [
+                Expression.eNumber () 10.
+                Expression.eNumber () 20.
+            ])
+
+        let sb3Project =
+            { StageData.defaultValue with
+                scripts = [{ x = 0.; y = 0.; script = Expression e }]
+            }
+            |> Project.ofStage
+            |> normalizeProject
+
+        sb3Project.targets.[0].blocks =? OMap.ofSeq [
+            blockId "1", Complex {
+                ComplexBlock.defaultValue with
+                    opcode = Some "operator_mod"
+                    topLevel = true
+                    x = Some 0.
+                    y = Some 0.
+
+                    inputs = OMap.ofSeq [
+                        fieldId "NUM1", SameBlockShadow(
+                            MathNumber(SNumber 10.)
+                        )
+                        fieldId "NUM2", SameBlockShadow(
+                            MathNumber(SNumber 20.)
+                        )
+                    ]
+            }
+        ]
+
+type IpcTests() =
     let client = AdaptorJs.startServerAndConnect() |> Async.RunSynchronously
 
     let sb3NormalizeProperty script =
@@ -225,101 +302,8 @@ type Tests() =
         |> Procedure
         |> exportScriptToSb3Property
 
-(*
-テスト名:	Scratch.Serialization.Sb3.Converter.Tests.sb3NormalizePropertyTest
-テストの完全名:	Scratch.Json.Tests.Scratch.Serialization.Sb3.Converter.Tests.Scratch.Serialization.Sb3.Converter.Tests.sb3NormalizePropertyTest
-テスト ソース:	C:\Users\User\source\Repos\Wiinuk.Scratch\tests\Scratch.Json.Tests\Scratch.Serialization.Sb3.converterTests.fs : 行 193
-テスト成果:	失敗
-テスト継続期間:	0:00:00
-
-テスト名:	Scratch.Serialization.Sb3.Converter.Tests.sb3NormalizePropertyTest
-テスト成果:	失敗
-結果  のスタック トレース:	
-at Microsoft.FSharp.Core.PrintfModule.PrintFormatToStringThenFail@1637.Invoke(String message) in F:\workspace\_work\1\s\src\fsharp\FSharp.Core\printf.fs:line 1637
-   at <StartupCode$FsCheck>.$Runner.get_throwingRunner@363.FsCheck-IRunner-OnFinished(String name, TestResult testResult)
-   at FsCheck.Runner.check[a](Config config, a p)
-   at FsCheck.Check.One[Testable](Config config, Testable property)
-   at AssertionOperations.qcheckWith[a](FSharpFunc`2 withConfig, a property) in C:\Users\User\source\Repos\Wiinuk.Scratch\tests\Scratch.Test.Helpers\AssertionOperations.fs:line 44
-   at Scratch.Json.Tests.qcheck[a](a test) in C:\Users\User\source\Repos\Wiinuk.Scratch\tests\Scratch.Json.Tests\Scratch.Json.Tests.fs:line 19
-   at Scratch.Serialization.Sb3.Converter.Tests.sb3NormalizePropertyTest() in C:\Users\User\source\Repos\Wiinuk.Scratch\tests\Scratch.Json.Tests\Scratch.Serialization.Sb3.converterTests.fs:line 194
-結果  のメッセージ:	
-System.Exception : Falsifiable, after 4 tests (2 shrinks) (StdGen (1617369990,296809479)):
-Original:
-Listener
-  (ListenerDefinition
-     ((),whenKeyPressed,[Literal ((),SString "k
-")],BlockExpression ((),[])))
-Shrunk:
-Listener
-  (ListenerDefinition
-     ((),whenKeyPressed,[Literal ((),SString "")],BlockExpression ((),[])))
-with exception:
-System.Exception: Error: commandName: "roundtrip-json", error: {
-  "stack": "SyntaxError: Unexpected token ] in JSON at position 183
-  at JSON.parse (\u003Canonymous\u003E)
-  at sb3ToSb3Json (C:\\Users\\User\\source\\Repos\\Wiinuk.Scratch\\tests\\Scratch.Json.Tests\\bin\\Debug\\netcoreapp3.1\\adaptor.js:33:52)
-  at protectedCallAsync (C:\\Users\\User\\source\\Repos\\Wiinuk.Scratch\\tests\\Scratch.Json.Tests\\bin\\Debug\\netcoreapp3.1\\adaptor.js:170:72)
-  at protectedCallAsync (C:\\Users\\User\\source\\Repos\\Wiinuk.Scratch\\tests\\Scratch.Json.Tests\\bin\\Debug\\netcoreapp3.1\\adaptor.js:139:42)
-  at Server.ipc.server.on (C:\\Users\\User\\source\\Repos\\Wiinuk.Scratch\\tests\\Scratch.Json.Tests\\bin\\Debug\\netcoreapp3.1\\adaptor.js:168:34)
-  at Server.emit (C:\\Users\\User\\source\\Repos\\Wiinuk.Scratch\\node_modules\\event-pubsub\\es5.js:74:21)
-  at Server.gotData (C:\\Users\\User\\source\\Repos\\Wiinuk.Scratch\\node_modules\\node-ipc\\dao\\socketServer.js:194:14)
-  at Socket.emit (events.js:189:13)
-  at addChunk (_stream_readable.js:284:12)
-  at readableAddChunk (_stream_readable.js:261:13)",
-  "message": "Unexpected token ] in JSON at position 183"
-}
-   at Microsoft.FSharp.Core.PrintfModule.PrintFormatToStringThenFail@1637.Invoke(String message) in F:\workspace\_work\1\s\src\fsharp\FSharp.Core\printf.fs:line 1637
-   at Scratch.Serialization.Sb3.Test.Helpers.AdaptorJs.convertBy@148-1.Invoke(ValueTuple`2 _arg1) in C:\Users\User\source\Repos\Wiinuk.Scratch\tests\Scratch.Json.Tests\Scratch.Serialization.Sb3.Test.Helpers.fs:line 154
-   at Microsoft.FSharp.Control.AsyncPrimitives.CallThenInvokeNoHijackCheck[a,b](AsyncActivation`1 ctxt, FSharpFunc`2 userCode, b result1) in F:\workspace\_work\1\s\src\fsharp\FSharp.Core\async.fs:line 417
-   at Scratch.Serialization.Sb3.Test.Helpers.NodeIpcClientModule.sendAndResponse@67-5.Invoke(AsyncActivation`1 ctxt) in C:\Users\User\source\Repos\Wiinuk.Scratch\tests\Scratch.Json.Tests\Scratch.Serialization.Sb3.Test.Helpers.fs:line 67
-   at Microsoft.FSharp.Control.Trampoline.Execute(FSharpFunc`2 firstAction) in F:\workspace\_work\1\s\src\fsharp\FSharp.Core\async.fs:line 109
---- End of stack trace from previous location where exception was thrown ---
-   at Microsoft.FSharp.Control.AsyncResult`1.Commit() in F:\workspace\_work\1\s\src\fsharp\FSharp.Core\async.fs:line 350
-   at Microsoft.FSharp.Control.AsyncPrimitives.RunSynchronouslyInAnotherThread[a](CancellationToken token, FSharpAsync`1 computation, FSharpOption`1 timeout) in F:\workspace\_work\1\s\src\fsharp\FSharp.Core\async.fs:line 863
-   at Microsoft.FSharp.Control.AsyncPrimitives.RunSynchronously[T](CancellationToken cancellationToken, FSharpAsync`1 computation, FSharpOption`1 timeout) in F:\workspace\_work\1\s\src\fsharp\FSharp.Core\async.fs:line 890
-   at Microsoft.FSharp.Control.FSharpAsync.RunSynchronously[T](FSharpAsync`1 computation, FSharpOption`1 timeout, FSharpOption`1 cancellationToken) in F:\workspace\_work\1\s\src\fsharp\FSharp.Core\async.fs:line 1154
-   at Scratch.Serialization.Sb3.Converter.Tests.sb3NormalizeProperty(Script`1 script) in C:\Users\User\source\Repos\Wiinuk.Scratch\tests\Scratch.Json.Tests\Scratch.Serialization.Sb3.converterTests.fs:line 171
-   at <StartupCode$Scratch-Json-Tests>.$Scratch.Serialization.Sb3.converterTests.sb3NormalizePropertyTest@194.Invoke(Script`1 script) in C:\Users\User\source\Repos\Wiinuk.Scratch\tests\Scratch.Json.Tests\Scratch.Serialization.Sb3.converterTests.fs:line 194
-   at FsCheck.Testable.evaluate[a,b](FSharpFunc`2 body, a a)
-
-
-*)
-(*
-diff:
-{
-    targets = [
-        {
-            isStage = true
-            name = "Stage"
-            variables = OMap []
-            lists = OMap []
-            broadcasts = OMap []
-            blocks = OMap []
-            comments = OMap []
-            currentCostume = [- 0 -][+ -1 +].0
-            costumes = []
-            sounds = []
-            volume = Some 100.0
-            layerOrder = [- Some 0.0 -][+ None +]
-            tempo = Some 60.0
-            videoTransparency = Some 50.0
-            videoState = [- None -][+ Some On +]
-            textToSpeechLanguage = Some None
-            visible = None
-            x = None
-            y = None
-            size = None
-            direction = None
-            draggable = None
-            rotationStyle = None
-        }
-    ]
-    monitors = []
-    extensions = []
-    meta = {
-        semver = "3.0.0"
-        vm = "0.2.0[+ -prerelease.20201016122132 +]"
-        agent = Some "none"
-    }
-}
-*)
+    [<Fact>]
+    member _.exportAbsToSb3Test() =
+        ComplexExpression((), O.abs, [Literal((), SNumber 0.)])
+        |> Expression
+        |> exportScriptToSb3Property
