@@ -102,7 +102,9 @@ module Id =
 
 module Color =
     /// 0x0099EE ⇒ "#0099ee"
-    let numberToColorCode n = sprintf "#%06x" <| if n < 0 then n + 0xFFFFFF + 1 else n
+    let numberToColorCode n =
+        let x = if n < 0. then n + double 0xFFFFFF + 1. else n
+        sprintf "#%06x" <| int x
 
 module OpCodes =
     let [<Literal>] text = "text"
@@ -306,7 +308,6 @@ module Project =
                 else
 
                 SValue.toNumber fieldValue
-                |> int
                 |> Color.numberToColorCode
                 |> SString
 

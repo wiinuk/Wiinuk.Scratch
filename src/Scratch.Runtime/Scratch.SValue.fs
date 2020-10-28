@@ -138,7 +138,10 @@ module SValue =
         f.NaNSymbol <- ""
         f
 
-    let stringToNumber (x: string) =
+    let stringToNumber = function
+        | "" -> 0.
+        | x ->
+
         let mutable r = 0.
         if Double.TryParse(x, NumberStyles.Float, invariantCultureNumberFormatWithoutSymbol, &r) then r else
 
