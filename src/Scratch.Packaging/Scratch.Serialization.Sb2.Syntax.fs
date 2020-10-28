@@ -157,22 +157,43 @@ let makeScriptData (_s: The<'_s>) =
 
     let listener' = isoFromUnion1 <@ Listener @>
     let procedure' = isoFromUnion1 <@ Procedure @>
-    let expression' = isoFromUnion1 <@ Expression @>
-    let expressionOrStatements = {
-        forward = function
-            | BlockExpression(_, [ComplexExpression(operator = AstDefinitions.KnownOperatorInfo(ValueSome { kind = AstDefinitions.Kind.Expression })) as e]) ->
-                Ok <| Expression e
-            | x -> Ok <| Statements x
 
+    let expression =
+        complexExpression ** jEmptyArray |> jArray |>> {
+            forward = fun x ->
+                match x.vhead with
+                | ComplexExpression(operator = AstDefinitions.KnownOperatorInfo(ValueSome { AstDefinitions.kind = AstDefinitions.Kind.Expression })) as e ->
+                    e |> Expression |> Ok
+
+                | _ -> Iso.error "expression"
+
+            reverse = function
+                | Expression(ComplexExpression(operator = AstDefinitions.KnownOperatorInfo(ValueSome { AstDefinitions.kind = AstDefinitions.Kind.Expression })) as e) ->
+                    Ok { vhead = e; vtail = HUnit }
+
+                | _ -> Iso.error "expression"
+        }
+    let statements = {
+        forward = fun x -> Ok <| Statements x
         reverse = function
             | Statements x -> Ok x
             | _ -> Iso.error "expressionOrStatements"
     }
+    // ```ts
+    // type ComplexExpression = [operator: string, ...operands: Expression[]]
+    // type Statement = ComplexExpression /* kind = Statement */
+    // type Expression = ComplexExpression /* kind = Expression */ 
+    // type Script =
+    //     | [["procDef", ...unknown[]]]            // ⇔ Script.Procedure
+    //     | [[KnownListenerName, ...unknown[]]]    // ⇔ Script.Listener
+    //     | [Expression]                           // ⇔ Script.Expression ( kind = Expression )
+    //     | Statement[]                            // ⇔ Script.Statements
+    // ```
     let script =
         (listenerDefinition |>> listener') <|>
         (procedureDefinition |>> procedure') <|>
-        (block |>> expressionOrStatements) <|>
-        (complexExpression |>> expression')
+        expression <|>
+        (block |>> statements)
 
     let scriptData' = isoFromRecord <@ fun (r: _ ScriptData) -> r.x^^r.y^^r.script^^HUnit @>
     let scriptData =
