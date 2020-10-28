@@ -370,3 +370,13 @@ type IpcTests(fixture: IpcTestFixture) =
         ])
         |> Statements
         |> exportScriptToSb3Property
+
+    [<Fact>]
+    member _.exportExpressionBroadcast() =
+        BlockExpression((), [
+            ComplexExpression((), O.``broadcast:``, [
+                Expression.Complex(ComplexExpression((), O.answer, []))
+            ])
+        ])
+        |> Statements
+        |> exportScriptToSb3Property

@@ -152,7 +152,12 @@ module Project =
             s.script
             |> Script.fold (fun map e ->
                 match e with
-                | ComplexExpression(operator = O.``broadcast:`` | O.doBroadcastAndWait; operands = Literal(value = SString name)::_) ->
+                | ComplexExpression(operator = O.``broadcast:`` | O.doBroadcastAndWait; operands = name::_) ->
+                    let name =
+                        match name with
+                        | Literal(value = SString name) -> name
+                        | _ -> ""
+
                     OMap.add (Id.createBroadcastId name |> VOption.defaultValue uniqueId) (BroadcastData <| name.ToLowerInvariant()) map
                 | _ -> map
             ) map
@@ -974,7 +979,7 @@ module Project =
         aux 1
 
     let broadcastNameForEmptyName broadcastIdForEmptyName broadcasts =
-        if not <| OMap.containsKey broadcastIdForEmptyName broadcasts then "message0" else
+        if not <| OMap.containsKey broadcastIdForEmptyName broadcasts then "UNUSED_MESSAGE" else
 
         broadcasts
         |> OMap.toSeqOrdered

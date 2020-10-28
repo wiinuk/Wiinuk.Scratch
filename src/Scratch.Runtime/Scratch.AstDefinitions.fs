@@ -215,7 +215,7 @@ let private expressionTable xs =
 //     | Case0<"getUserId">
 //     | Case0<"getUserName">
 let private knownCallExpressions() = expressionTable [
-    O.getParam, LiteralLike, g0 ([opE gString; opS ["r"]], tValue)
+    O.getParam, LiteralLike, g0 ([op O.ParameterName; opS ["r"]], tValue)
     O.costumeName, Unknown, g0e0 gString
     O.sceneName, Unknown, g0e0 gString
     O.readVariable, HasSideEffect, g0 (v1 tValue)
@@ -441,8 +441,8 @@ let private knownStatements() = statementTable false [
     O.``say:``, Control.Next, g0s1 gString
     O.``think:duration:elapsed:from:``, Control.ForceYield, g0s2 gString gNumber
     O.``think:``, Control.Next, g0s1 gString
-    O.``changeGraphicEffect:by:``, Control.Next, g0 ([opS filterNames], gNumber)
-    O.``setGraphicEffect:to:``, Control.Next, g0 ([opS filterNames], gNumber)
+    O.``changeGraphicEffect:by:``, Control.Next, g0 ([opS filterNames; opE gNumber], gUnit)
+    O.``setGraphicEffect:to:``, Control.Next, g0 ([opS filterNames; opE gNumber], gUnit)
     O.filterReset, Control.Next, g0s0
     O.``changeSizeBy:``, Control.Next, g0s1 gNumber
     O.``setSizeTo:``, Control.Next, g0s1 gNumber
@@ -473,7 +473,7 @@ let private knownStatements() = statementTable false [
     O.``changePenSizeBy:``, Control.Next, g0s1 gNumber
     O.stampCostume, Control.Next, g0s0
     O.``setVar:to:``, Control.Next, g0s2 gString gUnknown
-    O.``changeVar:by:``, Control.Next, g0s2 gString gNumber
+    O.``changeVar:by:``, Control.Next, g0 ([op O.Variable; opE gNumber], gUnit)
     O.``append:toList:``, Control.Next, g1 "T" (fun t -> [opE t; op <| O.ListVariableExpression t], gUnit)
     O.``deleteLine:ofList:``, Control.Next, g1 "T" (fun t -> [opE (gNumber .|. G.StringSs ["all"; "random"; "any"; "last"]); op <| O.ListVariableExpression t], gUnit)
     O.``insert:at:ofList:``, Control.Next, g1 "T" (fun t -> [opE t; opE (gNumber .|. G.StringSs ["random"; "last"]); op <| O.ListVariableExpression t], gUnit)

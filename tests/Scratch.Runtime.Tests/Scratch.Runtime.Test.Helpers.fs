@@ -81,13 +81,11 @@ let complexExpressionArb wrapSymbol (|UnwrapSymbol|) =
         let! x = Arb.generate<_> |> Gen.scaleSize (fun x -> x / 2)
         return [Block x]
     }
-    let varGen = gen {
+    let stringLiteralGen = gen {
         let! state = Arb.generate<_>
         let! NonNull x = Arb.generate<_>
         return [Expression.eString state x]
     }
-    let listVarGen = varGen
-    let procedureNameGen = varGen
     let valueExpressionsGen = Gen.listOf <| literalOrValueComplexGen None
     let operandGen info =
         match info.operandType with
@@ -101,10 +99,12 @@ let complexExpressionArb wrapSymbol (|UnwrapSymbol|) =
             |> literalOrValueComplexGen
             |> Gen.map List.singleton
 
-        | OperandType.ListVariableExpression _ -> listVarGen
+        | OperandType.ListVariableExpression _
+        | OperandType.Variable
+        | OperandType.ProcedureName
+        | OperandType.ParameterName -> stringLiteralGen
+
         | OperandType.StringLiterals ss -> stringsGen ss
-        | OperandType.Variable -> varGen
-        | OperandType.ProcedureName -> procedureNameGen
         | OperandType.VariadicExpressions -> valueExpressionsGen
 
     let g = gen {
@@ -147,7 +147,7 @@ let complexExpressionArb wrapSymbol (|UnwrapSymbol|) =
                 | _ -> Some operands
 
             | OperandType.Block, Block _::operands
-            | OperandType.ListVariableExpression _, EString _::operands ->
+            | (OperandType.Variable | OperandType.ListVariableExpression _ | OperandType.ProcedureName | OperandType.ParameterName), EString _::operands ->
                 Some operands
 
             | OperandType.StringLiterals ss, EString(_, s)::operands when Set.contains s ss ->
@@ -156,7 +156,15 @@ let complexExpressionArb wrapSymbol (|UnwrapSymbol|) =
             | OperandType.VariadicExpressions, operands ->
                 operands |> List.takeWhile (function ExpressionKind Kind.Expression -> true | _ -> false) |> Some
 
-            | _ -> None
+
+            | OperandType.Expression _, _
+            | OperandType.Block, _
+            | OperandType.Variable, _
+            | OperandType.ProcedureName, _
+            | OperandType.ParameterName, _
+            | OperandType.StringLiterals _, _
+            | OperandType.ListVariableExpression _, _
+                -> None
 
         let rec isValidOperands operands specs =
             match operands, specs with

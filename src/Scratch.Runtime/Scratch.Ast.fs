@@ -315,6 +315,7 @@ type OperandType<'t> =
     | Variable
     | ListVariableExpression of itemType: 't
     | ProcedureName
+    | ParameterName
     | VariadicExpressions
     | StringLiterals of string Set
     | Block
