@@ -1,5 +1,5 @@
-type project
-licenseUrl http://opensource.org/licenses/MIT
+﻿type project
+licenseExpression MIT
 id Wiinuk.Scratch
 description scratch package
 authors Wiinuk
