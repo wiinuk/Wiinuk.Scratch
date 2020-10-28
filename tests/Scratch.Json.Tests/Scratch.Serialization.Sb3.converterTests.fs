@@ -262,8 +262,14 @@ module Tests =
             }
         ]
 
-type IpcTests() =
+type IpcTestFixture() =
     let client = AdaptorJs.startServerAndConnect() |> Async.RunSynchronously
+    member _.AdaptorJsClient = client
+    interface IDisposable with
+        member _.Dispose() = client.Dispose() |> Async.RunSynchronously
+
+type IpcTests(fixture: IpcTestFixture) =
+    let client = fixture.AdaptorJsClient
 
     let sb3NormalizeProperty script =
         let stage = scriptToStage script
@@ -285,26 +291,25 @@ type IpcTests() =
         sb3ProjectFromFs.targets.[0].blocks =? sb3ProjectFromJs.targets.[0].blocks
         sb3ProjectFromFs =? sb3ProjectFromJs
 
-    interface IDisposable with
-        member _.Dispose() = client.Dispose() |> Async.RunSynchronously
+    interface IClassFixture<IpcTestFixture>
 
     [<Fact>]
-    member _.sb3NormalizePropertyTest() = qcheck sb3NormalizeProperty
+    member _.normalize() = qcheck sb3NormalizeProperty
 
     [<Fact>]
-    member _.sb3NormalizeSimpleExpressionTest() =
+    member _.normalizeSimpleExpression() =
         Expressions.hide ()
         |> Expression
         |> sb3NormalizeProperty
 
     [<Fact>]
-    member _.sb3NormalizeWhenKeyPressedTest() =
+    member _.normalizeWhenKeyPressed() =
         ListenerDefinition((), O.whenKeyPressed, [Literal((), SString "0")], BlockExpression((), []))
         |> Listener
         |> sb3NormalizeProperty
 
     [<Fact>]
-    member _.sb3NormalizeColorSeesTest() =
+    member _.normalizeColorSees() =
         ComplexExpression((), O.``color:sees:``, [
             Literal((), SNumber 10.)
             Literal((), SNumber 20.)
@@ -313,47 +318,55 @@ type IpcTests() =
         |> sb3NormalizeProperty
 
     [<Fact>]
-    member _.exportScriptToSb3PropertyTest() = qcheck exportScriptToSb3Property
+    member _.export() = qcheck exportScriptToSb3Property
 
     [<Fact>]
-    member _.exportEmptyBlockToSb3Test() =
+    member _.exportEmptyBlock() =
         Statements(BlockExpression((), []))
         |> exportScriptToSb3Property
 
     [<Fact>]
-    member _.exportEmptyListenerToSb3Test() =
+    member _.exportEmptyListener() =
         ListenerDefinition((), O.whenClicked, [], BlockExpression((), []))
         |> Listener
         |> exportScriptToSb3Property
 
     [<Fact>]
-    member _.exportEmptyProcedureToSb3Test() =
+    member _.exportEmptyProcedure() =
         ProcedureDefinition((), "p", [], Atomic, BlockExpression((), []))
         |> Procedure
         |> exportScriptToSb3Property
 
     [<Fact>]
-    member _.exportAbsToSb3Test() =
+    member _.exportAbs() =
         ComplexExpression((), O.abs, [Literal((), SNumber 0.)])
         |> Expression
         |> exportScriptToSb3Property
 
     [<Fact>]
-    member _.exportAnswerToSb3Test() =
+    member _.exportAnswer() =
         ComplexExpression((), O.answer, [])
         |> Expression
         |> exportScriptToSb3Property
 
     [<Fact>]
-    member _.exportWhenIReceiveToSb3Test() =
+    member _.exportWhenIReceive() =
         ListenerDefinition((), O.whenIReceive, [Literal((), SString "")], BlockExpression((), []))
         |> Listener
         |> exportScriptToSb3Property
 
     [<Fact>]
-    member _.exportExpressionBroadcastToSb3Test() =
+    member _.exportBroadcast() =
         BlockExpression((), [
-            ComplexExpression((), O.``broadcast:``,[Literal((), SString "A")])
+            ComplexExpression((), O.``broadcast:``, [Literal((), SString "A")])
+        ])
+        |> Statements
+        |> exportScriptToSb3Property
+
+    [<Fact>]
+    member _.exportEmptyBroadcast() =
+        BlockExpression((), [
+            ComplexExpression((), O.``broadcast:``, [Literal((), SString "")])
         ])
         |> Statements
         |> exportScriptToSb3Property

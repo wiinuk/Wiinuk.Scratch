@@ -35,6 +35,7 @@ let complexExpressionArb wrapSymbol (|UnwrapSymbol|) =
     let anyValueGen = Arb.generate<SValue>
     let boolValueGen = Arb.generate<_> |> Gen.map SBool
     let numberValueGen = Arb.generate<_> |> Gen.map (fun (NormalFloat x) -> SNumber x)
+    let colorValueGen = Gen.choose (AstDefinitions.minColorCode, AstDefinitions.maxColorCode) |> Gen.map (fun x -> SNumber(double x))
     let stringValueGen = Arb.generate<_> |> Gen.map (fun (NonNull x) -> SString x)
 
     let rec valueGenFromTsType = function
@@ -55,6 +56,7 @@ let complexExpressionArb wrapSymbol (|UnwrapSymbol|) =
             if t = TsType.gBoolean then boolValueGen
             elif t = TsType.gNumber then numberValueGen
             elif t = TsType.gString then stringValueGen
+            elif t = TsType.gColor then colorValueGen
             else anyValueGen
 
     let valueGen = Option.map valueGenFromTsType >> Option.defaultValue anyValueGen
@@ -79,22 +81,22 @@ let complexExpressionArb wrapSymbol (|UnwrapSymbol|) =
         let! x = Arb.generate<_> |> Gen.scaleSize (fun x -> x / 2)
         return [Block x]
     }
-    let listVarGen = gen {
-        let! state = Arb.generate<_>
-        let! NonNull x = Arb.generate<_>
-        return [Expression.eString state x]
-    }
     let varGen = gen {
         let! state = Arb.generate<_>
         let! NonNull x = Arb.generate<_>
         return [Expression.eString state x]
     }
+    let listVarGen = varGen
+    let procedureNameGen = varGen
     let valueExpressionsGen = Gen.listOf <| literalOrValueComplexGen None
     let operandGen info =
         match info.operandType with
         | OperandType.Block -> blockGen
         | OperandType.Expression t ->
-            let t = if info.forceLiteralType then Some t else None
+            let t =
+                if info.forceLiteralType
+                then info.literalOperandType |> Option.defaultValue t |> Some
+                else None
             t
             |> literalOrValueComplexGen
             |> Gen.map List.singleton
@@ -102,6 +104,7 @@ let complexExpressionArb wrapSymbol (|UnwrapSymbol|) =
         | OperandType.ListVariableExpression _ -> listVarGen
         | OperandType.StringLiterals ss -> stringsGen ss
         | OperandType.Variable -> varGen
+        | OperandType.ProcedureName -> procedureNameGen
         | OperandType.VariadicExpressions -> valueExpressionsGen
 
     let g = gen {
@@ -123,13 +126,31 @@ let complexExpressionArb wrapSymbol (|UnwrapSymbol|) =
             | Block _ -> Some Kind.Statement
             | Complex(ComplexExpression(operator = KnownOperatorInfo(ValueSome { kind = kind }))) -> Some kind
             | _ -> None
-            
+
+        let rec includes = function
+            | TsType.StringSs ss, SString s when List.contains s ss -> true
+            | TsType.GVar _, _ -> true
+            | TsType.Or(t1, t2), v -> includes (t1, v) || includes (t2, v)
+            | TsType.Named _ as t, v ->
+                match v with
+                | SBool _ -> t = TsType.gBoolean
+                | SNumber n -> t = TsType.gNumber || (t = TsType.gColor && AstDefinitions.isColorCode n)
+                | SString _ -> t = TsType.gString
+
+            | _ -> false
+
         let validateAndTakeOperands info operands =
             match info.operandType, operands with
-            | OperandType.Expression _, ExpressionKind Kind.Expression::operands
+            | OperandType.Expression t, (ExpressionKind Kind.Expression as operand)::operands ->
+                match operand with
+                | Literal(_, v) when info.forceLiteralType && not (includes (t, v)) -> None
+                | _ -> Some operands
+
             | OperandType.Block, Block _::operands
-            | OperandType.ListVariableExpression _, EString _::operands
-            | OperandType.StringLiterals _, EString _::operands ->
+            | OperandType.ListVariableExpression _, EString _::operands ->
+                Some operands
+
+            | OperandType.StringLiterals ss, EString(_, s)::operands when Set.contains s ss ->
                 Some operands
 
             | OperandType.VariadicExpressions, operands ->

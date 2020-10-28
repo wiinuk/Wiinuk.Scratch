@@ -494,7 +494,7 @@ module Project =
 
         let (Id fieldName) = inputName
         let struct(fieldName, fieldValue) = createShadowField fieldName fieldValue shadowObscured inputOperator
-        let struct(fieldId, fieldVariableType) =
+        let field =
             match inputOperator with
             | OpCodes.event_broadcast_menu ->
                 let id =
@@ -503,17 +503,26 @@ module Project =
                     |> Builder.createBroadcastId builder
                     |> Id.toString
 
-                Some id, variableType
+                let fieldValue =
+                    match fieldValue with
+                    | SString "" -> builder.broadcastNameForEmptyBroadcastName
+                    | _ -> fieldValue
+
+                {
+                    name = fieldName
+                    value = fieldValue
+                    id = Some id
+                    variableType = variableType
+                }
 
             | _ ->
-                None, None
+                {
+                    name = fieldName
+                    value = fieldValue
+                    id = None
+                    variableType = None
+                }
 
-        let field = {
-            name = fieldName
-            value = fieldValue
-            id = fieldId
-            variableType = fieldVariableType
-        }
         let block = {
             block with
                 children = block.children @ [{

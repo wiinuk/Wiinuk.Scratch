@@ -15,6 +15,7 @@ module TsType =
     let gNumber = TsType.Named("number", [])
     let gString = TsType.Named("string", [])
     let gBoolean = TsType.Named("boolean", [])
+    let gColor = TsType.Named("color", [])
     let gUnit = TsType.Named("()", [])
     let types = {
         tNumber = gNumber
@@ -22,11 +23,13 @@ module TsType =
         tBoolean = gBoolean
         tUnit = gUnit
     }
+
 open TsType
 
 [<Struct>]
 type OperandInfo = {
     operandType: TsType OperandType
+    literalOperandType: TsType option
     forceLiteralType: bool
 }
 
@@ -35,7 +38,7 @@ module private Privates =
     type G = TsType
     type O<'a> = 'a OperandType
 
-    let op t = { operandType = t; forceLiteralType = false }
+    let op t = { operandType = t; forceLiteralType = false; literalOperandType = None }
     let opE t = op <| O.Expression t
     let opS ss = op <| O.StringLiterals (Set.ofSeq ss)
 
@@ -122,6 +125,7 @@ module private Privates =
         "previous costume"
         "previous backdrop"
     ])
+    let opColor = { opE tRgb with forceLiteralType = true; literalOperandType = Some gColor }
 
 [<Struct; RequireQualifiedAccess>]
 type Kind = Statement | Expression
@@ -306,8 +310,8 @@ let private knownBooleanExpressions() = expressionTable [
     O.not, Pure, g0e1 gBoolean gBoolean
     O.mousePressed, Unknown, g0e0 gBoolean
     O.``touching:``, Unknown, g0e1 (gString .|. G.StringSs ["_mouse_"; "_edge_"]) gBoolean
-    O.``touchingColor:``, Unknown, g0e1 tRgb gBoolean
-    O.``color:sees:``, Unknown, g0e2 tRgb tRgb gBoolean
+    O.``touchingColor:``, Unknown, g0 ([opColor], gBoolean)
+    O.``color:sees:``, Unknown, g0 ([opColor; opColor], gBoolean)
     O.``keyPressed:``, Unknown, g0e1 (gString .|. gNumber) gBoolean
 ]
 
@@ -412,7 +416,7 @@ let private statementTable isFooter xs =
 //     | Case1<"doAsk", E>
 //     | Case0<"timerReset">
 let private knownStatements() = statementTable false [
-    O.call, Control.Call, g0 ([opE gString; op O.VariadicExpressions], gUnit)
+    O.call, Control.Call, g0 ([op O.ProcedureName; op O.VariadicExpressions], gUnit)
     O.``forward:``, Control.Next, g0s1 gNumber
     O.``turnRight:``, Control.Next, g0s1 gNumber
     O.``turnLeft:``, Control.Next, g0s1 gNumber
@@ -460,7 +464,7 @@ let private knownStatements() = statementTable false [
     O.clearPenTrails, Control.Next, g0s0
     O.putPenDown, Control.Next, g0s0
     O.putPenUp, Control.Next, g0s0
-    O.``penColor:``, Control.Next, g0s1 tRgb
+    O.``penColor:``, Control.Next, g0 ([opColor], gUnit)
     O.``setPenHueTo:``, Control.Next, g0s1 gNumber
     O.``changePenHueBy:``, Control.Next, g0s1 gNumber
     O.``setPenShadeTo:``, Control.Next, g0s1 gNumber
@@ -565,3 +569,10 @@ let demangleProcedureName mangledName =
 
     let cs, ts = aux [] [] (Seq.toList (mangledName: string))
     System.String(List.toArray cs), ts
+
+let minColorCode = -0x1000000
+let maxColorCode = 0xFFFFFF
+
+let isColorCode n = 
+    double minColorCode <= n && n <= double maxColorCode &&
+    truncate n = n
