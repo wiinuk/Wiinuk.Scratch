@@ -192,7 +192,9 @@ with
             if s.source1.TryDeserialize(&r, &result) then result else
 
             r <- r'
-            s.source2.Deserialize &r
+            if s.source2.TryDeserialize(&r, &result) then result else
+
+            failwith "or"
 
         member s.TrySerialize(w, x) =
             let w' = w
@@ -206,7 +208,9 @@ with
             if s.source1.TrySerialize(&w, x) then () else
 
             w <- w'
-            s.source2.Serialize(&w, x)
+            if s.source2.TrySerialize(&w, x) then () else
+
+            failwith "or"
 
 [<Struct; NoEquality; NoComparison>]
 type ForwardedToRef<'T> = internal { ref: 'T ISyntax ref } with
