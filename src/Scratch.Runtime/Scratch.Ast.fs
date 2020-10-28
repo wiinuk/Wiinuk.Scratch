@@ -315,15 +315,8 @@ type OperandType<'t> =
     | Variable
     | ListVariableExpression of itemType: 't
     | VariadicExpressions
-    /// "left-right" | "don't rotate" | "normal"
-    | Rotation
+    | StringLiterals of string Set
     | Block
-    /// "other scripts in sprite" | "other scripts in stage"
-    | Stop
-    /// "all" | "this script"
-    | StopScript
-    /// "r"
-    | Reporter
 
 [<RequireQualifiedAccess>]
 type ListenerHeaderType =

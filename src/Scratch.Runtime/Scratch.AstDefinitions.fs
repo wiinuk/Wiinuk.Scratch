@@ -37,6 +37,7 @@ module private Privates =
 
     let op t = { operandType = t; forceLiteralType = false }
     let opE t = op <| O.Expression t
+    let opS ss = op <| O.StringLiterals (Set.ofSeq ss)
 
     let gStringL x = G.StringSs [x]
     let g0 t = [], t
@@ -68,7 +69,7 @@ module private Privates =
     let (.|.) t1 t2 = G.Or(t1, t2)
 
     let tValue = G.Or(G.Or(gString, gNumber), gBoolean)
-    let tAttributeName = G.StringSs [
+    let attributeNames = [
         "x position"
         "y position"
         "direction"
@@ -80,7 +81,7 @@ module private Privates =
         "backdrop #"
         "backdrop name"
     ]
-    let tMathFunctionName = G.StringSs [
+    let mathFunctionNames = [
         "abs"
         "floor"
         "sqrt"
@@ -96,7 +97,7 @@ module private Privates =
         "e ^"
         "10 ^"
     ]
-    let tTimeAndDateFormat = G.StringSs [
+    let timeAndDateFormats = [
         "year"
         "month"
         "date"
@@ -105,7 +106,7 @@ module private Privates =
         "minute"
         "second"
     ]
-    let tFilterName = G.StringSs [
+    let filterNames = [
         "color"
         "fisheye"
         "whirl"
@@ -210,7 +211,7 @@ let private expressionTable xs =
 //     | Case0<"getUserId">
 //     | Case0<"getUserName">
 let private knownCallExpressions() = expressionTable [
-    O.getParam, LiteralLike, ([], ([opE gString; op O.Reporter], tValue))
+    O.getParam, LiteralLike, g0 ([opE gString; opS ["r"]], tValue)
     O.costumeName, Unknown, g0e0 gString
     O.sceneName, Unknown, g0e0 gString
     O.readVariable, HasSideEffect, g0 (v1 tValue)
@@ -219,7 +220,7 @@ let private knownCallExpressions() = expressionTable [
     O.``concatenate:with:``, Pure, g0e2 gString gString gString
     O.``letter:of:``, Pure, g0e2 gNumber gString gString 
     O.``answer``, Unknown, g0e0 gString
-    O.``getAttribute:of:``, Unknown, g0e2 tAttributeName gString tValue
+    O.``getAttribute:of:``, Unknown, g0 ([opS attributeNames; opE gString], tValue)
     O.getUserId, Unknown, g0e0 gNumber
     O.getUserName, Unknown, g0e0 gString
 ]
@@ -273,13 +274,13 @@ let private knownNumberExpressions() = expressionTable [
     O.``%``, Pure, g0e2 gNumber gNumber gNumber
     O.``\\``, Pure, g0e2 gNumber gNumber gNumber
     O.rounded, Pure, g0e1 gNumber gNumber
-    O.``computeFunction:of:``, Pure, g0e2 tMathFunctionName gNumber gNumber
+    O.``computeFunction:of:``, Pure, g0 ([opS mathFunctionNames; opE gNumber], gNumber)
     O.mouseX, Unknown, g0e0 gNumber
     O.mouseY, Unknown, g0e0 gNumber
     O.timer, Unknown, g0e0 gNumber
     O.``distanceTo:``, Unknown, g0e1 (gString .|. gStringL "_mouse_") gNumber
     O.timestamp, Unknown, g0e0 gNumber
-    O.timeAndDate, Unknown, g0e1 tTimeAndDateFormat gNumber
+    O.timeAndDate, Unknown, g0 ([opS timeAndDateFormats], gNumber)
 ]
 
 // type KnownBooleanExpression<E> =
@@ -424,7 +425,7 @@ let private knownStatements() = statementTable false [
     O.``changeYposBy:``, Control.Next, g0s1 gNumber
     O.``ypos:``, Control.Next, g0s1 gNumber
     O.``bounceOffEdge``, Control.Next, g0s0
-    O.``setRotationStyle``, Control.Next, g0 ([op O.Rotation], gUnit)
+    O.``setRotationStyle``, Control.Next, g0 ([opS ["left-right"; "don't rotate"; "normal"]], gUnit)
     O.``lookLike:``, Control.Next, g0s1 tCostume
     O.``nextCostume``, Control.Next, g0s0
     O.``showBackground:``, Control.Next, g0s1 tCostume
@@ -436,8 +437,8 @@ let private knownStatements() = statementTable false [
     O.``say:``, Control.Next, g0s1 gString
     O.``think:duration:elapsed:from:``, Control.ForceYield, g0s2 gString gNumber
     O.``think:``, Control.Next, g0s1 gString
-    O.``changeGraphicEffect:by:``, Control.Next, g0s2 tFilterName gNumber
-    O.``setGraphicEffect:to:``, Control.Next, g0s2 tFilterName gNumber
+    O.``changeGraphicEffect:by:``, Control.Next, g0 ([opS filterNames], gNumber)
+    O.``setGraphicEffect:to:``, Control.Next, g0 ([opS filterNames], gNumber)
     O.filterReset, Control.Next, g0s0
     O.``changeSizeBy:``, Control.Next, g0s1 gNumber
     O.``setSizeTo:``, Control.Next, g0s1 gNumber
@@ -488,7 +489,7 @@ let private knownStatements() = statementTable false [
     O.doWhile, Control.Unknown, g0 (ebs gBoolean)
     O.doWaitUntil, Control.ForceYield, g0s1 gBoolean
     O.``glideSecs:toX:y:elapsed:from:``, Control.NormalYield, g0 (s3 gNumber gNumber gNumber)
-    O.stopScripts, Control.Stop, g0 ([op OperandType.Stop], gUnit)
+    O.stopScripts, Control.Stop, g0 ([opS ["other scripts in sprite"; "other scripts in stage"]], gUnit)
     O.``wait:elapsed:from:``, Control.NormalYield, g0s1 gNumber
     O.warpSpeed, Control.Unknown, g0 ([op OperandType.Block], gUnit)
     O.createCloneOf, Control.Next, g0s1 (gString .|. gStringL "_myself_")
@@ -503,7 +504,7 @@ let private knownStatements() = statementTable false [
 let private knownFooterStatements() = statementTable true [
     O.doForever, Control.NormalYield, g0 ([op O.Block], gUnit)
     O.stopAll, Control.Stop, g0s0
-    O.stopScripts, Control.Stop, g0 ([op O.StopScript], gUnit)
+    O.stopScripts, Control.Stop, g0 ([opS ["all"; "this script"]], gUnit)
     O.deleteClone, Control.DeleteClone, g0s0
 ]
 

@@ -1222,10 +1222,7 @@ module private Emitters =
 
         | OperandType.Expression _
         | OperandType.ListVariableExpression _
-        | OperandType.Reporter
-        | OperandType.Rotation
-        | OperandType.Stop
-        | OperandType.StopScript
+        | OperandType.StringLiterals _
         | OperandType.Variable -> convertPrimitiveExp b operand
 
     and convertNormalStatementOp b state info (operator, operands) =
@@ -1258,10 +1255,7 @@ module private Emitters =
         | OperandType.VariadicExpressions -> failwithf ""
 
         | OperandType.Expression _
-        | OperandType.Reporter
-        | OperandType.Rotation
-        | OperandType.Stop
-        | OperandType.StopScript
+        | OperandType.StringLiterals _
         | OperandType.ListVariableExpression _
         | OperandType.Variable ->
             match operand with

@@ -84,10 +84,6 @@ let complexExpressionArb wrapSymbol (|UnwrapSymbol|) =
         let! NonNull x = Arb.generate<_>
         return [Expression.eString state x]
     }
-    let reporterGen = stringsGen ["r"]
-    let rotationGen = stringsGen ["left-right"; "don't rotate"; "normal"]
-    let stopGen = stringsGen ["other scripts in sprite"; "other scripts in stage"]
-    let stopScriptGen = stringsGen ["all"; "this script"]
     let varGen = gen {
         let! state = Arb.generate<_>
         let! NonNull x = Arb.generate<_>
@@ -104,10 +100,7 @@ let complexExpressionArb wrapSymbol (|UnwrapSymbol|) =
             |> Gen.map List.singleton
 
         | OperandType.ListVariableExpression _ -> listVarGen
-        | OperandType.Reporter -> reporterGen
-        | OperandType.Rotation -> rotationGen
-        | OperandType.Stop -> stopGen
-        | OperandType.StopScript -> stopScriptGen
+        | OperandType.StringLiterals ss -> stringsGen ss
         | OperandType.Variable -> varGen
         | OperandType.VariadicExpressions -> valueExpressionsGen
 
@@ -136,11 +129,7 @@ let complexExpressionArb wrapSymbol (|UnwrapSymbol|) =
             | OperandType.Expression _, ExpressionKind Kind.Expression::operands
             | OperandType.Block, Block _::operands
             | OperandType.ListVariableExpression _, EString _::operands
-            | OperandType.Reporter, EString _::operands
-            | OperandType.Rotation, EString _::operands
-            | OperandType.Stop, EString _::operands
-            | OperandType.StopScript, EString _::operands
-            | OperandType.Variable, EString _::operands ->
+            | OperandType.StringLiterals _, EString _::operands ->
                 Some operands
 
             | OperandType.VariadicExpressions, operands ->

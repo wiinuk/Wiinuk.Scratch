@@ -422,10 +422,7 @@ module private ExpStartConstructorHelpers =
         | OperandType.ListVariableExpression t -> sprintf "list %s" (showType <| ofTsType t)
         | OperandType.Block -> showType Types.empty
         | OperandType.Expression t -> showType <| ofTsType t
-        | OperandType.Reporter
-        | OperandType.Rotation
-        | OperandType.Stop
-        | OperandType.StopScript
+        | OperandType.StringLiterals _
             -> showType Types.string
 
         | OperandType.Variable -> "variable"
@@ -560,10 +557,7 @@ module private ExpStartConstructorHelpers =
         | OperandType.VariadicExpressions -> ()
 
         | OperandType.Expression t -> checkAssignType &source { actual = Exp.varType operand; expected = ofTsType t }
-        | OperandType.Reporter
-        | OperandType.Rotation
-        | OperandType.Stop
-        | OperandType.StopScript
+        | OperandType.StringLiterals _
             -> checkAssignType &source { actual = Exp.varType operand; expected = Types.string }
 
     let checkExpressionTypeInListOperand (source: _ inref) operand expectedType =
@@ -585,10 +579,7 @@ module private ExpStartConstructorHelpers =
         | OperandType.VariadicExpressions -> ()
 
         | OperandType.Expression t -> checkExpressionTypeInListOperand &source operand (ofTsType t)
-        | OperandType.Reporter
-        | OperandType.Rotation
-        | OperandType.Stop
-        | OperandType.StopScript
+        | OperandType.StringLiterals _
             -> checkExpressionTypeInListOperand &source operand Types.string
 
     let rec checkOperandsAux (source: _ inref) allOperands allTypes = function

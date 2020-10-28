@@ -313,19 +313,6 @@ type IpcTests() =
         |> sb3NormalizeProperty
 
     [<Fact>]
-    member _.sb3NormalizeListener_Test() =
-        ListenerDefinition((), O.whenClicked, [], BlockExpression((), [
-            ComplexExpression((), O.``broadcast:``, [
-                Expression.Complex(ComplexExpression((), O.``computeFunction:of:``, [
-                    Expression.Complex(ComplexExpression((), O.answer, []))
-                    Literal((), SBool true)
-                ]))
-            ])
-        ]))
-        |> Listener
-        |> sb3NP
-
-    [<Fact>]
     member _.exportScriptToSb3PropertyTest() = qcheck exportScriptToSb3Property
 
     [<Fact>]

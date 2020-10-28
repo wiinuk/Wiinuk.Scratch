@@ -116,10 +116,7 @@ let instantiateOperands env { typeVariables = tvs; operands = ts; resultType = t
         | O.ListVariableExpression t -> O.ListVariableExpression(instantiate t)
         | O.Variable -> O.Variable
         | O.Block -> O.Block
-        | O.Reporter -> O.Reporter
-        | O.Rotation -> O.Rotation
-        | O.Stop -> O.Stop
-        | O.StopScript -> O.StopScript
+        | O.StringLiterals ss -> O.StringLiterals ss
         | O.VariadicExpressions -> O.VariadicExpressions
 
     List.map instantiateOperandType ts, instantiate t
@@ -239,19 +236,13 @@ let rec inferOperand env location operator operand operandIndex operandType =
         | ValueSome { ListVariableData.state = VTyped(_, vtype) } ->
             unifyInProcedure env location vtype t
 
-    | O.Reporter, Literal(VTyped(l, t), SString "r")
-    | O.Rotation, Literal(VTyped(l, t), SString("left-right" | "don't rotate" | "normal"))
-    | O.Stop, Literal(VTyped(l, t), SString("other scripts in sprite" | "other scripts in stage"))
-    | O.StopScript, Literal(VTyped(l, t), SString("all" | "this script")) ->
+    | O.StringLiterals ss, Literal(VTyped(l, t), SString s) when Set.contains s ss ->
         unifyToString env l t
 
     | O.Expression _, _
     | O.Block, _
     | O.ListVariableExpression _, _
-    | O.Reporter, _
-    | O.Rotation, _
-    | O.Stop, _
-    | O.StopScript, _
+    | O.StringLiterals _, _
     | O.Variable, _
     | O.VariadicExpressions, _ ->
         raiseError env location <| UnexpectedOperandType(Symbol.name operator, operandIndex, expectedOperandType = operandType)
