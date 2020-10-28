@@ -113,6 +113,8 @@ module OMap =
 
     let empty = { nextIndex = 0; map = Map.empty; imap = Map.empty }
     let isEmpty map = Map.isEmpty map.map
+    let containsKey key map = Map.containsKey key map.map
+
     let add key value { nextIndex = i; map = map; imap = imap } =
         let imap =
             match Map.tryFind key map with
@@ -176,7 +178,7 @@ module OMap =
         let mapping = OptimizedClosures.FSharpFunc<_,_,_>.Adapt mapping
         let map = omap.map |> Map.map (fun k iv -> KeyValuePair(iv.Key, mapping.Invoke(k, iv.Value)))
         let imap = omap.imap |> Map.map (fun _ kv -> KeyValuePair(kv.Key, let mutable kv = Map.find kv.Key map in kv.Value))
-        { omap with map = map; imap = imap }
+        { nextIndex = omap.nextIndex; map = map; imap = imap }
 
     let foldOrdered folder state omap =
         let folder = OptimizedClosures.FSharpFunc<_,_,_,_>.Adapt folder
@@ -203,3 +205,9 @@ module OMap =
 
     let ofMap map = Map.fold (fun map k v -> add k v map) empty map
     let toMap omap = omap.map |> Map.map (fun _ kv -> kv.Value)
+
+type OMap<'K,'V> when 'K : comparison with
+    member m.Item with get(k) =
+        match OMap.tryFind k m with
+        | ValueSome x -> x
+        | _ -> raise <| KeyNotFoundException()
