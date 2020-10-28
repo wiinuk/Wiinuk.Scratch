@@ -1,11 +1,13 @@
 ﻿module Scratch.Serialization.Sb3.Tests
 open Xunit
+open FsCheck
 open Utf8Json
 open Scratch
 open Scratch.Primitives
 open Scratch.Json.PartialIsomorphisms
 open Scratch.Json.Utf8
 open Scratch.Serialization.Sb3.Ast
+open Scratch.Serialization.Sb3.Test.Helpers
 module Sb3 = Scratch.Serialization.Sb3.Syntax
 module Map = OMap
 

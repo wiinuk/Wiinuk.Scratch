@@ -35,7 +35,6 @@
     <Compile Include="Scratch.Transpiler.Sprite1.Tests.fs" />
     <Compile Include="Scratch.Package.Tests.fs" />
     <Compile Include="Scratch.Detranspiler.Typing.Tests.fs" />
-    <Compile Include="..\..\Shell.fsx" Link="Shell.fsx" />
     <Compile Include="Scratch.Detranspiler.Test.CompilerProcess.fs" />
     <Compile Include="Scratch.Detranspiler.Tests.fs" />
     <Compile Include="Program.fs" />

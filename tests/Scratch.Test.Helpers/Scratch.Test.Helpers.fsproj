@@ -5,10 +5,12 @@
     <OtherFlags>--warnon:1182</OtherFlags>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="..\..\Shell.fsx" Link="Shell.fsx" />
     <Compile Include="AssertionOperations.fs" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="FsCheck" Version="2.14.0" />
+    <PackageReference Include="System.Text.Encoding.CodePages" Version="4.7.1" />
     <PackageReference Include="xunit.assert" Version="2.4.0" />
   </ItemGroup>
   <Import Project="..\..\.paket\Paket.Restore.targets" />
