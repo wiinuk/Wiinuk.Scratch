@@ -9,6 +9,8 @@ const Util = require("util")
 const Path = require("path")
 const Ipc = require("node-ipc")
 const _Fs = require("fs")
+const { clearTimeout } = require("timers")
+const { type } = require("os")
 const Fs = {
     readFile: Util.promisify(_Fs.readFile),
     writeFile: Util.promisify(_Fs.writeFile)
@@ -168,18 +170,32 @@ const protectedCallAsync = async asyncAction => {
     | CommandArg<"import-sb2-json", { projectJson: string }>
     } CommandArgs
  */
-const startServer = (/** @type {{ id: string }} */ { id }) => {
-    const timeout = 1 * 60 * 1000
-
+const startServer = (/** @type {{ id: string, silent: boolean, timeout: number }} */ { id, silent, timeout }) => {
     const ipc = new Ipc.IPC()
     ipc.config.id = id
     ipc.config.retry = 1500
+    ipc.config.silent = silent
+
+    /**  @type {ReturnType<typeof setTimeout> | null} */
+    let serverTimeoutId = null
+    const resetServerTimeout = () => {
+        if (serverTimeoutId) { clearTimeout(serverTimeoutId) }
+
+        serverTimeoutId = setTimeout(() => {
+            ipc.server.stop()
+            throw new Error(`timeout ${timeout}ms`)
+        }, timeout)
+    }
+
     ipc.serve(() => {
-        // ipc.config.silent = true
+        resetServerTimeout()
+
         ipc.server.on("echo", async (data, socket) => {
+            resetServerTimeout()
             ipc.server.emit(socket, "echo", data)
         })
         ipc.server.on("exec", async (/** @type {CommandArgs} */ data, /** @type {import("net").Socket} */ socket) => {
+            resetServerTimeout()
             const result = await protectedCallAsync(async () => {
                 switch (data.name) {
                     case "roundtrip-json": return { projectJson: await sb3ToSb3Json(data.args.projectJson) }
@@ -188,13 +204,9 @@ const startServer = (/** @type {{ id: string }} */ { id }) => {
             })
             ipc.server.emit(socket, "exec", result)
         })
-        const stopTimeoutId = setTimeout(() => {
-            ipc.server.stop()
-            throw new Error(`timeout ${timeout}ms`)
-        }, timeout)
 
         ipc.server.on("stop", () => {
-            clearTimeout(stopTimeoutId)
+            clearTimeout(serverTimeoutId)
             ipc.server.stop()
         })
     })
@@ -206,7 +218,9 @@ createInnerArgv()
         ["start-server"],
         "Start ipc server",
         p => p
-            .option("id", { type: "string", default: "adaptorjs" }),
+            .option("id", { type: "string", default: "adaptorjs" })
+            .option("silent", { type: "boolean", default: false })
+            .option("timeout", { type: "number", default: 1 * 60 * 1000, description: "ms" }),
         startServer
     )
     .recommendCommands()
