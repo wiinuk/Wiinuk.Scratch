@@ -308,8 +308,7 @@ module Project =
                 SValue.toNumber fieldValue
                 |> int
                 |> Color.numberToColorCode
-                |> double
-                |> SNumber
+                |> SString
 
             "COLOUR", fieldValue
 

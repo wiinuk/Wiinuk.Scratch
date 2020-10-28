@@ -304,6 +304,15 @@ type IpcTests() =
         |> sb3NormalizeProperty
 
     [<Fact>]
+    member _.sb3NormalizeColorSeesTest() =
+        ComplexExpression((), O.``color:sees:``, [
+            Literal((), SNumber 10.)
+            Literal((), SNumber 20.)
+        ])
+        |> Expression
+        |> sb3NormalizeProperty
+
+    [<Fact>]
     member _.exportScriptToSb3PropertyTest() = qcheck exportScriptToSb3Property
 
     [<Fact>]
