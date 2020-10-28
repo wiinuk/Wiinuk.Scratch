@@ -26,8 +26,8 @@ type String = | StringToString with
             | _ -> false
 
         member _.Deserialize r = r.ReadString()
-        member _.TrySerialize(w, x) = w.WriteString x; true
-        member _.Serialize(w, x) = w.WriteString x
+        member _.TrySerialize(w, x) = writeString &w x; true
+        member _.Serialize(w, x) = writeString &w x
 
 [<Struct>]
 type Double = | NumberToDouble with
@@ -342,7 +342,7 @@ with
             | JTrue -> w.WriteTrue(); true
             | JFalse -> w.WriteFalse(); true
             | JNumber x -> writeDouble &w x; true
-            | JString x -> w.WriteString x; true
+            | JString x -> writeString &w x; true
             | JArray xs -> s.array.TrySerialize(&w, xs)
             | JObject xs -> s.object.TrySerialize(&w, xs)
 
