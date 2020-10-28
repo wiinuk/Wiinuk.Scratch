@@ -110,7 +110,8 @@ let instantiate env (TypeScheme(tvs, t)) =
 let instantiateOperands env { typeVariables = tvs; operands = ts; resultType = t } =
     let tvs = typeVarMap env tvs
     let instantiate = instantiateWith tvs
-    let instantiateOperandType = function
+    let instantiateOperandType info =
+        match info.operandType with
         | O.Expression t -> O.Expression(instantiate t)
         | O.ListVariableExpression t -> O.ListVariableExpression(instantiate t)
         | O.Variable -> O.Variable

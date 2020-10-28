@@ -1,4 +1,4 @@
-module Scratch.AstDefinitions
+﻿module Scratch.AstDefinitions
 open Scratch.Ast
 open Scratch.Reflection
 open System.Text.RegularExpressions
@@ -24,10 +24,19 @@ module TsType =
     }
 open TsType
 
+[<Struct>]
+type OperandInfo = {
+    operandType: TsType OperandType
+    forceLiteralType: bool
+}
+
 [<AutoOpen>]
 module private Privates =
     type G = TsType
     type O<'a> = 'a OperandType
+
+    let op t = { operandType = t; forceLiteralType = false }
+    let opE t = op <| O.Expression t
 
     let gStringL x = G.StringSs [x]
     let g0 t = [], t
@@ -36,9 +45,9 @@ module private Privates =
         [v1], f (G.GVar 0)
         
     let e0 t = [], t
-    let e1 t1 t = [O.Expression t1], t
-    let e2 t1 t2 t = [O.Expression t1; O.Expression t2], t
-    let e3 t1 t2 t3 t = [O.Expression t1; O.Expression t2; O.Expression t3], t
+    let e1 t1 t = [opE t1], t
+    let e2 t1 t2 t = [opE t1; opE t2], t
+    let e3 t1 t2 t3 t = [opE t1; opE t2; opE t3], t
 
     let s0 = [], gUnit
     let s1 t1 = e1 t1 gUnit
@@ -53,8 +62,8 @@ module private Privates =
     let g0e1 t1 t = g0 <| e1 t1 t
     let g0e2 t1 t2 t = g0 <| e2 t1 t2 t
 
-    let v1 t = [O.Variable], t
-    let ebs t = [O.Expression t; O.Block], gUnit
+    let v1 t = [op O.Variable], t
+    let ebs t = [opE t; op O.Block], gUnit
 
     let (.|.) t1 t2 = G.Or(t1, t2)
 
@@ -131,7 +140,7 @@ type Control =
 type OperatorInfo = {
     kind: Kind
     typeVariables: TypeVar list
-    operands: TsType OperandType list
+    operands: OperandInfo list
     resultType: TsType
     operatorCost: Cost
     control: Control
@@ -201,12 +210,12 @@ let private expressionTable xs =
 //     | Case0<"getUserId">
 //     | Case0<"getUserName">
 let private knownCallExpressions() = expressionTable [
-    O.getParam, LiteralLike, ([], ([O.Expression gString; O.Reporter], tValue))
+    O.getParam, LiteralLike, ([], ([opE gString; op O.Reporter], tValue))
     O.costumeName, Unknown, g0e0 gString
     O.sceneName, Unknown, g0e0 gString
     O.readVariable, HasSideEffect, g0 (v1 tValue)
-    O.``contentsOfList:``, Unknown, g1 "T" (fun t -> [O.ListVariableExpression t], gString)
-    O.``getLine:ofList:``, Unknown, g1 "T" (fun t -> [O.Expression(gNumber .|. G.StringSs ["random"; "any"; "last"]); O.ListVariableExpression t], (t .|. gStringL ""))
+    O.``contentsOfList:``, Unknown, g1 "T" (fun t -> [op <| O.ListVariableExpression t], gString)
+    O.``getLine:ofList:``, Unknown, g1 "T" (fun t -> [opE (gNumber .|. G.StringSs ["random"; "any"; "last"]); op <| O.ListVariableExpression t], (t .|. gStringL ""))
     O.``concatenate:with:``, Pure, g0e2 gString gString gString
     O.``letter:of:``, Pure, g0e2 gNumber gString gString 
     O.``answer``, Unknown, g0e0 gString
@@ -252,7 +261,7 @@ let private knownNumberExpressions() = expressionTable [
     O.scale, Unknown, g0e0 gNumber
     O.volume, Unknown, g0e0 gNumber
     O.tempo, Unknown, g0e0 gNumber
-    O.``lineCountOfList:``, Unknown, g1 "T" (fun t -> [O.ListVariableExpression t], gNumber)
+    O.``lineCountOfList:``, Unknown, g1 "T" (fun t -> [op <| O.ListVariableExpression t], gNumber)
     O.``+``, Pure, g0e2 gNumber gNumber gNumber
     O.``-``, Pure, g0e2 gNumber gNumber gNumber
     O.``*``, Pure, g0e2 gNumber gNumber gNumber
@@ -287,7 +296,7 @@ let private knownNumberExpressions() = expressionTable [
 //     | Case2<"color:sees:", E, E>
 //     | Case1<"keyPressed:", E>
 let private knownBooleanExpressions() = expressionTable [
-    O.``list:contains:``, Unknown, g1 "T" (fun t -> [O.ListVariableExpression t; O.Expression t], gBoolean)
+    O.``list:contains:``, Unknown, g1 "T" (fun t -> [op <| O.ListVariableExpression t; opE t], gBoolean)
     O.``<``, Pure, g1 "T" (fun t -> e2 t t gBoolean)
     O.``>``, Pure, g1 "T" (fun t -> e2 t t gBoolean)
     O.``=``, Pure, g1 "T" (fun t -> e2 t t gBoolean)
@@ -402,7 +411,7 @@ let private statementTable isFooter xs =
 //     | Case1<"doAsk", E>
 //     | Case0<"timerReset">
 let private knownStatements() = statementTable false [
-    O.call, Control.Call, g0 ([O.Expression gString; O.VariadicExpressions], gUnit)
+    O.call, Control.Call, g0 ([opE gString; op O.VariadicExpressions], gUnit)
     O.``forward:``, Control.Next, g0s1 gNumber
     O.``turnRight:``, Control.Next, g0s1 gNumber
     O.``turnLeft:``, Control.Next, g0s1 gNumber
@@ -415,7 +424,7 @@ let private knownStatements() = statementTable false [
     O.``changeYposBy:``, Control.Next, g0s1 gNumber
     O.``ypos:``, Control.Next, g0s1 gNumber
     O.``bounceOffEdge``, Control.Next, g0s0
-    O.``setRotationStyle``, Control.Next, g0 ([O.Rotation], gUnit)
+    O.``setRotationStyle``, Control.Next, g0 ([op O.Rotation], gUnit)
     O.``lookLike:``, Control.Next, g0s1 tCostume
     O.``nextCostume``, Control.Next, g0s0
     O.``showBackground:``, Control.Next, g0s1 tCostume
@@ -460,28 +469,28 @@ let private knownStatements() = statementTable false [
     O.stampCostume, Control.Next, g0s0
     O.``setVar:to:``, Control.Next, g0s2 gString gUnknown
     O.``changeVar:by:``, Control.Next, g0s2 gString gNumber
-    O.``append:toList:``, Control.Next, g1 "T" (fun t -> [O.Expression t; O.ListVariableExpression t], gUnit)
-    O.``deleteLine:ofList:``, Control.Next, g1 "T" (fun t -> [O.Expression(gNumber .|. G.StringSs ["all"; "random"; "any"; "last"]); O.ListVariableExpression t], gUnit)
-    O.``insert:at:ofList:``, Control.Next, g1 "T" (fun t -> [O.Expression t; O.Expression(gNumber .|. G.StringSs ["random"; "last"]); O.ListVariableExpression t], gUnit)
-    O.``setLine:ofList:to:``, Control.Next, g1 "T" (fun t -> [O.Expression(gNumber .|. G.StringSs ["random"; "last"]); O.ListVariableExpression t; O.Expression t], gUnit)
-    O.``showVariable:``, Control.Next, g0 ([O.Variable], gUnit)
-    O.``hideVariable:``, Control.Next, g0 ([O.Variable], gUnit)
-    O.``showList:``, Control.Next, g0 ([O.Variable], gUnit)
-    O.``hideList:``, Control.Next, g0 ([O.Variable], gUnit)
-    O.``broadcast:``, Control.Next, g0s1 gString
+    O.``append:toList:``, Control.Next, g1 "T" (fun t -> [opE t; op <| O.ListVariableExpression t], gUnit)
+    O.``deleteLine:ofList:``, Control.Next, g1 "T" (fun t -> [opE (gNumber .|. G.StringSs ["all"; "random"; "any"; "last"]); op <| O.ListVariableExpression t], gUnit)
+    O.``insert:at:ofList:``, Control.Next, g1 "T" (fun t -> [opE t; opE (gNumber .|. G.StringSs ["random"; "last"]); op <| O.ListVariableExpression t], gUnit)
+    O.``setLine:ofList:to:``, Control.Next, g1 "T" (fun t -> [opE (gNumber .|. G.StringSs ["random"; "last"]); op <| O.ListVariableExpression t; opE t], gUnit)
+    O.``showVariable:``, Control.Next, g0 ([op O.Variable], gUnit)
+    O.``hideVariable:``, Control.Next, g0 ([op O.Variable], gUnit)
+    O.``showList:``, Control.Next, g0 ([op O.Variable], gUnit)
+    O.``hideList:``, Control.Next, g0 ([op O.Variable], gUnit)
+    O.``broadcast:``, Control.Next, ([], ([{ opE gString with forceLiteralType = true }], gUnit))
     O.doBroadcastAndWait, Control.NormalYield, g0s1 gString
     O.doForeverIf, Control.Unknown, g0 (ebs gBoolean)
     O.doIf, Control.Next, g0 (ebs gBoolean)
-    O.doIfElse, Control.Next, g0 ([OperandType.Expression gBoolean; OperandType.Block; OperandType.Block], gUnit)
+    O.doIfElse, Control.Next, g0 ([opE gBoolean; op OperandType.Block; op OperandType.Block], gUnit)
     O.doRepeat, Control.NormalYield, g0 (ebs gNumber)
     O.doReturn, Control.Return, g0s0
     O.doUntil, Control.NormalYield, g0 (ebs gBoolean)
     O.doWhile, Control.Unknown, g0 (ebs gBoolean)
     O.doWaitUntil, Control.ForceYield, g0s1 gBoolean
     O.``glideSecs:toX:y:elapsed:from:``, Control.NormalYield, g0 (s3 gNumber gNumber gNumber)
-    O.stopScripts, Control.Stop, g0 ([OperandType.Stop], gUnit)
+    O.stopScripts, Control.Stop, g0 ([op OperandType.Stop], gUnit)
     O.``wait:elapsed:from:``, Control.NormalYield, g0s1 gNumber
-    O.warpSpeed, Control.Unknown, g0 ([OperandType.Block], gUnit)
+    O.warpSpeed, Control.Unknown, g0 ([op OperandType.Block], gUnit)
     O.createCloneOf, Control.Next, g0s1 (gString .|. gStringL "_myself_")
     O.doAsk, Control.ForceYield, g0s1 gString
     O.timerReset, Control.Next, g0s0
@@ -492,9 +501,9 @@ let private knownStatements() = statementTable false [
 //     | Case1<"stopScripts", "all" | "this script">
 //     | Case0<"deleteClone">
 let private knownFooterStatements() = statementTable true [
-    O.doForever, Control.NormalYield, g0 ([OperandType.Block], gUnit)
+    O.doForever, Control.NormalYield, g0 ([op O.Block], gUnit)
     O.stopAll, Control.Stop, g0s0
-    O.stopScripts, Control.Stop, g0 ([OperandType.StopScript], gUnit)
+    O.stopScripts, Control.Stop, g0 ([op O.StopScript], gUnit)
     O.deleteClone, Control.DeleteClone, g0s0
 ]
 

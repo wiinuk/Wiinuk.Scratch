@@ -169,6 +169,8 @@ const protectedCallAsync = async asyncAction => {
     } CommandArgs
  */
 const startServer = (/** @type {{ id: string }} */ { id }) => {
+    const timeout = 1 * 60 * 1000
+
     const ipc = new Ipc.IPC()
     ipc.config.id = id
     ipc.config.retry = 1500
@@ -186,7 +188,13 @@ const startServer = (/** @type {{ id: string }} */ { id }) => {
             })
             ipc.server.emit(socket, "exec", result)
         })
+        const stopTimeoutId = setTimeout(() => {
+            ipc.server.stop()
+            throw new Error(`timeout ${timeout}ms`)
+        }, timeout)
+
         ipc.server.on("stop", () => {
+            clearTimeout(stopTimeoutId)
             ipc.server.stop()
         })
     })

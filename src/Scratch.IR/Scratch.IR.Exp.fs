@@ -417,7 +417,8 @@ module private ExpStartConstructorHelpers =
         |> String.concat ", "
         |> sprintf "(%s)"
 
-    let showOperandType = function
+    let showOperandType operand =
+        match operand.operandType with
         | OperandType.ListVariableExpression t -> sprintf "list %s" (showType <| ofTsType t)
         | OperandType.Block -> showType Types.empty
         | OperandType.Expression t -> showType <| ofTsType t
@@ -593,7 +594,7 @@ module private ExpStartConstructorHelpers =
     let rec checkOperandsAux (source: _ inref) allOperands allTypes = function
         | [], [] -> ()
         | o::operands, t::types ->
-            checkOperand &source o t
+            checkOperand &source o t.operandType
             checkOperandsAux &source allOperands allTypes (operands, types)
 
         | _ ->
@@ -611,7 +612,7 @@ module private ExpStartConstructorHelpers =
     let rec checkListOperandsAux (source: _ inref) allOperands allTypes = function
         | [], [] -> ()
         | o::operands, t::types ->
-            checkListOperand &source o t
+            checkListOperand &source o t.operandType
             checkListOperandsAux &source allOperands allTypes (operands, types)
 
         | _ ->

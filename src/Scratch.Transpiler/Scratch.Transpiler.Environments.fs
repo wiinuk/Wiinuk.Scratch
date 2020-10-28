@@ -853,7 +853,7 @@ module internal FixScratch3BoolExpr =
             operands
             |> R.mapList (fun operand ->
                 let meta = List.item (let x = i in i <- i + 1; x) specs
-                toKnownBoolExpr (meta, operand)
+                toKnownBoolExpr (meta.operandType, operand)
             )
             |> R.mapIfModified e (fun operands ->
                 ComplexExpression(s, operator, operands)

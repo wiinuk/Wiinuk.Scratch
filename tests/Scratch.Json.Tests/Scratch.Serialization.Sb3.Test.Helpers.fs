@@ -118,18 +118,14 @@ module AdaptorJs =
     }
     with
         member x.Dispose() = async {
-            do! NodeIpcClient.send x.ipcClient "stop" ()
-            x.ipcClient.Dispose()
+            try do! NodeIpcClient.send x.ipcClient "stop" ()
+            finally x.ipcClient.Dispose()
         }
         interface IDisposable with
             member x.Dispose() = x.Dispose() |> Async.RunSynchronously
 
     let startServerAndConnect() = async {
-        let id =
-            sprintf "p%d_%s_%s"
-                (Process.GetCurrentProcess().Id)
-                (System.DateTime.Now.ToString("yyyyMMdd'T'HHmmss"))
-                (Guid.NewGuid().ToString "N")
+        let id = sprintf "server_%s" <| Guid.NewGuid().ToString "N"
 
         do! Shell.startAsync "node \"%s\" start-server --id \"%s\"" adaptorJsPath id |> Async.StartChild |> Async.Ignore
         let! client = NodeIpcClient.connect id

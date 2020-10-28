@@ -1229,7 +1229,7 @@ module private Emitters =
         | OperandType.Variable -> convertPrimitiveExp b operand
 
     and convertNormalStatementOp b state info (operator, operands) =
-        let operands = List.map2 (fun operand spec -> convertOperand b (operand, spec)) operands info.operands
+        let operands = List.map2 (fun operand spec -> convertOperand b (operand, spec.operandType)) operands info.operands
         ComplexExpression(state, operator, operands) |> Builder.accumulateStatement b
 
     and convertTupleGet b (x, index) = convertExp b x |> List.item index |> List.singleton
@@ -1275,7 +1275,7 @@ module private Emitters =
         | KnownOperatorInfo ValueNone -> raise <| NotImplementedException()
         | KnownOperatorInfo(ValueSome info) ->
 
-        let operands = List.map2 (fun operand spec -> convertListOperand b (operand, spec)) operands info.operands
+        let operands = List.map2 (fun operand spec -> convertListOperand b (operand, spec.operandType)) operands info.operands
         let operation = ComplexExpression(state, operator, operands)
 
         match info.kind with

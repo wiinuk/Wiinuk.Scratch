@@ -1,4 +1,4 @@
-namespace Scratch.Ast
+﻿namespace Scratch.Ast
 open Scratch
 open Scratch.Primitives
 open System

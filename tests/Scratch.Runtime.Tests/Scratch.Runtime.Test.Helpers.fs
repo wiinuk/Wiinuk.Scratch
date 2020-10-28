@@ -32,25 +32,52 @@ let knownListenerHeaderMap = Map knownListenerHeaders
 type KnownValueComplexExpression<'a> = KnownValueComplexExpression of 'a ComplexExpression
 
 let complexExpressionArb wrapSymbol (|UnwrapSymbol|) =
-    let literalGen = Arb.generate<_> |> Gen.map Literal
-    let literalOrValueComplexGen = Gen.sized <| fun size ->
-        if size <= 0 then literalGen else
+    let anyValueGen = Arb.generate<SValue>
+    let boolValueGen = Arb.generate<_> |> Gen.map SBool
+    let numberValueGen = Arb.generate<_> |> Gen.map (fun (NormalFloat x) -> SNumber x)
+    let stringValueGen = Arb.generate<_> |> Gen.map (fun (NonNull x) -> SString x)
+
+    let rec valueGenFromTsType = function
+        | TsType.StringSs ss -> Gen.elements ss |> Gen.map SString
+        | TsType.GVar _ -> anyValueGen
+        | TsType.Or _ as t ->
+            let rec flattenOrs acc = function
+                | TsType.StringSs _
+                | TsType.GVar _
+                | TsType.Named _ as t -> t::acc
+                | TsType.Or(t1, t2) -> flattenOrs (flattenOrs acc t1) t2
+
+            flattenOrs [] t
+            |> List.map valueGenFromTsType
+            |> Gen.oneof
+
+        | TsType.Named _ as t ->
+            if t = TsType.gBoolean then boolValueGen
+            elif t = TsType.gNumber then numberValueGen
+            elif t = TsType.gString then stringValueGen
+            else anyValueGen
+
+    let valueGen = Option.map valueGenFromTsType >> Option.defaultValue anyValueGen
+    let literalGen t = gen {
+        let! state = Arb.generate<_>
+        let! x = valueGen t
+        return Literal(state, x)
+    }
+    let literalOrValueComplexGen t = Gen.sized <| fun size ->
+        if size <= 0 then literalGen t else
         Gen.oneof [
-            literalGen
+            literalGen t
             Arb.generate<_> |> Gen.scaleSize (fun x -> x / 2) |> Gen.map (fun (KnownValueComplexExpression e) -> Complex e)
         ]
-    let stringsGen strings = gen {
+
+    let stringsGen xs = gen {
         let! state = Arb.generate<_>
-        let! x = Gen.elements strings
+        let! x = Gen.elements xs
         return [Expression.eString state x]
     }
     let blockGen = gen {
         let! x = Arb.generate<_> |> Gen.scaleSize (fun x -> x / 2)
         return [Block x]
-    }
-    let valueExpressionGen = gen {
-        let! x = literalOrValueComplexGen
-        return [x]
     }
     let listVarGen = gen {
         let! state = Arb.generate<_>
@@ -66,15 +93,15 @@ let complexExpressionArb wrapSymbol (|UnwrapSymbol|) =
         let! NonNull x = Arb.generate<_>
         return [Expression.eString state x]
     }
-    let valueExpressionsGen = Gen.listOf literalOrValueComplexGen
-    let operandGen = function
+    let valueExpressionsGen = Gen.listOf <| literalOrValueComplexGen None
+    let operandGen info =
+        match info.operandType with
         | OperandType.Block -> blockGen
         | OperandType.Expression t ->
-            match t with
-            | TsType.StringSs strings -> stringsGen strings
-
-            // TODO:
-            | _ -> valueExpressionGen
+            let t = if info.forceLiteralType then Some t else None
+            t
+            |> literalOrValueComplexGen
+            |> Gen.map List.singleton
 
         | OperandType.ListVariableExpression _ -> listVarGen
         | OperandType.Reporter -> reporterGen
@@ -104,7 +131,8 @@ let complexExpressionArb wrapSymbol (|UnwrapSymbol|) =
             | Complex(ComplexExpression(operator = KnownOperatorInfo(ValueSome { kind = kind }))) -> Some kind
             | _ -> None
             
-        let validateAndTakeOperands = function
+        let validateAndTakeOperands info operands =
+            match info.operandType, operands with
             | OperandType.Expression _, ExpressionKind Kind.Expression::operands
             | OperandType.Block, Block _::operands
             | OperandType.ListVariableExpression _, EString _::operands
@@ -126,7 +154,7 @@ let complexExpressionArb wrapSymbol (|UnwrapSymbol|) =
             | _::_, [] -> false
             | operands, s::specs ->
 
-            match validateAndTakeOperands (s, operands) with
+            match validateAndTakeOperands s operands with
             | Some operands -> isValidOperands operands specs
             | _ -> false
 
