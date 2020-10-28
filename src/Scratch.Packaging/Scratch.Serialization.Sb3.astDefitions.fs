@@ -212,6 +212,11 @@ module Project =
             builder.globalVariableNameToId := map
             id
 
+        let createBroadcastId builder name =
+            name
+            |> Id.createBroadcastId
+            |> VOption.defaultValue builder.broadcastIdForEmptyBroadcastName
+
     let procedureNameSplitRegex = Regex @"(?=[^\\]%[nbs])"
     let procedureNameAsArgMap procedureName = [
         EmptyArg
@@ -460,7 +465,7 @@ module Project =
             | _ -> acc
         ) acc
 
-    and convertInputOperand builder (inputOperator, inputName, _) block operand =
+    and convertInputOperand builder (inputOperator, inputName, variableType) block operand =
         let inputId = Id.create the<_> <| Id.newUniqueId()
         let inputName = Id.create the<_> inputName
         let input = {
@@ -489,11 +494,25 @@ module Project =
 
         let (Id fieldName) = inputName
         let struct(fieldName, fieldValue) = createShadowField fieldName fieldValue shadowObscured inputOperator
+        let struct(fieldId, fieldVariableType) =
+            match inputOperator with
+            | OpCodes.event_broadcast_menu ->
+                let id =
+                    fieldValue
+                    |> SValue.toString
+                    |> Builder.createBroadcastId builder
+                    |> Id.toString
+
+                Some id, variableType
+
+            | _ ->
+                None, None
+
         let field = {
             name = fieldName
             value = fieldValue
-            id = None
-            variableType = None
+            id = fieldId
+            variableType = fieldVariableType
         }
         let block = {
             block with
@@ -550,8 +569,7 @@ module Project =
                 { field with
                     id =
                         name
-                        |> Id.createBroadcastId
-                        |> VOption.defaultValue builder.broadcastIdForEmptyBroadcastName
+                        |> Builder.createBroadcastId builder
                         |> Id.toString
                         |> Some
 

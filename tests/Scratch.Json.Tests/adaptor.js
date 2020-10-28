@@ -201,4 +201,6 @@ createInnerArgv()
             .option("id", { type: "string", default: "adaptorjs" }),
         startServer
     )
-    .parse(process.argv.slice(2), {}, (error, _reply, output) => { if (error) { throw new Error(output) } })
+    .recommendCommands()
+    .strict()
+    .parse(process.argv.slice(2), {})

@@ -340,3 +340,11 @@ type IpcTests() =
         ListenerDefinition((), O.whenIReceive, [Literal((), SString "")], BlockExpression((), []))
         |> Listener
         |> exportScriptToSb3Property
+
+    [<Fact>]
+    member _.exportExpressionBroadcastToSb3Test() =
+        BlockExpression((), [
+            ComplexExpression((), O.``broadcast:``,[Literal((), SString "A")])
+        ])
+        |> Statements
+        |> exportScriptToSb3Property
