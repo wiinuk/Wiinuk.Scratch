@@ -1,4 +1,4 @@
-module Scratch.Executor.Executions
+ï»¿module Scratch.Executor.Executions
 open System
 open System.Runtime.CompilerServices
 open Scratch
@@ -25,6 +25,7 @@ and ICustomization<'a> =
     inherit IInput
     inherit IStageView<'a EntityState>
     inherit IRuntimeVersion
+    inherit ICloud
 
 and [<Struct>] ExecutionEnvironment<'a,'Custom>
     when 'Custom :> ICustomization<'a>
@@ -51,20 +52,20 @@ module Expressions =
     let printStackMessage w (state: _ inref) =
         let showState = state.stage.showState
         let image = state.stage.image
-    
+
         Printer.printFlame w showState image &state.currentFlame
         fprintfn w ""
         for i in state.flames.next-1..-1..Index.zero do
             Printer.printFlame w showState image &(state.flames.items.Address(i))
             fprintfn w ""
-    
+
     let stackMessage (state: _ byref) =
         let b =
             use w = new StringWriter()
             printStackMessage (upcast w) &state
             w.GetStringBuilder()
         b.ToString()
-    
+
     let executeFiberInstruction (state: _ byref) (fiber: 'F byref when 'F :> fiber<_,_,_>) (result: _ outref) =
         let mutable continueExecution = false
         while
@@ -72,16 +73,16 @@ module Expressions =
             | Return() -> continueExecution <- true; false
             | Yield ThreadYield when state.currentFlame.isAtomicContext -> true
             | Yield _ as r ->
-    
+
                 // continue
                 state.position <- state.position - 1
                 result <- r
                 continueExecution <- false
                 false
-    
+
             do ()
         continueExecution
-    
+
     let executeCall (state: _ byref) (i: _ inref) =
         let calleeIndex = operandToIndex<Procedure> &i
         let data = &state.data
@@ -97,10 +98,10 @@ module Expressions =
         }
         Stack.extendNoinit &data callee.localCount
         state.position <- callee.startAddress
-    
+
     let executeReturn (state: _ byref) (result: _ outref) (next: _ outref) =
-    
-        // ŽÀsI‚í‚è
+
+        // å®Ÿè¡Œçµ‚ã‚ã‚Š
         if state.flames.next.index = 0 then
             result <- Return()
             next <- false
@@ -109,75 +110,83 @@ module Expressions =
             let callee = &state.stage.image.procedures.Address(calleeFlame.procedure)
             state.currentFlame <- Stack.pop &state.flames
             Stack.truncate &state.data (callee.parameterCount + callee.localCount)
-    
-            // ƒf[ƒ^ƒXƒ^ƒbƒN‚ÉÏ‚Ü‚ê‚½‰½ŒÂ‚©‚Ì–ß‚è’l‚ðAŒÄ‚Ño‚µŒ³‚ªŽg‚¦‚é‚æ‚¤‚ÉƒRƒs[‚·‚é•K—v‚ª‚ ‚é
-            // ‚µ‚©‚µ¡‚Ìƒo[ƒWƒ‡ƒ“‚Å‚Í‚·‚×‚Ä‚ÌƒvƒƒV[ƒWƒƒ‚Ì–ß‚è’l‚Ì”‚Í0‚È‚Ì‚ÅAƒRƒs[‘€ì‚Í•K—v‚È‚¢
-    
+
+            // ãƒ‡ãƒ¼ã‚¿ã‚¹ã‚¿ãƒƒã‚¯ã«ç©ã¾ã‚ŒãŸä½•å€‹ã‹ã®æˆ»ã‚Šå€¤ã‚’ã€å‘¼ã³å‡ºã—å…ƒãŒä½¿ãˆã‚‹ã‚ˆã†ã«ã‚³ãƒ”ãƒ¼ã™ã‚‹å¿…è¦ãŒã‚ã‚‹
+            // ã—ã‹ã—ä»Šã®ãƒãƒ¼ã‚¸ãƒ§ãƒ³ã§ã¯ã™ã¹ã¦ã®ãƒ—ãƒ­ã‚·ãƒ¼ã‚¸ãƒ£ã®æˆ»ã‚Šå€¤ã®æ•°ã¯0ãªã®ã§ã€ã‚³ãƒ”ãƒ¼æ“ä½œã¯å¿…è¦ãªã„
+
             state.position <- calleeFlame.returnAddress
-    
+
     let selfList (state: _ byref) (i: _ inref) =
         let variable = operandToIndex<Value ResizeArray> &i
         state.self.listVariables.Address(variable)
-    
+
     let stageList (state: _ byref) (i: _ inref) =
         let variable = operandToIndex<Value ResizeArray> &i
         state.stage.stageState.listVariables.Address(variable)
-    
+
+    let executeCloudVariable (cloud: _ byref) (state: _ byref) (i: _ inref) =
+        let name = state.stage.image.stringLiterals.Address(operandToIndex<string> &i)
+        Stack.push &state.data (Value.ofSValue <| Cloud.get &cloud name)
+
+    let executeSetCloudVariable (cloud: _ byref) (state: _ byref) (i: _ inref) =
+        let name = state.stage.image.stringLiterals.Address(operandToIndex<string> &i)
+        Cloud.set &cloud name (Value.toSValue <| Stack.pop &state.data)
+
     let executeSpriteListCount (state: _ byref) (i: _ inref) =
         let list = selfList &state &i
         Stack.push &state.data (Value.Number(double list.Count))
-    
+
     let executeListLine (random: _ byref) (state: _ byref) list =
         let nth = Stack.pop &state.data
         let x = getLine &random nth list
         Stack.push &state.data x
-    
+
     let executeSpriteListLine (random: _ byref) (state: _ byref) (i: _ inref) =
         executeListLine &random &state (selfList &state &i)
-    
+
     let executeStageListLine (random: _ byref) (state: _ byref) (i: _ inref) =
         executeListLine &random &state (stageList &state &i)
-    
+
     let executeDeleteListLine (task: _ byref) list =
         let nth = Stack.pop &task.executionState.data
         task.environment.custom.DeleteListLine(&task, nth, list)
 
     let executeDeleteSpriteListLine (env: _ byref) (i: _ inref) =
         executeDeleteListLine &env (selfList &env.executionState &i)
-    
+
     let executeDeleteStageListLine (env: _ byref) (i: _ inref)=
         executeDeleteListLine &env (stageList &env.executionState &i)
-    
+
     let executeAppendSpriteList (state: _ byref) (i: _ inref) =
         let list = selfList &state &i
         let value = Stack.pop &state.data
         list.Add value
-    
+
     let executeSetListLine (random: _ byref) (state: _ byref) (list: _ ResizeArray) =
         let value = Stack.pop &state.data
         let nth = Stack.pop &state.data
         match listIndex &random nth list.Count with
         | ValueNone -> ()
         | ValueSome index -> list.[index] <- value
-    
+
     let executeSetSpriteListLine (random: _ byref) (state: _ byref) (i: _ inref) =
         executeSetListLine &random &state (selfList &state &i)
-    
+
     let executeSetStageListLine (random: _ byref) (state: _ byref) (i: _ inref) =
         executeSetListLine &random &state (stageList &state &i)
-    
+
     let executeListContents (state: _ byref) list =
         Stack.push &state.data (Value.String(contentsOfList list))
-    
+
     let executeSpriteListContents (state: _ byref) (i: _ inref) =
         executeListContents &state (selfList &state &i)
-    
+
     let executeStageListContents (state: _ byref) (i: _ inref) =
         executeListContents &state (stageList &state &i)
-    
+
     let executeListContains (state: _ byref) (list: _ ResizeArray) =
         let target = Stack.pop &state.data
-    
+
         let mutable e = list.GetEnumerator()
         let mutable hasValue = false
         while
@@ -191,30 +200,30 @@ module Expressions =
                 false
             do ()
         Stack.push &state.data (Value.Bool hasValue)
-    
+
     let executeSpriteListContains (state: _ byref) (i: _ inref) = executeListContains &state (selfList &state &i)
     let executeStageListContains (state: _ byref) (i: _ inref) = executeListContains &state (stageList &state &i)
-    
+
     let executeInsertAtList (random: _ byref) (state: _ byref) (list: _ ResizeArray) =
         let target = Stack.pop &state.data
         let value = Stack.pop &state.data
-    
+
         match listIndex &random target (list.Count + 1) with
         | ValueSome i -> list.Insert(i, value)
         | _ -> ()
-    
+
         //if state.blockState.config.useRangeCheck then
         //    cfailwithf state location "out of range: insert:at:ofList:, '%s' '%A'" listName index
-    
+
     let executeInsertAtSpriteList (random: _ byref) (state: _ byref) (i: _ inref) = executeInsertAtList &random &state (selfList &state &i)
     let executeInsertAtStageList (random: _ byref) (state: _ byref) (i: _ inref) = executeInsertAtList &random &state (stageList &state &i)
-    
+
     let executeLetterOf (state: _ byref) =
         let data = &state.executionState.data
         let x2 = Stack.pop &data
         let x1 = Stack.pop &data
         Stack.push &data (Value.String(state.environment.custom.LetterOf(&state, Value.toString x2, Value.toNumber x1)))
-    
+
     let executeRandomFromTo (random: _ byref) (state: _ byref) =
         let x2 = Stack.pop &state.data |> Value.toNumberZeroIfNaN
         let x1 = Stack.pop &state.data |> Value.toNumberZeroIfNaN
@@ -224,29 +233,29 @@ module Expressions =
             elif x1 % 1. = 0. && x2 % 1. = 0.
             then floor (Random.nextDouble &random * (x2 - x1 + 1.)) + x1
             else Random.nextDouble &random * (x2 - x1) + x1
-    
+
         Stack.push &state.data (Value.Number r)
-    
+
     let executeTimeAndDate scheduler (state: _ byref) =
         let kind = Stack.pop &state.data
         let now = Scheduler.now scheduler
         let value = timeAndDate now kind
         Stack.push &state.data (Value.Number(double value))
-    
+
     let executeForward (state: _ byref) =
         let steps = Stack.pop &state.data |> Value.toNumberZeroIfNaN
         let data = &state.self.spriteDrawingData
         let d = (90. - data.direction) * Math.PI / 180.
         moveTo state.self (data.x + steps * cos d, data.y + steps * sin d)
-    
+
     let executeDistanceTo (input: _ byref) (state: _ byref) =
         let target = Stack.pop &state.data
         Stack.push &state.data (Value.Number(distanceTo &input state.stage state.self target))
-    
+
     let executePointTowards (input: _ byref) (state: _ byref) =
         let target = Stack.pop &state.data
         pointTowards &input state.stage state.self target
-    
+
     let executeKeyPressed (input: _ byref) (state: _ byref) =
         let data = &state.data
         let key = Stack.pop &data
@@ -256,78 +265,78 @@ module Expressions =
             else
                 input.IsKeyDown(getKeyCode key)
         Stack.push &data (Value.Bool keyPressed)
-    
+
     let executeGoto (state: _ byref) =
         let y = Stack.pop &state.data |> Value.toNumberZeroIfNaN
         let x = Stack.pop &state.data |> Value.toNumberZeroIfNaN
         moveTo state.self (x, y)
-    
+
     let executeGotoSpriteOrMouse (input: _ byref) (random: _ byref) (state: _ byref) =
         let target = Stack.pop &state.data
         gotoObject &input &random state.stage state.self target
-    
+
     let executeSayOrThink (state: _ byref) (i: _ inref) =
         let kind = if i.operand1 <> 0L then Say else Think
         let message = Stack.pop &state.data |> Value.toString
         let (Version v) = say state.self message kind
         Stack.push &state.data (Value.Number(double v))
-    
+
     let executeClearSayOrThink (state: _ byref) =
         let version: SayPhantom Version = Stack.pop(&state.data).NumberOrDefault |> int32 |> Version
         clearSay state.self version
-    
+
     let executeSetRotationStyle (state: _ byref) =
         let style = Stack.pop &state.data
         setRotationStyle state.self style
-    
+
     let executeFilter (state: _ byref) =
         let name = Stack.pop &state.data
         Stack.push &state.data (Value.Number(getFilter state.self (Value.toString name)))
-    
+
     let executeSetFilter (state: _ byref) =
         let value = Stack.pop &state.data
         let name = Stack.pop &state.data
         setFilter state.self (Value.toString name) (Value.toNumber value)
-    
+
     let executeFilterWith (state: _ byref) (i: _ inref) =
         let filter = enum<Filter>(int32 i.operand1)
         Stack.push &state.data (Value.Number(getFilterWith state.self filter))
-    
+
     let executeSetFilterWith (state: _ byref) (i: _ inref) =
         let filter = enum<Filter>(int32 i.operand1)
         let value = Stack.pop &state.data
         setFilterWith state.self filter (Value.toNumber value)
-    
+
     let executeComeToFront (view: _ byref) (state: _ byref) =
         let instances = state.stage.instances
         let self = state.self
-    
+
         // TODO: optimize
         let index = instances.IndexOf self
         instances.RemoveAt index
         instances.Add self
-    
+
         StageView.moved &view self index (instances.Count - 1)
-    
+
     let executeGoBackByLayers (view: _ byref) (state: _ byref) =
         let layerCount = Stack.pop &state.data |> Value.toNumber
         let instances = state.stage.instances
         let self = state.self
-    
+
         // TODO: optimize
         let index = instances.IndexOf self
         let index' = max 0 (index - int layerCount)
         instances.RemoveAt index
         instances.Insert(index', self)
-    
+
         StageView.moved &view self index index'
-    
+
     let executePlaySound (view: _ byref) (state: _ byref) =
-        let sound = Stack.pop &state.data 
+        let sound = Stack.pop &state.data
         match findSound (IArray.length state.self.entityImage.sounds) state.self.soundNameToIndex sound with
         | ValueNone -> ()
         | ValueSome index -> StageView.playSound &view state.self index
-    
+
     let valueToArgb color =
         let c = uint32 (Value.toNumber color)
         let a = (c >>> 24) &&& 0xffu
@@ -336,49 +345,49 @@ module Expressions =
         let b = (c >>> 0) &&& 0xffu
         let a = if a = 0u then 0xFFu else a
         struct(byte a, byte r, byte g, byte b)
-    
+
     let executeSetPenColor (view: _ byref) (state: _ byref) =
         let argb = Stack.pop &state.data |> valueToArgb
         state.self.spriteDrawingData.penArgb <- argb
         StageView.setPenArgb &view state.self argb
-    
+
     let executeChangePenHue (view: _ byref) (state: _ byref) (i: _ inref) =
         let hue = Stack.pop &state.data |> Value.toNumber
         let oldValueRatio = double (int32 i.operand1)
-    
+
         let struct(a, h, _, l) = Color.rgb2hsl state.self.spriteDrawingData.penArgb
         let argb = Color.hsl2rgb struct(a, (h * oldValueRatio) + (hue * 360. / 200.), 100., l)
         state.self.spriteDrawingData.penArgb <- argb
         StageView.setPenArgb &view state.self argb
-    
+
     let executeChangePenShade (view: _ byref) (state: _ byref) (i: _ inref) =
         let lightness = Stack.pop &state.data |> Value.toNumber
         let oldValueRatio = double (int32 i.operand1)
-        
+
         let struct(a, h, _, l) = Color.rgb2hsl state.self.spriteDrawingData.penArgb
         let lightness = (l * oldValueRatio + lightness) % 200.
-        
+
         // 0..<200
         let lightness = if lightness < 0. then lightness + 200. else lightness
-    
+
         let argb = Color.hsl2rgb struct(a, h, 100., lightness)
         state.self.spriteDrawingData.penArgb <- argb
         StageView.setPenArgb &view state.self argb
-    
+
     let executeChangePenSize (view: _ byref) (state: _ byref) (i: _ inref) =
         let extend = Stack.pop &state.data |> Value.toNumber
         let oldValueRatio = double (int32 i.operand1)
-        
+
         let penSize = &state.self.spriteDrawingData.penSize
         let size = max 1. (oldValueRatio * penSize + extend)
         penSize <- size
         StageView.penSize &view state.self size
-    
+
     let executeTouchingColor (view: _ byref) (state: _ byref) =
         let argb = Stack.pop &state.data |> valueToArgb
         let isTouching = StageView.queryTouchingColor &view state.self argb
         Stack.push &state.data (Value.Bool isTouching)
-    
+
     let executeShowVariable (view: _ byref) (state: _ byref) (i: _ inref) =
         let isShow = Stack.pop &state.data |> Value.toBool
         let variableName = state.stage.image.stringLiterals.Address(operandToIndex<string> &i)
@@ -700,6 +709,7 @@ let execute (task: _ byref) (threadInfo: _ inref) =
             let variable = operandToIndex<Value> &i
             let v = state.stage.stageState.scalarVariables.Address(variable)
             Stack.push &data v
+        | Code.CloudVariable -> executeCloudVariable &task.environment.custom &state &i
 
         | Code.SetSpriteVariable ->
             let variable = operandToIndex<Value> &i
@@ -709,6 +719,7 @@ let execute (task: _ byref) (threadInfo: _ inref) =
             let variable = operandToIndex<Value> &i
             let v = Stack.pop &data
             state.stage.stageState.scalarVariables.Address(variable) <- v
+        | Code.SetCloudVariable -> executeSetCloudVariable &task.environment.custom &state &i
 
         | Code.SpriteListCount -> executeSpriteListCount &state &i
         | Code.StageListCount ->
@@ -737,7 +748,7 @@ let execute (task: _ byref) (threadInfo: _ inref) =
 
         | Code.SpriteListContains -> executeSpriteListContains &state &i
         | Code.StageListContains -> executeStageListContains &state &i
-        
+
         | Code.InsertAtSpriteList -> executeInsertAtSpriteList &task.environment.custom &state &i
         | Code.InsertAtStageList -> executeInsertAtStageList &task.environment.custom &state &i
 
@@ -780,7 +791,7 @@ let execute (task: _ byref) (threadInfo: _ inref) =
             let b = Stack.pop &data
             let a = Stack.pop &data
             Stack.push &data (Value.Number(Value.toNumberZeroIfNaN a + Value.toNumberZeroIfNaN b))
-            
+
         | Code.Sub ->
             let b = Stack.pop &data
             let a = Stack.pop &data
@@ -859,7 +870,7 @@ let execute (task: _ byref) (threadInfo: _ inref) =
         | Code.Ceil ->
             let x = Value.toNumberZeroIfNaN (Stack.pop &data)
             Stack.push &data (Value.Number(ceil x))
-            
+
         | Code.Cos ->
             let x = Value.toNumberZeroIfNaN (Stack.pop &data)
             let x = cos (x * Math.PI / 180.)

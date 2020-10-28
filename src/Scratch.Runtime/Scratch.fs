@@ -1,4 +1,4 @@
-namespace Scratch
+﻿namespace Scratch
 open System
 open Scratch
 open Scratch.Primitives
@@ -47,6 +47,16 @@ module SList =
     let get (SList xs) nth = xs.[nth - 1]
     let getRandom xs = get xs (MathOperators.random.Next(1, length xs + 1))
     let getLast xs = get xs (length xs)
+    let join (SList xs as list) =
+        let rec isSingle (SList xs as list) i =
+            if xs.Count <= i then true else
+            if String.length xs.[i] <> 1 then false else
+            isSingle list (i + 1)
+
+        if isSingle list 0
+        then String.Concat xs
+        else String.Join(" ", xs)
+
     let toList (SList xs) = List.ofSeq xs
 
 [<AutoOpen>]

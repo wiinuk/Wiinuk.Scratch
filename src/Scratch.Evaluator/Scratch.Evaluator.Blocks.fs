@@ -668,12 +668,19 @@ and evaluateStatement state (ComplexExpression(location, op, args)) = fiberPoly 
     | O.stampCostume, _, _ -> state.blockState.view.StampToCanvas state.self
 
     | O.``setVar:to:``, [Literal(_, SString name); e], _ ->
-        getValueOrRaise state location name := evaluateExpression state e
+        let v = evaluateExpression state e
+        if Set.contains name state.blockState.clouds then setCloudValue &state location name v
+        else getValueOrRaise state location name := v
 
     | O.``changeVar:by:``, [Literal(_, SString name); e], _ ->
-        let v = getValueOrRaise state location name
         let x = evaluateExpression state e
-        v := SNumber(toNumber v.contents + toNumber x)
+
+        if Set.contains name state.blockState.clouds then
+            let v = getCloudValue &state name
+            setCloudValue &state location name (SNumber(toNumber v + toNumber x))
+        else
+            let v = getValueOrRaise state location name
+            v := SNumber(toNumber v.contents + toNumber x)
 
     | O.``append:toList:``, [e; Literal(_, SString name)], _ ->
         let v = getListOrRaise state location name

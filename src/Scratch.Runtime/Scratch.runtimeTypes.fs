@@ -313,3 +313,31 @@ module Input =
             override i.AddMouseClicked(listener) = i.input.AddMouseClicked(&listener)
 
     let poly input = { input = input }
+
+type ICloud =
+    abstract Set: name: string * value: SValue -> unit
+    abstract Get: name: string -> SValue
+
+module Cloud =
+    open System.Collections.Generic
+
+    let set (x: 'T byref when 'T :> ICloud and 'T : struct) name value = x.Set(name, value)
+    let get (x: 'T byref when 'T :> ICloud and 'T : struct) name = x.Get name
+
+    [<Struct; NoEquality; NoComparison>]
+    type Offline = private | Offline of Dictionary<string, SValue>
+    with
+        interface ICloud with
+            override _.Set(_, _) = failwith "offline"
+            override _.Get _ = failwith "offline"
+
+    let offline() = Offline <| Dictionary()
+
+    [<Struct; NoEquality; NoComparison>]
+    type Poly<'C> when 'C :> ICloud and 'C : not struct = private { cloud: 'C }
+    with
+        interface ICloud with
+            override c.Set(n, v) = c.cloud.Set(n, v)
+            override c.Get n = c.cloud.Get n
+
+    let poly cloud = { Poly.cloud = cloud }

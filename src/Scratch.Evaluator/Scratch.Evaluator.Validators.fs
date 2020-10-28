@@ -9,6 +9,8 @@ open System.Runtime.InteropServices
 type DiagnosticsKind =
     | FootterStatementInPositionOtherThanLast
     | ParameterCountMismatch
+    | CloudVariableInSprite
+    | CloudVariableTooMany
 
 [<Struct; StructLayout(LayoutKind.Auto)>]
 type Diagnostics<'a> = {
@@ -71,13 +73,36 @@ let scriptData diagnostics script =
     | Statements x -> blockExpression &s x
     | Expression x -> complexExpression &s x
 
-let entityData diagnostics data =
+let private incrementWithState x state =
+    match x with
+    | ValueNone -> ValueSome struct(1, state)
+    | ValueSome struct(n, s) -> ValueSome(n + 1, s)
+
+let private mergeWithState x1 x2 =
+    match x1, x2 with
+    | ValueSome struct(n1, s), ValueSome struct(n2, _) -> ValueSome struct(n1 + n2, s)
+    | ValueNone, x | x, ValueNone -> x
+
+let entityData diagnostics isStage data =
+    let mutable cloudVariableCount = ValueNone
+
     for s in data.scripts do scriptData diagnostics s
+    for v in data.variables do
+        match v.isPersistent with
+        | NoPersistent -> ()
+        | Persistent when not isStage -> PooledBuffer.add diagnostics { state = v.state; kind = CloudVariableInSprite }
+        | Persistent -> cloudVariableCount <- incrementWithState cloudVariableCount v.state
+
+    cloudVariableCount
 
 let stageData diagnostics data =
-    entityData diagnostics data
+    let mutable cloudVariableCount = entityData diagnostics true data
     for x in StageData.sprites data do
-        entityData diagnostics x
+        cloudVariableCount <- mergeWithState cloudVariableCount (entityData diagnostics false x)
+
+    match cloudVariableCount with
+    | ValueSome(n, s) when 10 < n -> PooledBuffer.add diagnostics { state = s; kind = CloudVariableTooMany }
+    | _ -> ()
 
 type ValidationException<'a>(diagnostics: Diagnostics<'a> list) =
     inherit Exception()

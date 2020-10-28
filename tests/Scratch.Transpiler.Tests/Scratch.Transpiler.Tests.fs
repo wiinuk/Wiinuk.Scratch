@@ -1,4 +1,4 @@
-module Scratch.Transpiler.Tests
+﻿module Scratch.Transpiler.Tests
 open Xunit
 open FSharp.Quotations
 open Scratch
@@ -2131,3 +2131,64 @@ let doAskAndAnswerTest() =
 
     |> startAsStdSpriteWith' id (EvaluateConfig.withView <| view()) (ExecutionConfig.withView <| view())
     =? ["abcabc"; ""]
+
+[<Fact>]
+let joinSingleListItemTest() =
+    <@
+    let list = defineList []
+    SList.push list "A"
+    SList.push list "B"
+
+    out (SList.join list)
+    @>
+    |> startAsStdSprite
+    =? ["AB"]
+
+[<Fact>]
+let joinNonSingleListItemTest() =
+    <@
+    let list = defineList []
+    SList.push list "A"
+    SList.push list "BC"
+
+    out (SList.join list)
+    @>
+    |> startAsStdSprite
+    =? ["A BC"]
+
+[<Fact>]
+let joinEmptyListItemTest() =
+    <@
+    let list = defineList []
+    SList.push list "A"
+    SList.push list ""
+
+    out (SList.join list)
+    @>
+    |> startAsStdSprite
+    =? ["A "]
+
+[<Struct>]
+type CustomLayout1Shape =
+    interface ICustomLayoutShape with
+        member _.ValueLayout = Some [UnderlyingTypeSpec(Any, UnderlyingValue, Kind.Primitive)]
+
+type CustomLayout1 = class interface ICustomLayout<CustomLayout1Shape> end
+
+[<Struct>]
+type CustomLayout2Shape =
+    interface ICustomLayoutShape with
+        member _.ValueLayout =
+            let u = UnderlyingTypeSpec(Any, UnderlyingValue, Kind.Primitive)
+            Some [u; u]
+
+type CustomLayout2 = class interface ICustomLayout<CustomLayout2Shape> end
+
+[<Fact>]
+let customSizeTest() =
+    <@
+    Size.typeSize<CustomLayout1> |> Size.toNumber |> string |> outLine
+    Size.typeSize<CustomLayout2> |> Size.toNumber |> string |> outLine
+    @>
+    |> startAsStdSprite
+    =? ["1"; "2"; ""]

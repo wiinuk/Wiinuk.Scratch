@@ -1,4 +1,4 @@
-namespace Scratch.IR
+﻿namespace Scratch.IR
 open Scratch
 open Scratch.Ast
 open Scratch.AstDefinitions
@@ -891,6 +891,7 @@ module ExpSmartConstructorExtensions =
             let ``deleteLine:ofList:`` source line list = listOp source O.``deleteLine:ofList:`` [Choice1Of2 line; Choice2Of2 list]
             let ``append:toList:`` source value list = listOp source O.``append:toList:`` [Choice1Of2 value; Choice2Of2 list]
             let ``setLine:ofList:to:`` source line list value = listOp source O.``setLine:ofList:to:`` [Choice1Of2 line; Choice2Of2 list; Choice1Of2 value]
+            let ``contentsOfList:`` source list = listOp source O.``contentsOfList:`` [Choice2Of2 list]
 
             let ``getLine:ofList:`` source line list = listOp source O.``getLine:ofList:`` [Choice1Of2 line; Choice2Of2 list]
             let ``lineCountOfList:`` source list = listOp source O.``lineCountOfList:`` [Choice2Of2 list]

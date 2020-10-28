@@ -14,9 +14,11 @@ let ofEntityData makeSpriteState data =
     let values =
         data.variables
         |> List.fold (fun xs v ->
-            match v.isPersistent with Persistent -> failwithf "persistent variable '%s'" v.name | NoPersistent -> ()
-            if Map.containsKey v.name xs then failwithf "duplicated variable name '%s" v.name
-            Map.add v.name (ref v.value) xs
+            match v.isPersistent with
+            | Persistent -> xs
+            | NoPersistent ->
+                if Map.containsKey v.name xs then failwithf "duplicated variable name '%s" v.name
+                Map.add v.name (ref v.value) xs
         ) Map.empty
 
     let lists =

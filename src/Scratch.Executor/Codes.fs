@@ -71,8 +71,10 @@ type Code =
     // object variable operation
     | SpriteVariable
     | StageVariable
+    | CloudVariable
     | SetSpriteVariable
     | SetStageVariable
+    | SetCloudVariable
 
     // object list operation
     | SpriteListCount
@@ -278,6 +280,21 @@ module CodeMetadata =
     let private basicAction1 name = basicActionN Pop.Pop1 name
     /// Next, Void, 2 -> 0
     let private basicAction2 name = basicActionN Pop.Pop1 name
+
+    let private readVariable operandTypeCode = {
+        internalName = name1 "readVariable"
+        flowControl = F.Next
+        operandTypeCode = operandTypeCode
+        popBehaviour = Pop.Pop0
+        pushBehaviour = Push.Push1
+    }
+    let private setVariable operandTypeCode = {
+        internalName = name1 "setVar:to:"
+        flowControl = F.Next
+        operandTypeCode = operandTypeCode
+        popBehaviour = Pop.Pop1
+        pushBehaviour = Push.Push0
+    }
 
     let metadata = function
         | Code.Nop ->
@@ -485,38 +502,13 @@ module CodeMetadata =
         | Code.ExpE -> basicUnary "computeFunction:of:"
         | Code.Exp10 -> basicUnary "computeFunction:of:"
 
-        | Code.SpriteVariable ->
-            {
-                internalName = name1 "readVariable"
-                flowControl = F.Next
-                operandTypeCode = T.SpriteVariableIndex
-                popBehaviour = Pop.Pop0
-                pushBehaviour = Push.Push1
-            }
-        | Code.StageVariable ->
-            {
-                internalName = name1 "readVariable"
-                flowControl = F.Next
-                operandTypeCode = T.StageVariableIndex
-                popBehaviour = Pop.Pop0
-                pushBehaviour = Push.Push1
-            }
-        | Code.SetSpriteVariable ->
-            {
-                internalName = name1 "setVar:to:"
-                flowControl = F.Next
-                operandTypeCode = T.SpriteVariableIndex
-                popBehaviour = Pop.Pop1
-                pushBehaviour = Push.Push0
-            }
-        | Code.SetStageVariable ->
-            {
-                internalName = name1 "setVar:to:"
-                flowControl = F.Next
-                operandTypeCode = T.StageVariableIndex
-                popBehaviour = Pop.Pop1
-                pushBehaviour = Push.Push0
-            }
+        | Code.SpriteVariable -> readVariable T.SpriteVariableIndex
+        | Code.StageVariable -> readVariable T.StageVariableIndex
+        | Code.CloudVariable -> readVariable T.StringIndex
+        | Code.SetSpriteVariable -> setVariable T.SpriteVariableIndex
+        | Code.SetStageVariable -> setVariable T.StageVariableIndex
+        | Code.SetCloudVariable -> setVariable T.StringIndex
+
         | Code.SpriteListCount ->
             {
                 internalName = name1 "lineCountOfList:"

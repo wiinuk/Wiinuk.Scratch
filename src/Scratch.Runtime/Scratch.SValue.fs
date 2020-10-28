@@ -245,6 +245,12 @@ module SValue =
         | _ ->
             ValueNone
 
+    let asciiDigitRegex = Regex @"^[0-9]+$"
+    let isCloudValue = function
+        | SNumber x -> not <| Double.IsNaN x && not <| Double.IsInfinity x
+        | SString x -> asciiDigitRegex.IsMatch x
+        | SBool _ -> false
+
 [<AutoOpen>]
 module SValuePatterns =
     let (|TryParseSNumber|_|) x = SValue.tryParseSNumber x |> VOption.box

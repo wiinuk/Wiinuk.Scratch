@@ -86,7 +86,7 @@ module private EvalHelpers =
 
     [<AbstractClass; Sealed>]
     type private BlockStateHolder<'a> private () =
-        static let value: BlockState<'a,_,_> = newDefaultBlockState()
+        static let value: BlockState<'a,_,_,_> = newDefaultBlockState()
         static member Value = value
 
     let evaluateExpressionWithGlobalContext e =

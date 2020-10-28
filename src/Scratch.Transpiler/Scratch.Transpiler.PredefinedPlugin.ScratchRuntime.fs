@@ -281,6 +281,13 @@ let scratchCallExpressions() = [
 
         | _ -> return! skip()
     }
+    [ <@@ SList.join @@> ], fun senv struct(args, e) -> context {
+        match args with
+        | _, _, (PropertyOrVarOrFieldGet senv k as listE)::_ ->
+            let s = lookupOrRaiseList (SourceCode.ofExpr listE) k senv.e
+            return Exp.``contentsOfList:`` (getLoc e) (Exp.list (getLoc listE) s.listVar)
+        | _ -> return! skip()
+    }
     // <@ defineRecordMember <@ $recordField @> @> => `$(memberOffset <@ $recordField @>)`
     [ <@@ Field.defineRecordField @@> ], fun _ struct(args, e) -> context {
         match args with
