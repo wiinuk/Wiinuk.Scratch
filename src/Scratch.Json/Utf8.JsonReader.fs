@@ -30,7 +30,7 @@ let tryReadEndObjectOrValueSeparator (r: _ byref) (count: _ byref) (success: _ o
     true
 
 let private nullTokenSegment = ArraySegment "null"B
-module private StringEncoding =
+module internal StringEncoding =
     let UTF8 = UTF8Encoding(encoderShouldEmitUTF8Identifier = false)
 
 let private createParsingException (r: JsonReader byref) expected =

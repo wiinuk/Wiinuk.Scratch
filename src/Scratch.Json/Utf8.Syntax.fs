@@ -80,7 +80,7 @@ let jNumberLiteral literal = {
 let jStringLiteral literal =
     let quoted =
         let mutable w = JsonWriter()
-        w.WriteString literal
+        writeString &w literal
         w.ToUtf8ByteArray()
     {
         literal = literal
