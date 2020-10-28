@@ -38,5 +38,8 @@
     <ProjectReference Include="..\..\src\Scratch.Packaging\Scratch.Packaging.fsproj" />
     <ProjectReference Include="..\Scratch.Runtime.Tests\Scratch.Runtime.Tests.fsproj" />
   </ItemGroup>
+  <Target Name="InstallNpmPackages" BeforeTargets="Build">
+    <Exec Command="npm install" ConsoleToMsBuild="true" />
+  </Target>
   <Import Project="..\..\.paket\Paket.Restore.targets" />
 </Project>
