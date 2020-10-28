@@ -267,6 +267,12 @@ type Arbs =
             )
             (fun x -> (x.state, x.isPersistent, NonNull x.listName, x.contents', NormalFloat x.x, NormalFloat x.y, NormalFloat x.width, NormalFloat x.height, x.visible))
 
+    static member ProcedureDefinition() =
+        Arb.from
+        |> Arb.convert
+            (fun (state, NonNull name, parameters, isAtomic, body) -> ProcedureDefinition(state, name, parameters, isAtomic, body))
+            (fun (ProcedureDefinition(state, name, parameters, isAtomic, body)) -> state, NonNull name, parameters, isAtomic, body)
+
     static member Script() =
         Arb.from
         |> Arb.convert
