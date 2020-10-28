@@ -120,21 +120,21 @@ with
             { head = head; tail = tail }
 
         member s.TrySerialize(w, c, x) =
-            if c.count <> 0 then w.WriteValueSeparator()
-            c.count <- c.count + 1
-
             match x.head with
             | None -> true
-            | Some head -> s.head.TrySerialize(&w, head)
+            | Some head ->
+                if c.count <> 0 then w.WriteValueSeparator()
+                c.count <- c.count + 1
+                s.head.TrySerialize(&w, head)
             &&
             s.tail.TrySerialize(&w, &c, x.tail)
 
         member s.Serialize(w, c, x) =
-            if c.count <> 0 then w.WriteValueSeparator()
-            c.count <- c.count + 1
-
             match x.head with
-            | Some head -> s.head.Serialize(&w, head)
+            | Some head ->
+                if c.count <> 0 then w.WriteValueSeparator()
+                c.count <- c.count + 1
+                s.head.Serialize(&w, head)
             | _ -> ()
             s.tail.Serialize(&w, &c, x.tail)
 

@@ -70,3 +70,12 @@ let numberRoundtripEqualsTest() = qcheck <| roundtripEqualsProperty jNumber
 [<Fact>]
 let jsonTest() =
     parse json "[null, true, false]" =? Ok(Json.jarray [Json.jnull; Json.jtrue; Json.jfalse])
+
+[<Fact>]
+let optionalTupleItemTest() =
+    let s = jArray (jString ** jBoolean **? jEmptyArray)
+    print s ("a"^^Some true^^HUnit) =? Ok "[\"a\",true]"
+    print s ("a"^^None^^HUnit) =? Ok "[\"a\"]"
+    parse s "[\"a\",true]" =? Ok("a"^^Some true^^HUnit)
+    parse s "[\"a\"]" =? Ok("a"^^None^^HUnit)
+
