@@ -130,7 +130,7 @@ module AdaptorJs =
             let sid = System.Threading.Interlocked.Increment &id
             sprintf "%d_%d" pid sid
 
-        do! Shell.startAsync "node \"%s\" start-server --id \"%s\"" adaptorJsPath id |> Async.StartChild |> Async.Ignore
+        do! Shell.startAsync "node \"%s\" start-server --id \"%s\" --silent" adaptorJsPath id |> Async.StartChild |> Async.Ignore
         let! client = NodeIpcClient.connect id
         return {
             ipcClient = client
