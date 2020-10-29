@@ -1042,7 +1042,12 @@ module Project =
         let broadcasts =
             match OMap.tryFind broadcastIdForEmptyName broadcasts with
             | ValueNone -> broadcasts
-            | ValueSome _ -> OMap.add broadcastIdForEmptyName (BroadcastData broadcastNameForEmptyName) broadcasts
+            | ValueSome _ ->
+
+                // keys [Id "a"; Id broadcastIdForEmptyName; Id "b"] ⇒
+                // keys [Id "a"; Id "b"; Id broadcastIdForEmptyName]
+                OMap.remove broadcastIdForEmptyName broadcasts
+                |> OMap.add broadcastIdForEmptyName (BroadcastData broadcastNameForEmptyName)
 
         broadcasts, broadcastIdForEmptyName, broadcastNameForEmptyName
 
