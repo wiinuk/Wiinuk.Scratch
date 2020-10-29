@@ -971,9 +971,9 @@ module Project =
                 let id = spec.category
                 if id = "" || Set.contains id defaultExtensionIds then ids else
 
-                Set.add id ids
+                id::ids
             ) ids
-        ) Set.empty
+        ) []
 
     let fleshKey makeKey xs =
         let rec aux i =
@@ -1163,12 +1163,11 @@ module Project =
             let targets = stageAsTargets globalVariableNameToId stage
 
             targets
-            //|> Seq.mapi (fun i x -> {| x with target = { x.target with layerOrder = Some <| double i } |})
             |> Seq.sortWith (fun l r -> int (l.paneOrder - r.paneOrder))
             |> Seq.map (fun x -> x.target)
             |> Seq.toList
 
-        extensions = collectStageExtensionIds stage |> Set.toList
+        extensions = collectStageExtensionIds stage |> List.distinct |> List.rev
         monitors = []
         meta = Meta.defaultValue
     }

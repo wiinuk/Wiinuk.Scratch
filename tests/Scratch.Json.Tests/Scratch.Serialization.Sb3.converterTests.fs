@@ -328,6 +328,15 @@ type IpcTests(fixture: IpcTestFixture) =
         |> sb3NormalizeProperty
 
     [<Fact>]
+    member _.normalizePenAndMusicExtension() =
+        BlockExpression((), [
+            ComplexExpression((), O.``changePenHueBy:``, [Literal((), SNumber 0.)])
+            ComplexExpression((), O.``changeTempoBy:``, [Literal((), SNumber 0.)])
+        ])
+        |> Statements
+        |> sb3NormalizeProperty
+
+    [<Fact>]
     member _.export() = qcheck exportScriptToSb3Property
 
     [<Fact>]
