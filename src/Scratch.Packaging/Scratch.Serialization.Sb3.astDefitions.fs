@@ -960,14 +960,7 @@ module Project =
         "sound"
     ] 
     let collectStageExtensionIds stage =
-        let rec ofExpression ids = function
-            | Literal _ -> ids
-            | Complex x -> ofComplexExpression ids x
-            | Block x -> ofBlock ids x
-
-        and ofExpressions ids es = List.fold ofExpression ids es
-        and ofBlock ids (BlockExpression(body = es)) = List.fold ofComplexExpression ids es
-        and ofComplexExpression ids (ComplexExpression(operator = op; operands = ops)) =
+        let rec ofComplexExpression ids (ComplexExpression(operator = op; operands = ops)) =
             match blockSpecFromOperator op with
             | ValueNone -> ids
             | ValueSome spec ->
@@ -976,9 +969,17 @@ module Project =
                 let id = spec.category
                 if id = "" || Set.contains id defaultExtensionIds then ids else
     
-                id::ids
+                OMap.add id () ids
 
             ofExpressions ids ops
+
+        and ofExpression ids = function
+            | Literal _ -> ids
+            | Complex x -> ofComplexExpression ids x
+            | Block x -> ofBlock ids x
+
+        and ofExpressions ids es = List.fold ofExpression ids es
+        and ofBlock ids (BlockExpression(body = es)) = List.fold ofComplexExpression ids es
 
         let ofScript ids = function
             | Listener(ListenerDefinition(arguments = es; body = b)) -> ofBlock (ofExpressions ids es) b
@@ -990,7 +991,7 @@ module Project =
         |> List.fold (fun ids s ->
             s.script
             |> ofScript ids
-        ) []
+        ) OMap.empty
 
     let fleshKey makeKey xs =
         let rec aux i =
@@ -1184,7 +1185,7 @@ module Project =
             |> Seq.map (fun x -> x.target)
             |> Seq.toList
 
-        extensions = collectStageExtensionIds stage |> List.distinct |> List.rev
+        extensions = collectStageExtensionIds stage |> OMap.toSeqOrdered |> Seq.map (fun kv -> kv.Key) |> Seq.toList
         monitors = []
         meta = Meta.defaultValue
     }
