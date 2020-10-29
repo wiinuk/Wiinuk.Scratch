@@ -123,8 +123,12 @@ module AdaptorJs =
         interface IDisposable with
             member x.Dispose() = x.Dispose() |> Async.RunSynchronously
 
+    let mutable private id = 0L
     let startServerAndConnect() = async {
-        let id = sprintf "server_%s" <| Guid.NewGuid().ToString "N"
+        let id =
+            let pid = System.Diagnostics.Process.GetCurrentProcess().Id
+            let sid = System.Threading.Interlocked.Increment &id
+            sprintf "%d_%d" pid sid
 
         do! Shell.startAsync "node \"%s\" start-server --id \"%s\"" adaptorJsPath id |> Async.StartChild |> Async.Ignore
         let! client = NodeIpcClient.connect id
