@@ -337,6 +337,12 @@ type IpcTests(fixture: IpcTestFixture) =
         |> sb3NormalizeProperty
 
     [<Fact>]
+    member _.normalizeMusicExtensionInAbs() =
+        ComplexExpression((), O.abs, [Expression.Complex(ComplexExpression((), O.tempo, []))])
+        |> Expression
+        |> sb3NormalizeProperty
+
+    [<Fact>]
     member _.export() = qcheck exportScriptToSb3Property
 
     [<Fact>]

@@ -958,21 +958,38 @@ module Project =
         "procedures"
         "sensing"
         "sound"
-    ]
+    ] 
     let collectStageExtensionIds stage =
+        let rec ofExpression ids = function
+            | Literal _ -> ids
+            | Complex x -> ofComplexExpression ids x
+            | Block x -> ofBlock ids x
+
+        and ofExpressions ids es = List.fold ofExpression ids es
+        and ofBlock ids (BlockExpression(body = es)) = List.fold ofComplexExpression ids es
+        and ofComplexExpression ids (ComplexExpression(operator = op; operands = ops)) =
+            match blockSpecFromOperator op with
+            | ValueNone -> ids
+            | ValueSome spec ->
+
+            let ids =
+                let id = spec.category
+                if id = "" || Set.contains id defaultExtensionIds then ids else
+    
+                id::ids
+
+            ofExpressions ids ops
+
+        let ofScript ids = function
+            | Listener(ListenerDefinition(arguments = es; body = b)) -> ofBlock (ofExpressions ids es) b
+            | Expression e -> ofComplexExpression ids e
+            | Procedure(ProcedureDefinition(body = b))
+            | Statements b -> ofBlock ids b
+
         stage.scripts
         |> List.fold (fun ids s ->
             s.script
-            |> Script.fold (fun ids (ComplexExpression(operator = op)) ->
-                match blockSpecFromOperator op with
-                | ValueNone -> ids
-                | ValueSome spec ->
-
-                let id = spec.category
-                if id = "" || Set.contains id defaultExtensionIds then ids else
-
-                id::ids
-            ) ids
+            |> ofScript ids
         ) []
 
     let fleshKey makeKey xs =
