@@ -174,7 +174,7 @@ const startServer = (/** @type {{ id: string, silent: boolean, timeout: number }
     const ipc = new Ipc.IPC()
     ipc.config.id = id
     ipc.config.retry = 1500
-    ipc.config.silent = silent
+    //ipc.config.silent = silent
 
     /**  @type {ReturnType<typeof setTimeout> | null} */
     let serverTimeoutId = null

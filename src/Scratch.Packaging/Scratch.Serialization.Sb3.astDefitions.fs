@@ -720,6 +720,7 @@ module Project =
 
         match block.opcode with
         | Op.math_number -> findFieldValue block "NUM" |> MathNumber |> ValueSome
+        | Op.math_positive_number -> findFieldValue block "NUM" |> MathPositiveNumber |> ValueSome
         | Op.math_whole_number -> findFieldValue block "NUM" |> MathWholeNumber |> ValueSome
         | Op.math_integer -> findFieldValue block "NUM" |> MathInteger |> ValueSome
         | Op.math_angle -> findFieldValue block "NUM" |> MathAngle |> ValueSome

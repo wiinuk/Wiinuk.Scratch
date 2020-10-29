@@ -71,7 +71,6 @@ module AdaptorJs =
     open Scratch.Json.Utf8
     open Scratch.Serialization
     open System.IO
-    open System.Diagnostics
 
 
     let adaptorJsPath = "./adaptor.js"

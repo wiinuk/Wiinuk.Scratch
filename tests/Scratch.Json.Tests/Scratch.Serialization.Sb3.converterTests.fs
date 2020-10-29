@@ -318,6 +318,16 @@ type IpcTests(fixture: IpcTestFixture) =
         |> sb3NormalizeProperty
 
     [<Fact>]
+    member _.normalizeWaitElapsedFrom() =
+        BlockExpression((), [
+            ComplexExpression((), O.``wait:elapsed:from:``, [
+                Literal((), SNumber 0.)
+            ])
+        ])
+        |> Statements
+        |> sb3NormalizeProperty
+
+    [<Fact>]
     member _.export() = qcheck exportScriptToSb3Property
 
     [<Fact>]
