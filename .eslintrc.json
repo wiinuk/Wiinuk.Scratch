@@ -1,0 +1,21 @@
+{
+    "env": {
+        "commonjs": true,
+        "node": true
+    },
+    "extends": [
+        "standard"
+    ],
+    "parser": "esprima",
+    "parserOptions": {
+        "ecmaVersion": 12
+    },
+    "rules": {
+        "no-unused-vars": "off",
+        "no-unused-expressions": "off",
+        "no-unused-labels": "off",
+
+        "quotes": ["warn", "double"],
+        "indent": ["warn", 4]
+    }
+}

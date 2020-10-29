@@ -4,6 +4,7 @@ open FsCheck
 open Scratch
 open Scratch.Ast
 open Scratch.AstDefinitions
+open System.Text
 
 
 [<Struct>]
@@ -14,6 +15,8 @@ type KnownListenerHeaderName = KnownListenerHeaderName of Symbol
 type KnownComplexExpressionName = KnownComplexExpressionName of Symbol
 [<Struct>]
 type KnownValueComplexExpressionName = KnownValueComplexExpressionName of Symbol
+[<Struct>]
+type KnownUnitComplexExpressionName = KnownUnitComplexExpressionName of Symbol
 
 let nameElements ofString toString names = 
     let gen = names |> Seq.map ofString |> Gen.elements
@@ -31,58 +34,102 @@ let knownListenerHeaderMap = Map knownListenerHeaders
 [<Struct>]
 type KnownValueComplexExpression<'a> = KnownValueComplexExpression of 'a ComplexExpression
 
+[<Struct>]
+type KnownUnitComplexExpression<'a> = KnownUnitComplexExpression of 'a ComplexExpression
+
+let procedureSignToEscapedName struct(head, tail) =
+    tail
+    |> Seq.map (fun struct(t, text) -> sprintf "%s%%%s" (SType.scratchParameterTypeName t) (escapeProcedureName text))
+    |> String.concat ""
+    |> (+) (escapeProcedureName head)
+
 let complexExpressionArb wrapSymbol (|UnwrapSymbol|) =
-    let literalGen = Arb.generate<_> |> Gen.map Literal
-    let literalOrValueComplexGen = Gen.sized <| fun size ->
-        if size <= 0 then literalGen else
+    let anyValueGen = Arb.generate<SValue>
+    let boolValueGen = Arb.generate<_> |> Gen.map SBool
+    let numberValueGen = Arb.generate<_> |> Gen.map (fun (NormalFloat x) -> SNumber x)
+    let colorValueGen = Gen.choose (minColorCode, maxColorCode) |> Gen.map (fun x -> SNumber(double x))
+    let stringValueGen = Arb.generate<_> |> Gen.map (fun (NonNull x) -> SString x)
+
+    let rec valueGenFromTsType = function
+        | TsType.StringSs ss -> Gen.elements ss |> Gen.map SString
+        | TsType.GVar _ -> anyValueGen
+        | TsType.Or _ as t ->
+            let rec flattenOrs acc = function
+                | TsType.StringSs _
+                | TsType.GVar _
+                | TsType.Named _ as t -> t::acc
+                | TsType.Or(t1, t2) -> flattenOrs (flattenOrs acc t1) t2
+
+            flattenOrs [] t
+            |> List.map valueGenFromTsType
+            |> Gen.oneof
+
+        | TsType.Named _ as t ->
+            if t = TsType.gBoolean then boolValueGen
+            elif t = TsType.gNumber then numberValueGen
+            elif t = TsType.gString then stringValueGen
+            elif t = TsType.gColor then colorValueGen
+            else anyValueGen
+
+    let valueGen = Option.map valueGenFromTsType >> Option.defaultValue anyValueGen
+    let literalGen t = gen {
+        let! state = Arb.generate<_>
+        let! x = valueGen t
+        return Literal(state, x)
+    }
+    let literalOrValueComplexGen t = Gen.sized <| fun size ->
+        if size <= 0 then literalGen t else
         Gen.oneof [
-            literalGen
+            literalGen t
             Arb.generate<_> |> Gen.scaleSize (fun x -> x / 2) |> Gen.map (fun (KnownValueComplexExpression e) -> Complex e)
         ]
-    let stringsGen strings = gen {
+
+    let stringsGen xs = gen {
         let! state = Arb.generate<_>
-        let! x = Gen.elements strings
+        let! x = Gen.elements xs
         return [Expression.eString state x]
     }
     let blockGen = gen {
         let! x = Arb.generate<_> |> Gen.scaleSize (fun x -> x / 2)
         return [Block x]
     }
-    let valueExpressionGen = gen {
-        let! x = literalOrValueComplexGen
-        return [x]
-    }
-    let listVarGen = gen {
+    let stringLiteralGen = gen {
         let! state = Arb.generate<_>
         let! NonNull x = Arb.generate<_>
         return [Expression.eString state x]
     }
-    let reporterGen = stringsGen ["r"]
-    let rotationGen = stringsGen ["left-right"; "don't rotate"; "normal"]
-    let stopGen = stringsGen ["other scripts in sprite"; "other scripts in stage"]
-    let stopScriptGen = stringsGen ["all"; "this script"]
-    let varGen = gen {
+    let procedureSignGen =
+        let textGen = Arb.generate<_> |> Gen.map (fun (NonNull x) -> x)
+        let placeholderGen = Arb.generate<SType>
+        let tailGen = Gen.arrayOf <| Gen.map2 (fun x y -> struct(x, y)) placeholderGen textGen
+        Gen.map2 (fun x y -> struct(x, y)) textGen tailGen
+
+    let procedureNameAndValueExpressionsGen = gen {
         let! state = Arb.generate<_>
-        let! NonNull x = Arb.generate<_>
-        return [Expression.eString state x]
+        let! (_, tail) as sign = procedureSignGen
+        let name = procedureSignToEscapedName sign
+        let! arguments = Gen.listOfLength tail.Length <| literalOrValueComplexGen None 
+
+        return Expression.eString state name::arguments
     }
-    let valueExpressionsGen = Gen.listOf literalOrValueComplexGen
-    let operandGen = function
+
+    let operandGen info =
+        match info.operandType with
         | OperandType.Block -> blockGen
         | OperandType.Expression t ->
-            match t with
-            | TsType.StringSs strings -> stringsGen strings
+            let t =
+                if info.forceLiteralType
+                then info.literalOperandType |> Option.defaultValue t |> Some
+                else None
+            t
+            |> literalOrValueComplexGen
+            |> Gen.map List.singleton
 
-            // TODO:
-            | _ -> valueExpressionGen
-
-        | OperandType.ListVariableExpression _ -> listVarGen
-        | OperandType.Reporter -> reporterGen
-        | OperandType.Rotation -> rotationGen
-        | OperandType.Stop -> stopGen
-        | OperandType.StopScript -> stopScriptGen
-        | OperandType.Variable -> varGen
-        | OperandType.VariadicExpressions -> valueExpressionsGen
+        | OperandType.ListVariableExpression _
+        | OperandType.Variable
+        | OperandType.ParameterName -> stringLiteralGen
+        | OperandType.StringLiterals ss -> stringsGen ss
+        | OperandType.ProcedureNameAndExpressions -> procedureNameAndValueExpressionsGen
 
     let g = gen {
         let! state = Arb.generate<_>
@@ -103,22 +150,53 @@ let complexExpressionArb wrapSymbol (|UnwrapSymbol|) =
             | Block _ -> Some Kind.Statement
             | Complex(ComplexExpression(operator = KnownOperatorInfo(ValueSome { kind = kind }))) -> Some kind
             | _ -> None
-            
-        let validateAndTakeOperands = function
-            | OperandType.Expression _, ExpressionKind Kind.Expression::operands
+
+        let rec includes = function
+            | TsType.StringSs ss, SString s when List.contains s ss -> true
+            | TsType.GVar _, _ -> true
+            | TsType.Or(t1, t2), v -> includes (t1, v) || includes (t2, v)
+            | TsType.Named _ as t, v ->
+                match v with
+                | SBool _ -> t = TsType.gBoolean
+                | SNumber n -> t = TsType.gNumber || (t = TsType.gColor && isColorCode n)
+                | SString _ -> t = TsType.gString
+
+            | _ -> false
+
+        let validateAndTakeOperands info operands =
+            match info.operandType, operands with
+            | OperandType.Expression t, (ExpressionKind Kind.Expression as operand)::operands ->
+                match operand with
+                | Literal(_, v) when info.forceLiteralType && not (includes (t, v)) -> None
+                | _ -> Some operands
+
             | OperandType.Block, Block _::operands
-            | OperandType.ListVariableExpression _, EString _::operands
-            | OperandType.Reporter, EString _::operands
-            | OperandType.Rotation, EString _::operands
-            | OperandType.Stop, EString _::operands
-            | OperandType.StopScript, EString _::operands
-            | OperandType.Variable, EString _::operands ->
+            | (OperandType.Variable | OperandType.ListVariableExpression _ | OperandType.ParameterName), EString _::operands ->
                 Some operands
 
-            | OperandType.VariadicExpressions, operands ->
-                operands |> List.takeWhile (function ExpressionKind Kind.Expression -> true | _ -> false) |> Some
+            | OperandType.StringLiterals ss, EString(_, s)::operands when Set.contains s ss ->
+                Some operands
+            
+            | OperandType.ProcedureNameAndExpressions, EString(_, name)::operands ->
+                match parseProcedureName name with
+                | ValueNone -> None
+                | ValueSome(_, tail) ->
 
-            | _ -> None
+                let rec validateArguments = function
+                    | [], operands -> Some operands
+                    | _::signTail, ExpressionKind Kind.Expression::operands -> validateArguments (signTail, operands)
+                    | _ -> None
+
+                validateArguments (tail, operands)
+
+            | OperandType.Expression _, _
+            | OperandType.Block, _
+            | OperandType.Variable, _
+            | OperandType.ProcedureNameAndExpressions, _
+            | OperandType.ParameterName, _
+            | OperandType.StringLiterals _, _
+            | OperandType.ListVariableExpression _, _
+                -> None
 
         let rec isValidOperands operands specs =
             match operands, specs with
@@ -126,7 +204,7 @@ let complexExpressionArb wrapSymbol (|UnwrapSymbol|) =
             | _::_, [] -> false
             | operands, s::specs ->
 
-            match validateAndTakeOperands (s, operands) with
+            match validateAndTakeOperands s operands with
             | Some operands -> isValidOperands operands specs
             | _ -> false
 
@@ -165,6 +243,13 @@ type Arbs =
         |> Seq.map fst
         |> nameElements KnownValueComplexExpressionName (fun (KnownValueComplexExpressionName x) -> x)
 
+    static member KnownUnitComplexExpressionName() =
+        knownAllOperatorMap
+        |> Map.toSeq
+        |> Seq.filter (fun (_, v) -> v.kind = Kind.Statement)
+        |> Seq.map fst
+        |> nameElements KnownUnitComplexExpressionName (fun (KnownUnitComplexExpressionName x) -> x)
+
     static member SValue() =
         let sString = gen {
             let! NonNull s = Arb.generate<_>
@@ -191,6 +276,10 @@ type Arbs =
         complexExpressionArb KnownValueComplexExpressionName (fun (KnownValueComplexExpressionName x) -> x)
         |> Arb.convert KnownValueComplexExpression (fun (KnownValueComplexExpression x) -> x)
 
+    static member KnownUnitComplexExpression() =
+        complexExpressionArb KnownUnitComplexExpressionName (fun (KnownUnitComplexExpressionName x) -> x)
+        |> Arb.convert KnownUnitComplexExpression (fun (KnownUnitComplexExpression x) -> x)
+
     static member ComplexExpression() =
         complexExpressionArb KnownComplexExpressionName (fun (KnownComplexExpressionName x) -> x)
 
@@ -206,6 +295,12 @@ type Arbs =
                 FooterStatement(ComplexExpression(state, operator, operands))
         }
         Arb.fromGenShrink(g, s)
+
+    static member BlockExpression() =
+        Arb.from<_>
+        |> Arb.convert
+            (fun (state, body) -> BlockExpression(state, body |> List.map (fun (KnownUnitComplexExpression x) -> x)))
+            (fun (BlockExpression(state, body)) -> state, body |> List.map KnownUnitComplexExpression)
 
     static member ListenerDefinition() =
         let argumentGen spec = gen {
@@ -266,6 +361,37 @@ type Arbs =
                 }
             )
             (fun x -> (x.state, x.isPersistent, NonNull x.listName, x.contents', NormalFloat x.x, NormalFloat x.y, NormalFloat x.width, NormalFloat x.height, x.visible))
+
+    static member ProcedureDefinition() =
+        let generator = gen {
+            let! state = Arb.generate<_>
+            let! NonNull head = Arb.generate<_>
+            let! tailAndParameters = Arb.generate<_>
+            let! isAtomic = Arb.generate<_>
+            let! body = Arb.generate<_>
+            let tail =
+                tailAndParameters
+                |> List.map (fun (NonNull text, ParameterDefinition(defaultValue = v)) ->
+                    let t =
+                        match v with
+                        | SString _ -> SType.S
+                        | SNumber _ -> SType.N
+                        | SBool _ -> SType.B
+                    struct(t, text)
+                )
+            let name = procedureSignToEscapedName (head, tail)
+            let parameters = tailAndParameters |> List.map snd
+            return ProcedureDefinition(state, name, parameters, isAtomic, body)
+        }
+        let shrinker (ProcedureDefinition(state, name, parameters, isAtomic, body)) = seq {
+            for state, NonNull name, parameters, isAtomic, body in Arb.shrink (state, NonNull name, parameters, isAtomic, body) do
+                match parseProcedureName name with
+                | ValueSome(_, tail) when List.length tail = List.length parameters ->
+                    ProcedureDefinition(state, name, parameters, isAtomic, body)
+
+                | _ -> ()
+        }
+        Arb.fromGenShrink(generator, shrinker)
 
     static member Script() =
         Arb.from

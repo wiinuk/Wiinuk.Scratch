@@ -28,6 +28,10 @@ let tryParseSNumberTest() =
     parse "\u3000-123.\u3000" =? ValueSome -123.
     parse "\u3000-.2e3\u3000" =? ValueSome -200.
 
+[<Fact>]
+let emptyStringToNumberTest() =
+    SValue.toNumber (SString "") =? 0.
+
 let makeOptions (runtime: Runtime) (prototype: Entity option) =
     FSharpValue.MakeRecord(
         typeof<EntityInitializeOptions>,
@@ -192,8 +196,8 @@ let genericTypeGenericMethodDefinitionTest() =
 
 [<Fact>]
 let omapTest() =
-    OMap.toListOrdered (OMap.ofList [1, "A"; 3, "C"; 1, "a"]) =? [3, "C"; 1, "a"]
-    OMap.toListSorted (OMap.ofList [1, "A"; 3, "C"; 1, "a"]) =? [1, "a"; 3, "C"]
+    OMap.toListOrdered (OMap.ofList [3, "C"; 1, "A"; 3, "c"]) =? [3, "c"; 1, "A"]
+    OMap.toListSorted (OMap.ofList [3, "C"; 1, "A"; 3, "c"]) =? [1, "A"; 3, "c"]
 
 [<Fact>]
 let omapEqualityTest() =

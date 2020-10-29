@@ -1217,19 +1217,17 @@ module private Emitters =
 
     and convertOperand b (operand, spec) =
         match spec with
-        | OperandType.Block _
-        | OperandType.VariadicExpressions -> failwithf ""
+        | OperandType.Block _ -> failwithf ""
 
+        | OperandType.ProcedureNameAndExpressions
         | OperandType.Expression _
         | OperandType.ListVariableExpression _
-        | OperandType.Reporter
-        | OperandType.Rotation
-        | OperandType.Stop
-        | OperandType.StopScript
+        | OperandType.StringLiterals _
+        | OperandType.ParameterName
         | OperandType.Variable -> convertPrimitiveExp b operand
 
     and convertNormalStatementOp b state info (operator, operands) =
-        let operands = List.map2 (fun operand spec -> convertOperand b (operand, spec)) operands info.operands
+        let operands = List.map2 (fun operand spec -> convertOperand b (operand, spec.operandType)) operands info.operands
         ComplexExpression(state, operator, operands) |> Builder.accumulateStatement b
 
     and convertTupleGet b (x, index) = convertExp b x |> List.item index |> List.singleton
@@ -1254,16 +1252,14 @@ module private Emitters =
 
     and convertListOperand b (operand, spec) =
         match spec with
-        | OperandType.Block _
-        | OperandType.VariadicExpressions -> failwithf ""
+        | OperandType.Block _ -> failwithf ""
 
         | OperandType.Expression _
-        | OperandType.Reporter
-        | OperandType.Rotation
-        | OperandType.Stop
-        | OperandType.StopScript
+        | OperandType.StringLiterals _
         | OperandType.ListVariableExpression _
-        | OperandType.Variable ->
+        | OperandType.Variable
+        | OperandType.ParameterName
+        | OperandType.ProcedureNameAndExpressions ->
             match operand with
             | Choice1Of2 e -> convertPrimitiveExp b e
             | Choice2Of2 listVar ->
@@ -1275,7 +1271,7 @@ module private Emitters =
         | KnownOperatorInfo ValueNone -> raise <| NotImplementedException()
         | KnownOperatorInfo(ValueSome info) ->
 
-        let operands = List.map2 (fun operand spec -> convertListOperand b (operand, spec)) operands info.operands
+        let operands = List.map2 (fun operand spec -> convertListOperand b (operand, spec.operandType)) operands info.operands
         let operation = ComplexExpression(state, operator, operands)
 
         match info.kind with

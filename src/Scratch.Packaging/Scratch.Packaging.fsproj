@@ -6,8 +6,10 @@
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="Scratch.Serialization.Sb3.SpecMap.fs" />
     <Compile Include="Scratch.Serialization.Sb2.Syntax.fs" />
     <Compile Include="Scratch.Serialization.Sb3.Ast.fs" />
+    <Compile Include="Scratch.Serialization.Sb3.astDefitions.fs" />
     <Compile Include="Scratch.Serialization.Sb3.Syntax.fs" />
     <Compile Include="types.fs" />
     <Compile Include="Packaging.fs" />
