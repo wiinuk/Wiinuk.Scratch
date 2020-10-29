@@ -1,7 +1,8 @@
 ﻿namespace Scratch.Primitives
-open System.Collections.Generic
 open System
 open System.Collections
+open System.Collections.Generic
+
 
 module internal OMapHelpers =
     [<Struct; NoComparison; NoEquality>]
@@ -109,8 +110,6 @@ with
         member m.Values = m.map |> Seq.map (fun kv -> let mutable v = kv.Value in v.Value)
 
 module OMap =
-    open System.Collections
-
     let empty = { nextIndex = 0; map = Map.empty; imap = Map.empty }
     let isEmpty map = Map.isEmpty map.map
     let containsKey key map = Map.containsKey key map.map

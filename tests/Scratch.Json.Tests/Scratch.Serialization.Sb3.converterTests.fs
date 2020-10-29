@@ -169,13 +169,20 @@ module Helpers =
         ) OMap.empty
 
     let normalizeTarget x =
-        let map = newRenameState()
+        let state = newRenameState()
+
+        for kv in OMap.toSeqOrdered x.blocks do renameBlockId state kv.Key |> ignore
+        for kv in OMap.toSeqOrdered x.variables do renameVariableId state kv.Key |> ignore
+        for kv in OMap.toSeqOrdered x.lists do renameListId state kv.Key |> ignore
+        for kv in OMap.toSeqOrdered x.broadcasts do renameBroadcastId state kv.Key |> ignore
+        for kv in OMap.toSeqOrdered x.comments do renameCommentId state kv.Key |> ignore
+
         { x with
-            variables = renameOMapKeys (renameVariableId map) x.variables
-            lists = renameOMapKeys (renameListId map) x.lists
-            broadcasts = renameOMapKeys (renameBroadcastId map) x.broadcasts
-            blocks = normalizeBlocks map x.blocks
-            comments = normalizeComments map x.comments
+            variables = renameOMapKeys (renameVariableId state) x.variables
+            lists = renameOMapKeys (renameListId state) x.lists
+            broadcasts = renameOMapKeys (renameBroadcastId state) x.broadcasts
+            blocks = normalizeBlocks state x.blocks
+            comments = normalizeComments state x.comments
         }
 
     let normalizeMeta x =
@@ -340,6 +347,23 @@ type IpcTests(fixture: IpcTestFixture) =
     member _.normalizeMusicExtensionInAbs() =
         ComplexExpression((), O.abs, [Expression.Complex(ComplexExpression((), O.tempo, []))])
         |> Expression
+        |> sb3NormalizeProperty
+
+    [<Fact>]
+    member _.normalizeComplexBlocksOrder() =
+        BlockExpression((), [
+            ComplexExpression((), O.``say:``, [
+                Expression.Complex(ComplexExpression((), O.``stringLength:``, [
+                    Expression.Complex(ComplexExpression((), O.``+``, [
+                        Expression.Complex(ComplexExpression((), O.answer, []))
+                        Literal((), SNumber 0.)
+                    ]))
+                ]))
+            ])
+            ComplexExpression((), O.bounceOffEdge, [])
+            ComplexExpression((), O.bounceOffEdge, [])
+        ])
+        |> Statements
         |> sb3NormalizeProperty
 
     [<Fact>]

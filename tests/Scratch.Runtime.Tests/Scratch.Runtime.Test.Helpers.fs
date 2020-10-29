@@ -37,11 +37,17 @@ type KnownValueComplexExpression<'a> = KnownValueComplexExpression of 'a Complex
 [<Struct>]
 type KnownUnitComplexExpression<'a> = KnownUnitComplexExpression of 'a ComplexExpression
 
+let procedureSignToEscapedName struct(head, tail) =
+    tail
+    |> Seq.map (fun struct(t, text) -> sprintf "%s%%%s" (SType.scratchParameterTypeName t) (escapeProcedureName text))
+    |> String.concat ""
+    |> (+) (escapeProcedureName head)
+
 let complexExpressionArb wrapSymbol (|UnwrapSymbol|) =
     let anyValueGen = Arb.generate<SValue>
     let boolValueGen = Arb.generate<_> |> Gen.map SBool
     let numberValueGen = Arb.generate<_> |> Gen.map (fun (NormalFloat x) -> SNumber x)
-    let colorValueGen = Gen.choose (AstDefinitions.minColorCode, AstDefinitions.maxColorCode) |> Gen.map (fun x -> SNumber(double x))
+    let colorValueGen = Gen.choose (minColorCode, maxColorCode) |> Gen.map (fun x -> SNumber(double x))
     let stringValueGen = Arb.generate<_> |> Gen.map (fun (NonNull x) -> SString x)
 
     let rec valueGenFromTsType = function
@@ -98,13 +104,6 @@ let complexExpressionArb wrapSymbol (|UnwrapSymbol|) =
         let tailGen = Gen.arrayOf <| Gen.map2 (fun x y -> struct(x, y)) placeholderGen textGen
         Gen.map2 (fun x y -> struct(x, y)) textGen tailGen
 
-    let valueExpressionsGen = Gen.listOf <| literalOrValueComplexGen None
-    let procedureSignToEscapedName struct(head, tail) =
-        tail
-        |> Seq.map (fun struct(t, text) -> sprintf "%s%%%s" (SType.scratchParameterTypeName t) (escapeProcedureName text))
-        |> String.concat ""
-        |> (+) (escapeProcedureName head)
-
     let procedureNameAndValueExpressionsGen = gen {
         let! state = Arb.generate<_>
         let! (_, tail) as sign = procedureSignGen
@@ -159,7 +158,7 @@ let complexExpressionArb wrapSymbol (|UnwrapSymbol|) =
             | TsType.Named _ as t, v ->
                 match v with
                 | SBool _ -> t = TsType.gBoolean
-                | SNumber n -> t = TsType.gNumber || (t = TsType.gColor && AstDefinitions.isColorCode n)
+                | SNumber n -> t = TsType.gNumber || (t = TsType.gColor && isColorCode n)
                 | SString _ -> t = TsType.gString
 
             | _ -> false
@@ -364,10 +363,35 @@ type Arbs =
             (fun x -> (x.state, x.isPersistent, NonNull x.listName, x.contents', NormalFloat x.x, NormalFloat x.y, NormalFloat x.width, NormalFloat x.height, x.visible))
 
     static member ProcedureDefinition() =
-        Arb.from
-        |> Arb.convert
-            (fun (state, NonNull name, parameters, isAtomic, body) -> ProcedureDefinition(state, name, parameters, isAtomic, body))
-            (fun (ProcedureDefinition(state, name, parameters, isAtomic, body)) -> state, NonNull name, parameters, isAtomic, body)
+        let generator = gen {
+            let! state = Arb.generate<_>
+            let! NonNull head = Arb.generate<_>
+            let! tailAndParameters = Arb.generate<_>
+            let! isAtomic = Arb.generate<_>
+            let! body = Arb.generate<_>
+            let tail =
+                tailAndParameters
+                |> List.map (fun (NonNull text, ParameterDefinition(defaultValue = v)) ->
+                    let t =
+                        match v with
+                        | SString _ -> SType.S
+                        | SNumber _ -> SType.N
+                        | SBool _ -> SType.B
+                    struct(t, text)
+                )
+            let name = procedureSignToEscapedName (head, tail)
+            let parameters = tailAndParameters |> List.map snd
+            return ProcedureDefinition(state, name, parameters, isAtomic, body)
+        }
+        let shrinker (ProcedureDefinition(state, name, parameters, isAtomic, body)) = seq {
+            for state, NonNull name, parameters, isAtomic, body in Arb.shrink (state, NonNull name, parameters, isAtomic, body) do
+                match parseProcedureName name with
+                | ValueSome(_, tail) when List.length tail = List.length parameters ->
+                    ProcedureDefinition(state, name, parameters, isAtomic, body)
+
+                | _ -> ()
+        }
+        Arb.fromGenShrink(generator, shrinker)
 
     static member Script() =
         Arb.from
