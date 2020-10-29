@@ -196,8 +196,8 @@ let genericTypeGenericMethodDefinitionTest() =
 
 [<Fact>]
 let omapTest() =
-    OMap.toListOrdered (OMap.ofList [1, "A"; 3, "C"; 1, "a"]) =? [3, "C"; 1, "a"]
-    OMap.toListSorted (OMap.ofList [1, "A"; 3, "C"; 1, "a"]) =? [1, "a"; 3, "C"]
+    OMap.toListOrdered (OMap.ofList [3, "C"; 1, "A"; 3, "c"]) =? [3, "c"; 1, "A"]
+    OMap.toListSorted (OMap.ofList [3, "C"; 1, "A"; 3, "c"]) =? [1, "A"; 3, "c"]
 
 [<Fact>]
 let omapEqualityTest() =

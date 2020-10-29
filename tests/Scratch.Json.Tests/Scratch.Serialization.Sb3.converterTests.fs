@@ -337,7 +337,9 @@ type IpcTests(fixture: IpcTestFixture) =
     [<Fact>]
     member _.normalizePenAndMusicExtension() =
         BlockExpression((), [
+            // pen
             ComplexExpression((), O.``changePenHueBy:``, [Literal((), SNumber 0.)])
+            // music
             ComplexExpression((), O.``changeTempoBy:``, [Literal((), SNumber 0.)])
         ])
         |> Statements
@@ -362,6 +364,19 @@ type IpcTests(fixture: IpcTestFixture) =
             ])
             ComplexExpression((), O.bounceOffEdge, [])
             ComplexExpression((), O.bounceOffEdge, [])
+        ])
+        |> Statements
+        |> sb3NormalizeProperty
+
+    [<Fact>]
+    member _.normalizeExtensionIdOrder() =
+        BlockExpression((), [
+            // pen
+            ComplexExpression((), O.clearPenTrails, [])
+            // music
+            ComplexExpression((), O.``changeTempoBy:``, [Literal((), SNumber 0.)])
+            // pen
+            ComplexExpression((), O.clearPenTrails, [])
         ])
         |> Statements
         |> sb3NormalizeProperty
