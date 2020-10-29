@@ -380,3 +380,56 @@ type IpcTests(fixture: IpcTestFixture) =
         ])
         |> Statements
         |> exportScriptToSb3Property
+
+    [<Fact>]
+    member _.exportCall() =
+        BlockExpression((), [
+            ComplexExpression((), O.call, [Literal((), SString "p %n"); Literal((), SNumber 10.)])
+        ])
+        |> Statements
+        |> exportScriptToSb3Property
+(*
+l:
+OMap [(Id "1", Complex { opcode = Some "procedures_call"
+                         next = None
+                         parent = None
+                         inputs = OMap []
+                         fields = OMap []
+                         shadow = false
+                         topLevel = true
+                         x = Some 0.0
+                         y = Some 0.0
+                         comment = None
+                         mutation = Some { tagName = Some "mutation"
+                                           children = Some HUnit
+                                           proccode = Some "p %n"
+                                           argumentids = Some "[]"
+                                           argumentdefaults = None
+                                           argumentnames = None
+                                           warp = None
+                                           hasnext = None } })]
+r:
+OMap
+  [(Id "1",
+    Complex
+      { opcode = Some "procedures_call"
+        next = None
+        parent = None
+        inputs =
+                OMap
+                  [(Id "input0", SameBlockShadow (MathNumber (SNumber 10.0)))]
+        fields = OMap []
+        shadow = false
+        topLevel = true
+        x = Some 0.0
+        y = Some 0.0
+        comment = None
+        mutation = Some { tagName = Some "mutation"
+                          children = Some HUnit
+                          proccode = Some "p %n"
+                          argumentids = Some "["input0"]"
+                          argumentdefaults = None
+                          argumentnames = None
+                          warp = None
+                          hasnext = None } })]
+*)

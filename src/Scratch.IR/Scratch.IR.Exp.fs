@@ -426,8 +426,8 @@ module private ExpStartConstructorHelpers =
             -> showType Types.string
 
         | OperandType.Variable -> "variable"
-        | OperandType.ProcedureName -> "procedure"
-        | OperandType.VariadicExpressions -> "[...]"
+        | OperandType.ParameterName -> "parameter"
+        | OperandType.ProcedureNameAndExpressions -> "procedure [...]"
 
     let showTypes ts = ts |> Seq.map showType |> String.concat " " |> sprintf "'%s'"
 
@@ -555,8 +555,8 @@ module private ExpStartConstructorHelpers =
         // TODO:
         | OperandType.ListVariableExpression _ -> ()
         | OperandType.Variable -> ()
-        | OperandType.VariadicExpressions -> ()
-        | OperandType.ProcedureName -> ()
+        | OperandType.ParameterName -> ()
+        | OperandType.ProcedureNameAndExpressions -> ()
 
         | OperandType.Expression t -> checkAssignType &source { actual = Exp.varType operand; expected = ofTsType t }
         | OperandType.StringLiterals _
@@ -578,8 +578,8 @@ module private ExpStartConstructorHelpers =
 
         // TODO:
         | OperandType.Variable -> ()
-        | OperandType.VariadicExpressions -> ()
-        | OperandType.ProcedureName -> ()
+        | OperandType.ProcedureNameAndExpressions -> ()
+        | OperandType.ParameterName -> ()
 
         | OperandType.Expression t -> checkExpressionTypeInListOperand &source operand (ofTsType t)
         | OperandType.StringLiterals _

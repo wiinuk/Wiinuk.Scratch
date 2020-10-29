@@ -1217,13 +1217,13 @@ module private Emitters =
 
     and convertOperand b (operand, spec) =
         match spec with
-        | OperandType.Block _
-        | OperandType.VariadicExpressions -> failwithf ""
+        | OperandType.Block _ -> failwithf ""
 
-        | OperandType.ProcedureName
+        | OperandType.ProcedureNameAndExpressions
         | OperandType.Expression _
         | OperandType.ListVariableExpression _
         | OperandType.StringLiterals _
+        | OperandType.ParameterName
         | OperandType.Variable -> convertPrimitiveExp b operand
 
     and convertNormalStatementOp b state info (operator, operands) =
@@ -1252,14 +1252,14 @@ module private Emitters =
 
     and convertListOperand b (operand, spec) =
         match spec with
-        | OperandType.Block _
-        | OperandType.VariadicExpressions -> failwithf ""
+        | OperandType.Block _ -> failwithf ""
 
         | OperandType.Expression _
         | OperandType.StringLiterals _
         | OperandType.ListVariableExpression _
         | OperandType.Variable
-        | OperandType.ProcedureName ->
+        | OperandType.ParameterName
+        | OperandType.ProcedureNameAndExpressions ->
             match operand with
             | Choice1Of2 e -> convertPrimitiveExp b e
             | Choice2Of2 listVar ->

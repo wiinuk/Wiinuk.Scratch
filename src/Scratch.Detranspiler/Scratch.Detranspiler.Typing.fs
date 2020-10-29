@@ -115,11 +115,10 @@ let instantiateOperands env { typeVariables = tvs; operands = ts; resultType = t
         | O.Expression t -> O.Expression(instantiate t)
         | O.ListVariableExpression t -> O.ListVariableExpression(instantiate t)
         | O.Variable -> O.Variable
-        | O.ProcedureName -> O.ProcedureName
+        | O.ProcedureNameAndExpressions -> O.ProcedureNameAndExpressions
         | O.ParameterName -> O.ParameterName
         | O.Block -> O.Block
         | O.StringLiterals ss -> O.StringLiterals ss
-        | O.VariadicExpressions -> O.VariadicExpressions
 
     List.map instantiateOperandType ts, instantiate t
 
@@ -245,10 +244,9 @@ let rec inferOperand env location operator operand operandIndex operandType =
     | O.Block, _
     | O.ListVariableExpression _, _
     | O.StringLiterals _, _
-    | O.ProcedureName, _
+    | O.ProcedureNameAndExpressions, _
     | O.ParameterName, _
-    | O.Variable, _
-    | O.VariadicExpressions, _ ->
+    | O.Variable, _  ->
         raiseError env location <| UnexpectedOperandType(Symbol.name operator, operandIndex, expectedOperandType = operandType)
 
 and inferOperation env location operator operands =

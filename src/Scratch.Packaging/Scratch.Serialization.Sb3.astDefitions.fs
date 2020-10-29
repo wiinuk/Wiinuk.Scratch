@@ -34,6 +34,18 @@ module Target =
         rotationStyle = None
     }
 
+module Mutation =
+    let defaultValue = {
+        tagName = None
+        children = None
+        proccode = None
+        argumentids = None
+        argumentdefaults = None
+        argumentnames = None
+        warp = None
+        hasnext = None
+    }
+
 module Meta =
     let defaultValue = {
         semver = "3.0.0"
@@ -224,26 +236,28 @@ module Project =
             |> Id.createBroadcastId
             |> VOption.defaultValue builder.broadcastIdForEmptyBroadcastName
 
-    let procedureNameSplitRegex = Regex @"(?=[^\\]%[nbs])"
-    let procedureNameAsArgMap procedureName = [
+    let private callArgMap0 = [EmptyArg]
+    let procedureNameAsArgMap procedureName =
+        match AstDefinitions.parseProcedureName procedureName with
+        | ValueNone
+        | ValueSome(_, []) -> callArgMap0
+        | ValueSome(_, tail) ->
+
+        [
         EmptyArg
 
         let mutable inputCount = 0
+        for t, _ in tail do
+            let inputOp =
+                match t with
+                | SType.N -> Op.math_number
+                | SType.S -> Op.text
+                | SType.B -> Op.boolean
+            
+            InputArg(inputOp, sprintf "input%d" inputCount, None)
+            inputCount <- inputCount + 1
+        ]
 
-        // "____%n__%s__%b__" => ["___"; "_%n_"; "_%s_"; "_%b__"]
-        for part in procedureNameSplitRegex.Split procedureName do
-            let part = part.Trim()
-            if 1 < part.Length && part.[1] = '%' then
-                let inputOp =
-                    match part.[2] with
-                    | 'n' -> Op.math_number
-                    | 's' -> Op.text
-                    | 'b'
-                    | _ -> Op.boolean
-
-                InputArg(inputOp, sprintf "input%d" inputCount, None)
-                inputCount <- inputCount + 1
-    ]
     let procedureNameToParameterIds procedureName =
         procedureNameAsArgMap procedureName
         |> List.choose (function InputArg(inputName = x) -> Some x | _ -> None)
@@ -418,15 +432,10 @@ module Project =
             match expression with
             | ComplexExpression(operator = O.stopScripts; operands = Literal(_, SString("other scripts in sprite" | "other scripts in stage"))::_) ->
                 let mutation = {
-                    tagName = Some "mutation"
-                    hasnext = Some true
-                    children = Some HUnit
-
-                    proccode = None
-                    argumentids = None
-                    argumentdefaults = None
-                    argumentnames = None
-                    warp = None
+                    Mutation.defaultValue with
+                        tagName = Some "mutation"
+                        hasnext = Some true
+                        children = Some HUnit
                 }
                 { block with mutation = Some mutation }
 
@@ -436,15 +445,11 @@ module Project =
                     |> Syntax.serializeString stringListSyntax
 
                 let mutation = {
-                    tagName = Some "mutation"
-                    children = Some HUnit
-                    proccode = Some procedureName
-                    argumentids = Some parameterIds
-
-                    argumentdefaults = None
-                    argumentnames = None
-                    warp = None
-                    hasnext = None
+                    Mutation.defaultValue with
+                        tagName = Some "mutation"
+                        children = Some HUnit
+                        proccode = Some procedureName
+                        argumentids = Some parameterIds
                 }
                 { block with mutation = Some mutation }
 
@@ -627,15 +632,14 @@ module Project =
                 opcode = "procedures_prototype"
                 shadow = true
                 mutation = Some {
-                    tagName = Some "mutation"
-                    proccode = Some name
-                    argumentnames = Some argumentNames
-                    argumentids = Some argumentIds
-                    argumentdefaults = Some argumentValues
-                    warp = Some <| match isAtomic with Atomic -> true | NoAtomic -> false
-                    children = Some HUnit
-
-                    hasnext = None
+                    Mutation.defaultValue with
+                        tagName = Some "mutation"
+                        proccode = Some name
+                        argumentnames = Some argumentNames
+                        argumentids = Some argumentIds
+                        argumentdefaults = Some argumentValues
+                        warp = Some <| match isAtomic with Atomic -> true | NoAtomic -> false
+                        children = Some HUnit
                 }
         }
         { block with children = [prototype] }

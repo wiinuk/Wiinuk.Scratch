@@ -416,7 +416,7 @@ let private statementTable isFooter xs =
 //     | Case1<"doAsk", E>
 //     | Case0<"timerReset">
 let private knownStatements() = statementTable false [
-    O.call, Control.Call, g0 ([op O.ProcedureName; op O.VariadicExpressions], gUnit)
+    O.call, Control.Call, g0 ([op O.ProcedureNameAndExpressions], gUnit)
     O.``forward:``, Control.Next, g0s1 gNumber
     O.``turnRight:``, Control.Next, g0s1 gNumber
     O.``turnLeft:``, Control.Next, g0s1 gNumber
@@ -472,7 +472,7 @@ let private knownStatements() = statementTable false [
     O.``penSize:``, Control.Next, g0s1 gNumber
     O.``changePenSizeBy:``, Control.Next, g0s1 gNumber
     O.stampCostume, Control.Next, g0s0
-    O.``setVar:to:``, Control.Next, g0s2 gString gUnknown
+    O.``setVar:to:``, Control.Next, g0 ([op O.Variable; opE gUnknown], gUnit)
     O.``changeVar:by:``, Control.Next, g0 ([op O.Variable; opE gNumber], gUnit)
     O.``append:toList:``, Control.Next, g1 "T" (fun t -> [opE t; op <| O.ListVariableExpression t], gUnit)
     O.``deleteLine:ofList:``, Control.Next, g1 "T" (fun t -> [opE (gNumber .|. G.StringSs ["all"; "random"; "any"; "last"]); op <| O.ListVariableExpression t], gUnit)
@@ -482,8 +482,8 @@ let private knownStatements() = statementTable false [
     O.``hideVariable:``, Control.Next, g0 ([op O.Variable], gUnit)
     O.``showList:``, Control.Next, g0 ([op O.Variable], gUnit)
     O.``hideList:``, Control.Next, g0 ([op O.Variable], gUnit)
-    O.``broadcast:``, Control.Next, ([], ([{ opE gString with forceLiteralType = true }], gUnit))
-    O.doBroadcastAndWait, Control.NormalYield, g0s1 gString
+    O.``broadcast:``, Control.Next, g0 ([{ opE gString with forceLiteralType = true }], gUnit)
+    O.doBroadcastAndWait, Control.NormalYield, g0 ([{ opE gString with forceLiteralType = true }], gUnit)
     O.doForeverIf, Control.Unknown, g0 (ebs gBoolean)
     O.doIf, Control.Next, g0 (ebs gBoolean)
     O.doIfElse, Control.Next, g0 ([opE gBoolean; op OperandType.Block; op OperandType.Block], gUnit)
@@ -540,7 +540,39 @@ let knownListenerHeaders = [
 
 /// `@"%" => @"\%"`
 /// `@"\" => @"\\"`
-let escapeProcedureName n = Regex.Replace(n, @"[%\\]", MatchEvaluator(fun m -> @"\" + m.Value))
+let private proedureNameSpecialCharsRegex = Regex @"[%\\]"
+let escapeProcedureName n =
+    if proedureNameSpecialCharsRegex.IsMatch n
+    then proedureNameSpecialCharsRegex.Replace(n, MatchEvaluator(fun m -> @"\" + m.Value))
+    else n
+
+let private procedureNameRegex =
+    let text = @"(?<text>(?:[^\\%]|\\[\\%])*)"
+    let placeholder = "%(?<placeholder>[bns])"
+    Regex <| sprintf "^%s(?:%s%s)*$" text placeholder text
+
+let parseProcedureName n =
+    let m = procedureNameRegex.Match n
+    if not m.Success then ValueNone else
+
+    let texts = m.Groups.["text"].Captures
+    let placeholders = m.Groups.["placeholder"].Captures
+
+    let head = escapeProcedureName texts.[0].Value
+    if placeholders.Count = 0 then ValueSome struct(head, []) else
+
+    let tail = [
+        for i in 0..placeholders.Count - 1 do
+            let t =
+                match n.[placeholders.[i].Index] with
+                | 's' -> SType.S
+                | 'n' -> SType.N
+                | 'b'
+                | _ -> SType.B
+
+            struct(t, escapeProcedureName texts.[i + 1].Value)
+    ]
+    ValueSome struct(head, tail)
 
 let mangleProcedureName baseName parameterTypes =
     let sigName =
