@@ -29,28 +29,30 @@ const newDummyStorage = () => {
  * @param {string} sb3ProjectJson
  */
 const sb3ToSb3Json = async sb3ProjectJson => {
-    const runtime = new Runtime()
-    // runtime.attachStorage(newDummyStorage())
+    try {
+        const runtime = new Runtime()
+        // runtime.attachStorage(newDummyStorage())
 
-    try { JSON.parse(sb3ProjectJson) }
+        const { targets } = await Sb3.deserialize(JSON.parse(sb3ProjectJson), runtime, undefined, undefined)
+        runtime.targets = targets
+
+        return JSON.stringify(Sb3.serialize(runtime))
+    }
     catch (e) { e.source = sb3ProjectJson; throw e }
-
-    const { targets } = await Sb3.deserialize(JSON.parse(sb3ProjectJson), runtime, undefined, undefined)
-    runtime.targets = targets
-
-    return JSON.stringify(Sb3.serialize(runtime))
 }
 /**
  * @param {string} sb2ProjectJson
  */
 const sb2ToSb3Json = async sb2ProjectJson => {
-    const runtime = new Runtime()
-    // runtime.attachStorage(newDummyStorage())
+    try {
+        const runtime = new Runtime()
+        // runtime.attachStorage(newDummyStorage())
 
-    const { targets } = await Sb2.deserialize(JSON.parse(sb2ProjectJson), runtime, undefined, undefined)
-    runtime.targets = targets
-
-    return JSON.stringify(Sb3.serialize(runtime))
+        const { targets } = await Sb2.deserialize(JSON.parse(sb2ProjectJson), runtime, undefined, undefined)
+        runtime.targets = targets
+        return JSON.stringify(Sb3.serialize(runtime))
+    }
+    catch (e) { e.source = sb2ProjectJson; throw e }
 }
 
 /**

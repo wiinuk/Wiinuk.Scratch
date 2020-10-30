@@ -4,7 +4,6 @@ open FsCheck
 open Scratch
 open Scratch.Ast
 open Scratch.AstDefinitions
-open System.Text
 
 
 [<Struct>]
@@ -17,6 +16,10 @@ type KnownComplexExpressionName = KnownComplexExpressionName of Symbol
 type KnownValueComplexExpressionName = KnownValueComplexExpressionName of Symbol
 [<Struct>]
 type KnownUnitComplexExpressionName = KnownUnitComplexExpressionName of Symbol
+
+/// 0. .. 1.
+[<Struct>]
+type VideoAlphaValue = VideoAlphaValue of double
 
 let nameElements ofString toString names = 
     let gen = names |> Seq.map ofString |> Gen.elements
@@ -249,6 +252,12 @@ type Arbs =
         |> Seq.filter (fun (_, v) -> v.kind = Kind.Statement)
         |> Seq.map fst
         |> nameElements KnownUnitComplexExpressionName (fun (KnownUnitComplexExpressionName x) -> x)
+
+    static member VideoAlphaValue() =
+        Arb.from<_>
+        |> Arb.convert
+            (fun (NormalFloat x) -> VideoAlphaValue(x % 1.))
+            (fun (VideoAlphaValue x) -> NormalFloat x)
 
     static member SValue() =
         let sString = gen {
@@ -586,6 +595,50 @@ type Arbs =
                     NormalFloat x.scratchY,
                     x.spriteInfo,
                     x.visible
+                )
+            )
+
+    static member VariableData() =
+        Arb.from
+        |> Arb.convert
+            (fun (state, isPersistent, NonNull name, value) ->
+                {
+                    state = state
+                    isPersistent = isPersistent
+                    name = name
+                    value = value
+                }
+            )
+            (fun x ->
+                (
+                    x.state,
+                    x.isPersistent,
+                    x.name |> NonNull,
+                    x.value
+                )
+            )
+
+    static member StageDataExtension() =
+        Arb.from
+        |> Arb.convert
+            (fun (children, penLayerMD5, penLayerID, tempoBPM, videoAlpha, info) ->
+                {
+                    children = children
+                    penLayerMD5 = penLayerMD5 |> Option.map (fun (NonNull x) -> x)
+                    penLayerID = penLayerID |> Option.map (fun (NormalFloat x) -> x)
+                    tempoBPM = tempoBPM |> Option.map (fun (NormalFloat x) -> x)
+                    videoAlpha = videoAlpha |> Option.map (fun (VideoAlphaValue x) -> x)
+                    info = info |> Map.toSeq |> Seq.map (fun (NonNull k, v) -> k, v) |> Map.ofSeq
+                }
+            )
+            (fun x ->
+                (
+                    x.children,
+                    x.penLayerMD5 |> Option.map NonNull,
+                    x.penLayerID |> Option.map NormalFloat,
+                    x.tempoBPM |> Option.map NormalFloat,
+                    x.videoAlpha |> Option.map VideoAlphaValue,
+                    x.info |> Map.toSeq |> Seq.map (fun (k, v) -> NonNull k, v) |> Map.ofSeq
                 )
             )
 

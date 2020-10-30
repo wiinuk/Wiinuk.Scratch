@@ -1148,9 +1148,9 @@ module Project =
             currentCostume =
                 entity.currentCostumeIndex
                 |> Option.map (fun x ->
-
-                    // -1..(costumes.Length - 1)
-                    min (max 0. (floor x)) (double (List.length costumes - 1))
+                    match List.length costumes with
+                    | 0 -> -1.
+                    | length -> clamp (0., double <| length - 1) <| floor x
                 )
                 |> Option.defaultValue 0.
 
@@ -1165,7 +1165,7 @@ module Project =
                 |> mapStageOrNone (fun x ->
                     x.videoAlpha
                     |> Option.map (fun videoAlpha ->
-                        100. - (100. * videoAlpha)
+                        100. - (100. * clamp (0., 1.) videoAlpha)
                     )
                 )
 
