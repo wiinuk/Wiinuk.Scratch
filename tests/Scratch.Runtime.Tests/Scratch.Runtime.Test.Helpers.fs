@@ -399,13 +399,18 @@ type Arbs =
             (function
                 | Choice1Of4 x -> Listener x
                 | Choice2Of4 x -> Procedure x
-                | Choice3Of4 x -> Statements x
+                | Choice3Of4(state, NonEmptyArray xs) ->
+                    Statements <| BlockExpression(state, [ for KnownUnitComplexExpression x in xs -> x ])
+
                 | Choice4Of4(KnownValueComplexExpression x) -> Expression x
             )
             (function
                 | Listener x -> Choice1Of4 x
                 | Procedure x -> Choice2Of4 x
-                | Statements x -> Choice3Of4 x
+                | Statements(BlockExpression(state, xs)) ->
+                    let xs = NonEmptyArray [| for x in xs -> KnownUnitComplexExpression x |]
+                    Choice3Of4(state, xs)
+
                 | Expression x -> Choice4Of4(KnownValueComplexExpression x)
             )
         |> Arb.filter (function

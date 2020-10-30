@@ -278,30 +278,35 @@ type IpcTestFixture() =
 type IpcTests(fixture: IpcTestFixture) =
     let client = fixture.AdaptorJsClient
 
-    let sb3NormalizeScriptProperty script =
-        let stage = scriptToStage script
+    let assertProjectEq p p' =
+        match p.targets, p'.targets with
+        | { blocks = bs }::_, { blocks = bs' }::_ -> bs =? bs'
+        | _ -> ()
+        p =? p'
+
+    let sb3NormalizeStageProperty stage =
         let sb3Project = Project.ofStage stage |> normalizeProject
         let sb3Project' = sb3Project |> AdaptorJs.sb3ToSb3By client |> Async.RunSynchronously |> normalizeProject
 
-        sb3Project.targets.[0].blocks =? sb3Project'.targets.[0].blocks
-        sb3Project =? sb3Project'
+        assertProjectEq sb3Project sb3Project'
 
-    let exportScriptToSb3Property script =
-        let stage = scriptToStage script
+    let sb3NormalizeScriptProperty = sb3NormalizeStageProperty << scriptToStage
 
+    let exportStageToSb3Property stage =
         let sb3ProjectFromFs = Project.ofStage stage |> AdaptorJs.sb3ToSb3By client |> Async.RunSynchronously
         let sb3ProjectFromJs = AdaptorJs.sb2ToSb3By client stage |> Async.RunSynchronously
 
         let sb3ProjectFromFs = normalizeProject sb3ProjectFromFs
         let sb3ProjectFromJs = normalizeProject sb3ProjectFromJs
 
-        sb3ProjectFromFs.targets.[0].blocks =? sb3ProjectFromJs.targets.[0].blocks
-        sb3ProjectFromFs =? sb3ProjectFromJs
+        assertProjectEq sb3ProjectFromFs sb3ProjectFromJs
+
+    let exportScriptToSb3Property = exportStageToSb3Property << scriptToStage
 
     interface IClassFixture<IpcTestFixture>
 
     [<Fact>]
-    member _.normalizeScript() = qcheck sb3NormalizeScriptProperty
+    member _.normalizeAnyScript() = qcheck sb3NormalizeScriptProperty
 
     [<Fact>]
     member _.normalizeSimpleExpression() =
@@ -380,6 +385,9 @@ type IpcTests(fixture: IpcTestFixture) =
         ])
         |> Statements
         |> sb3NormalizeScriptProperty
+
+    [<Fact>]
+    member _.normalizeAnyStage() = qcheck sb3NormalizeStageProperty
 
     [<Fact>]
     member _.exportAnyScript() = qcheck exportScriptToSb3Property
@@ -470,3 +478,6 @@ type IpcTests(fixture: IpcTestFixture) =
         ])
         |> Statements
         |> exportScriptToSb3Property
+
+    [<Fact>]
+    member _.exportAnyStage() = qcheck exportStageToSb3Property
