@@ -297,7 +297,7 @@ type IpcTests(fixture: IpcTestFixture) =
         p =? p'
 
     let sb3NormalizeStageProperty (stage: unit StageData) =
-        let sb3Project = Project.ofStage stage |> normalizeProject
+        let sb3Project = Project.ofStage stage |> AdaptorJs.sb3ToSb3By client |> Async.RunSynchronously |> normalizeProject
         let sb3Project' = sb3Project |> AdaptorJs.sb3ToSb3By client |> Async.RunSynchronously |> normalizeProject
 
         assertProjectEq sb3Project sb3Project'
@@ -567,11 +567,22 @@ type IpcTests(fixture: IpcTestFixture) =
         |> exportStageToSb3Property
 
     [<Fact>]
-    member _.exportSomeNameCostume2() =
+    member _.exportDuplicatedCostumeNameAnd2() =
         { StageData.defaultValue with
             costumes = [
-                { CostumeData.empty with costumeName = "a" }
-                { CostumeData.empty with costumeName = "a" }
+                { CostumeData.empty with costumeName = "a" }    // ⇒ "a"
+                { CostumeData.empty with costumeName = "a" }    // ⇒ "a2"
+                { CostumeData.empty with costumeName = "a2" }   // ⇒ "a3"
+            ]
+        }
+        |> exportStageToSb3Property
+
+    [<Fact>]
+    member _.exportDuplicatedCostumeName00() =
+        { StageData.defaultValue with
+            costumes = [
+                { CostumeData.empty with costumeName = "a00" }   // ⇒ "a00"
+                { CostumeData.empty with costumeName = "a00" }   // ⇒ "a2"
             ]
         }
         |> exportStageToSb3Property

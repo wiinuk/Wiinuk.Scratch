@@ -883,13 +883,30 @@ module Project =
         | _ -> None
 
     let private md5ExtDelimiter = [|'.'|]
+    let private integralSuffixRegex = Regex @"^(.*?)([0-9]+)$"
     let convertCostume isStage acc costume =
-        let rec fleshName acc baseName n =
-            let name = if n = 1 then baseName else sprintf "%s%d" baseName n
+        let uniqueName xs name =
+            let has name xs = xs |> List.exists (fun { Costume.name = n } -> n = name)
 
-            if List.exists (fun { Costume.name = n } -> n = name) acc
-            then fleshName acc baseName (n + 1)
-            else name
+            let splitSuffix s =
+                if integralSuffixRegex.IsMatch s then
+                    let s = integralSuffixRegex.Match s
+                    ValueSome struct(s.Groups.[1].Value, int s.Groups.[2].Value)
+                else
+                    ValueNone
+
+            let rec fleshName xs baseName n =
+                let name = sprintf "%s%d" baseName n
+
+                if has name xs
+                then fleshName xs baseName (n + 1)
+                else name
+
+            if not <| has name xs then name else
+
+            match splitSuffix name with
+            | ValueSome(baseName, n) -> fleshName xs baseName (max 2 (n + 1))
+            | _ -> fleshName xs name 2
 
         let bitmapResolution =
             costume.bitmapResolution
@@ -905,7 +922,7 @@ module Project =
                 sprintf "%s.%s" md5ext ext, parts.[0], if md5ext = "." then "." + ext else ext
 
         {
-            name = fleshName acc costume.costumeName 1
+            name = uniqueName acc costume.costumeName
             bitmapResolution = bitmapResolution
             rotationCenterX = if isStage then 240. * bitmapResolution else costume.rotationCenterX
             rotationCenterY = if isStage then 180. * bitmapResolution else costume.rotationCenterY
