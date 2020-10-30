@@ -536,3 +536,10 @@ type IpcTests(fixture: IpcTestFixture) =
             ]
         }
         |> exportStageToSb3Property
+
+    [<Fact>]
+    member _.exportUndefinedCurrentCostumeIndex() =
+        { StageData.defaultValue with
+            currentCostumeIndex = None
+        }
+        |> exportStageToSb3Property

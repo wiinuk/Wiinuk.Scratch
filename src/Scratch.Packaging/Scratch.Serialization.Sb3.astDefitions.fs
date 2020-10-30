@@ -1136,12 +1136,11 @@ module Project =
 
             currentCostume =
                 entity.currentCostumeIndex
-                |> Option.map (fun x ->
+                |> Option.defaultValue 0.
+                |> fun x ->
                     match List.length costumes with
                     | 0 -> -1.
                     | length -> clamp (0., double <| length - 1) <| floor x
-                )
-                |> Option.defaultValue 0.
 
             costumes = costumes
             sounds = sounds
