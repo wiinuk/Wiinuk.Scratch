@@ -296,7 +296,7 @@ type IpcTests(fixture: IpcTestFixture) =
         | _ -> ()
         p =? p'
 
-    let sb3NormalizeStageProperty stage =
+    let sb3NormalizeStageProperty (stage: unit StageData) =
         let sb3Project = Project.ofStage stage |> normalizeProject
         let sb3Project' = sb3Project |> AdaptorJs.sb3ToSb3By client |> Async.RunSynchronously |> normalizeProject
 
@@ -304,14 +304,11 @@ type IpcTests(fixture: IpcTestFixture) =
 
     let sb3NormalizeScriptProperty = sb3NormalizeStageProperty << scriptToStage
 
-    let exportStageToSb3Property stage =
-        let sb3ProjectFromFs = Project.ofStage stage |> AdaptorJs.sb3ToSb3By client |> Async.RunSynchronously
+    let exportStageToSb3Property (stage: unit StageData) =
+        let sb3ProjectFromFs = Project.ofStage stage
         let sb3ProjectFromJs = AdaptorJs.sb2ToSb3By client stage |> Async.RunSynchronously
 
-        let sb3ProjectFromFs = normalizeProject sb3ProjectFromFs
-        let sb3ProjectFromJs = normalizeProject sb3ProjectFromJs
-
-        assertProjectEq sb3ProjectFromFs sb3ProjectFromJs
+        assertProjectEq (normalizeProject sb3ProjectFromFs) (normalizeProject sb3ProjectFromJs)
 
     let exportScriptToSb3Property = exportStageToSb3Property << scriptToStage
 
@@ -492,18 +489,6 @@ type IpcTests(fixture: IpcTestFixture) =
         |> exportScriptToSb3Property
 
     [<Fact>]
-    member _.exportScript_() =
-        ProcedureDefinition((), "u\R@ %b %b  %b %n:\\(mc{ %b]", [
-            ParameterDefinition.make () "p1" SType.B
-            ParameterDefinition.make () "p2" SType.B
-            ParameterDefinition.make () "p3" SType.B
-            ParameterDefinition.make () "p4" SType.N
-            ParameterDefinition.make () "p5" SType.B
-        ], Atomic, BlockExpression((), []))
-        |> Procedure
-        |> exportScriptToSb3Property
-
-    [<Fact>]
     member _.exportAnyStage() = qcheck exportStageToSb3Property
 
     [<Fact>]
@@ -532,6 +517,22 @@ type IpcTests(fixture: IpcTestFixture) =
                     baseLayerMD5 = "."
                     baseLayerID = 0.
                 }
+            ]
+        }
+        |> exportStageToSb3Property
+
+    [<Fact>]
+    member _.exportStageScript2() =
+        let scriptData s = { x = 0.; y = 0.; script = s }
+        { StageData.defaultValue with
+            scripts = [
+                ComplexExpression((), O.answer, [])
+                    |> Expression
+                    |> scriptData
+
+                ComplexExpression((), O.``contentsOfList:``, [Literal((), SString "l")])
+                    |> Expression
+                    |> scriptData
             ]
         }
         |> exportStageToSb3Property
