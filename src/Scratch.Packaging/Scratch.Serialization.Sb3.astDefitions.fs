@@ -1013,6 +1013,38 @@ module Project =
         |> Set
         |> fleshKey (sprintf "message%d")
 
+    // OMap [k2, "2"; kb, "b"; k1, "1"; ka, "a"] ⇒
+    // OMap [k1, "1", k2; "2"; kb, "b"; ka, "a"]
+    let reorderBroadcastsByEsPropertyKey map =
+        let (|CanonicalNumericIndexString|) = function
+            | "-0" -> ValueSome -0.
+            | x ->
+                let n = SValue.stringToNumber x
+                if SValue.numberToString n = x then ValueSome n else ValueNone
+
+        let isNegativeZero n = n = 0. && 1. / n < 0.
+
+        let toArrayIndex = function
+            | CanonicalNumericIndexString(ValueSome n)
+                when not (isNegativeZero n) && double (uint32 n) = n ->
+                    ValueSome n
+
+            | _ -> ValueNone
+
+        OMap.toSeqOrdered map
+        |> Seq.indexed
+        |> Seq.sortBy (fun (i, KeyValue(_, BroadcastData name)) ->
+            match toArrayIndex name with
+
+            // 配列インデックスでソート
+            | ValueSome i -> Choice1Of2 i
+
+            // map の順番 ( 追加順 ) でソート
+            | _ -> Choice2Of2 i
+        )
+        |> Seq.map snd
+        |> OMap.fromSeq
+
     let collectAllBroadcastsAndEmptyId entity entityExtension =
 
         // "broadcastMsgId-<uniqueId>"
@@ -1026,7 +1058,10 @@ module Project =
         let broadcasts =
             match entityExtension with
             | Choice2Of2 _ -> OMap.empty
-            | Choice1Of2 { StageDataExtension.children = children } -> collectAllBroadcasts broadcastIdForEmptyName entity children
+            | Choice1Of2 { StageDataExtension.children = children } ->
+                collectAllBroadcasts broadcastIdForEmptyName entity children
+
+        let broadcasts = reorderBroadcastsByEsPropertyKey broadcasts
 
         // "message<uniqueNumber>"
         let broadcastNameForEmptyName = broadcastNameForEmptyName broadcastIdForEmptyName broadcasts

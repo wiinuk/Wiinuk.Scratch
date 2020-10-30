@@ -201,7 +201,12 @@ let omapTest() =
 
 [<Fact>]
 let omapEqualityTest() =
-    OMap.ofList ["a", 1; "a", 2] = OMap.ofList ["a", 2]
+    OMap.ofList ["a", 1; "a", 2] =? OMap.ofList ["a", 2]
+
+[<Fact>]
+let omapAsSeqTest() =
+    let kvs = OMap.ofList [2, "2"; 1, "1"; 3, "3"; 1, "_"] :> System.Collections.Generic.KeyValuePair<_,_> seq
+    [ for kv in kvs do kv.Key, kv.Value ] =? [2, "2"; 1, "_"; 3, "3"]
 
 let schedulerNowProperty (NormalFloat processSpan) (NormalFloat flameSpan) =
     /// -1.<s> < s && s < 1.<s>

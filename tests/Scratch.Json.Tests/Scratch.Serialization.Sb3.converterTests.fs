@@ -278,7 +278,7 @@ type IpcTestFixture() =
 type IpcTests(fixture: IpcTestFixture) =
     let client = fixture.AdaptorJsClient
 
-    let sb3NormalizeProperty script =
+    let sb3NormalizeScriptProperty script =
         let stage = scriptToStage script
         let sb3Project = Project.ofStage stage |> normalizeProject
         let sb3Project' = sb3Project |> AdaptorJs.sb3ToSb3By client |> Async.RunSynchronously |> normalizeProject
@@ -301,19 +301,19 @@ type IpcTests(fixture: IpcTestFixture) =
     interface IClassFixture<IpcTestFixture>
 
     [<Fact>]
-    member _.normalize() = qcheck sb3NormalizeProperty
+    member _.normalizeScript() = qcheck sb3NormalizeScriptProperty
 
     [<Fact>]
     member _.normalizeSimpleExpression() =
         Expressions.hide ()
         |> Expression
-        |> sb3NormalizeProperty
+        |> sb3NormalizeScriptProperty
 
     [<Fact>]
     member _.normalizeWhenKeyPressed() =
         ListenerDefinition((), O.whenKeyPressed, [Literal((), SString "0")], BlockExpression((), []))
         |> Listener
-        |> sb3NormalizeProperty
+        |> sb3NormalizeScriptProperty
 
     [<Fact>]
     member _.normalizeColorSees() =
@@ -322,7 +322,7 @@ type IpcTests(fixture: IpcTestFixture) =
             Literal((), SNumber 20.)
         ])
         |> Expression
-        |> sb3NormalizeProperty
+        |> sb3NormalizeScriptProperty
 
     [<Fact>]
     member _.normalizeWaitElapsedFrom() =
@@ -332,7 +332,7 @@ type IpcTests(fixture: IpcTestFixture) =
             ])
         ])
         |> Statements
-        |> sb3NormalizeProperty
+        |> sb3NormalizeScriptProperty
 
     [<Fact>]
     member _.normalizePenAndMusicExtension() =
@@ -343,13 +343,13 @@ type IpcTests(fixture: IpcTestFixture) =
             ComplexExpression((), O.``changeTempoBy:``, [Literal((), SNumber 0.)])
         ])
         |> Statements
-        |> sb3NormalizeProperty
+        |> sb3NormalizeScriptProperty
 
     [<Fact>]
     member _.normalizeMusicExtensionInAbs() =
         ComplexExpression((), O.abs, [Expression.Complex(ComplexExpression((), O.tempo, []))])
         |> Expression
-        |> sb3NormalizeProperty
+        |> sb3NormalizeScriptProperty
 
     [<Fact>]
     member _.normalizeComplexBlocksOrder() =
@@ -366,7 +366,7 @@ type IpcTests(fixture: IpcTestFixture) =
             ComplexExpression((), O.bounceOffEdge, [])
         ])
         |> Statements
-        |> sb3NormalizeProperty
+        |> sb3NormalizeScriptProperty
 
     [<Fact>]
     member _.normalizeExtensionIdOrder() =
@@ -379,10 +379,10 @@ type IpcTests(fixture: IpcTestFixture) =
             ComplexExpression((), O.clearPenTrails, [])
         ])
         |> Statements
-        |> sb3NormalizeProperty
+        |> sb3NormalizeScriptProperty
 
     [<Fact>]
-    member _.export() = qcheck exportScriptToSb3Property
+    member _.exportAnyScript() = qcheck exportScriptToSb3Property
 
     [<Fact>]
     member _.exportEmptyBlock() =
