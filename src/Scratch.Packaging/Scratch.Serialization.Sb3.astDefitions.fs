@@ -1147,7 +1147,7 @@ module Project =
 
             volume = Target.defaultStage.volume
             layerOrder = None
-            tempo = entityExtension |> mapStageOrNone (fun x -> x.tempoBPM)
+            tempo = entityExtension |> mapStageOrNone (fun x -> x.tempoBPM |> Option.orElseWith (fun _ -> Some 60.))
             videoTransparency =
                 entityExtension
                 |> mapStageOrNone (fun x ->
@@ -1155,6 +1155,7 @@ module Project =
                     |> Option.map (fun videoAlpha ->
                         100. - (100. * clamp (0., 1.) videoAlpha)
                     )
+                    |> Option.orElseWith (fun _ -> Some 50.)
                 )
 
             videoState =

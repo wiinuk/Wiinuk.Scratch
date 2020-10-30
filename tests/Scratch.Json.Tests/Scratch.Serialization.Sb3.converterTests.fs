@@ -538,8 +538,30 @@ type IpcTests(fixture: IpcTestFixture) =
         |> exportStageToSb3Property
 
     [<Fact>]
-    member _.exportUndefinedCurrentCostumeIndex() =
+    member _.exportCurrentCostumeIndexDefault() =
         { StageData.defaultValue with
             currentCostumeIndex = None
+        }
+        |> exportStageToSb3Property
+
+    [<Fact>]
+    member _.exportTempoBPMDefault() =
+        let stage = StageData.defaultValue
+        { stage with
+            ObjectDataExtension =
+            { stage.ObjectDataExtension with
+                tempoBPM = None
+            }
+        }
+        |> exportStageToSb3Property
+
+    [<Fact>]
+    member _.exportVidepAlphaDefault() =
+        let stage = StageData.defaultValue
+        { stage with
+            ObjectDataExtension =
+            { stage.ObjectDataExtension with
+                videoAlpha = None
+            }
         }
         |> exportStageToSb3Property
