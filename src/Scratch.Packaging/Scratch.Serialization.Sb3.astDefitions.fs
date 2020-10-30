@@ -891,7 +891,7 @@ module Project =
             | [|md5; ext|] -> md5ext, md5, ext
             | _ ->
                 let ext = "png"
-                md5ext + ext, md5ext, "png"
+                sprintf "%s.%s" md5ext ext, md5ext, ext
 
         {
             name = costume.costumeName

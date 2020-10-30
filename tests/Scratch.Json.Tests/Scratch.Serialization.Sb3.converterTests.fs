@@ -481,3 +481,22 @@ type IpcTests(fixture: IpcTestFixture) =
 
     [<Fact>]
     member _.exportAnyStage() = qcheck exportStageToSb3Property
+
+    [<Fact>]
+    member _.exportStageWithEmptyMd5Custume() =
+        let s = StageData.defaultValue
+        { s with
+            costumes = [
+                {
+                    baseLayerMD5 = ""
+                    baseLayerID = 0.
+                    textLayerMD5 = None
+                    textLayerID = None
+                    bitmapResolution = None
+                    costumeName = ""
+                    rotationCenterX = 0.
+                    rotationCenterY = 0.
+                }
+            ]
+        }
+        |> exportStageToSb3Property
