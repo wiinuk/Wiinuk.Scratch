@@ -883,7 +883,14 @@ module Project =
         | _ -> None
 
     let private md5ExtDelimiter = [|'.'|]
-    let convertCostume isStage costume =
+    let convertCostume isStage acc costume =
+        let rec fleshName acc baseName n =
+            let name = if n = 1 then baseName else sprintf "%s%d" baseName n
+
+            if List.exists (fun { Costume.name = n } -> n = name) acc
+            then fleshName acc baseName (n + 1)
+            else name
+
         let bitmapResolution =
             costume.bitmapResolution
             |> Option.bind (function 0. -> None | x -> Some x)
@@ -898,7 +905,7 @@ module Project =
                 sprintf "%s.%s" md5ext ext, parts.[0], if md5ext = "." then "." + ext else ext
 
         {
-            name = costume.costumeName
+            name = fleshName acc costume.costumeName 1
             bitmapResolution = bitmapResolution
             rotationCenterX = if isStage then 240. * bitmapResolution else costume.rotationCenterX
             rotationCenterY = if isStage then 180. * bitmapResolution else costume.rotationCenterY
@@ -910,7 +917,7 @@ module Project =
             //    match costume.textLayerMD5 with
             //    | Some textLayerMD5 -> Some textLayerMD5.Split('.', count = 2).[0]
             //    | _ -> None
-        }
+        }::acc
         //let assetFileName = sprintf "%f.%s" costume.baseLayerID ext
         //let textLayerFileName =
         //    match costume.textLayerID with
@@ -1110,7 +1117,7 @@ module Project =
         }
         let blocks = scriptDataListAsBlocks builder entity.scripts
 
-        let costumes = [ for costume in entity.costumes do convertCostume isStage costume ]
+        let costumes = entity.costumes |> List.fold (convertCostume isStage) [] |> List.rev
         let sounds = [ for sound in entity.sounds do convertSound sound ]
 
         let paneOrder =

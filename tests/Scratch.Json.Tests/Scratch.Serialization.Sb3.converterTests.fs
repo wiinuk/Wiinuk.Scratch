@@ -565,3 +565,13 @@ type IpcTests(fixture: IpcTestFixture) =
             }
         }
         |> exportStageToSb3Property
+
+    [<Fact>]
+    member _.exportSomeNameCostume2() =
+        { StageData.defaultValue with
+            costumes = [
+                { CostumeData.empty with costumeName = "a" }
+                { CostumeData.empty with costumeName = "a" }
+            ]
+        }
+        |> exportStageToSb3Property
