@@ -541,10 +541,9 @@ let knownListenerHeaders = [
 /// `@"%" => @"\%"`
 /// `@"\" => @"\\"`
 let private proedureNameSpecialCharsRegex = Regex @"[%\\]"
+let private replace = MatchEvaluator(fun m -> @"\" + m.Value)
 let escapeProcedureName n =
-    if proedureNameSpecialCharsRegex.IsMatch n
-    then proedureNameSpecialCharsRegex.Replace(n, MatchEvaluator(fun m -> @"\" + m.Value))
-    else n
+    proedureNameSpecialCharsRegex.Replace(n, replace)
 
 [<Struct>]
 type ProcedureSign = ProcedureSign of SType option * string * tail: struct(SType * string) list
@@ -594,7 +593,7 @@ module ProcedureSign =
         }
 
     let toEscapedName = function
-        | ProcedureSign(None, head, []) -> head
+        | ProcedureSign(None, head, []) -> escapeProcedureName head
         | ProcedureSign(type0, head, tail) ->
 
         let sb = StringBuilder()
@@ -602,7 +601,7 @@ module ProcedureSign =
         | None -> ()
         | Some t -> sb.Append('%').Append(SType.scratchParameterTypeName t) |> ignore
 
-        sb.Append head |> ignore
+        sb.Append(escapeProcedureName head) |> ignore
 
         for t, text in tail do
             sb.Append(" %").Append(SType.scratchParameterTypeName t).Append(escapeProcedureName text) |> ignore
