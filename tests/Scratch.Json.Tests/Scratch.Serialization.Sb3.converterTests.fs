@@ -217,6 +217,19 @@ module Helpers =
 
     let qcheck = Scratch.Json.Tests.qcheck
 
+module CostumeData =
+    open Scratch.Ast
+
+    let empty = {
+        baseLayerMD5 = ""
+        baseLayerID = 0.
+        textLayerMD5 = None
+        textLayerID = None
+        bitmapResolution = None
+        costumeName = ""
+        rotationCenterX = 0.
+        rotationCenterY = 0.
+    }
 
 namespace Scratch.Serialization.Sb3.Converter
 open Scratch
@@ -226,7 +239,6 @@ open Scratch.Serialization.Sb3
 open Scratch.Serialization.Sb3.Ast
 open Scratch.Serialization.Sb3.Test.Helpers
 open Scratch.Serialization.Sb3.Converter.Test
-open Scratch.Serialization.Sb3.Converter.Test.Helpers
 open System
 open Xunit
 
@@ -483,19 +495,18 @@ type IpcTests(fixture: IpcTestFixture) =
     member _.exportAnyStage() = qcheck exportStageToSb3Property
 
     [<Fact>]
-    member _.exportStageWithEmptyMd5Custume() =
-        let s = StageData.defaultValue
-        { s with
+    member _.exportStageWithEmptyCustume() =
+        { StageData.defaultValue with
+            costumes = [CostumeData.empty]
+        }
+        |> exportStageToSb3Property
+
+    [<Fact>]
+    member _.exportStageWithBitmapResolution0Costume() =
+        { StageData.defaultValue with
             costumes = [
-                {
-                    baseLayerMD5 = ""
-                    baseLayerID = 0.
-                    textLayerMD5 = None
-                    textLayerID = None
-                    bitmapResolution = None
-                    costumeName = ""
-                    rotationCenterX = 0.
-                    rotationCenterY = 0.
+                { CostumeData.empty with
+                    bitmapResolution = Some 0.
                 }
             ]
         }

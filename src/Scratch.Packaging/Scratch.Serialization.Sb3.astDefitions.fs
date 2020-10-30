@@ -883,7 +883,10 @@ module Project =
 
     let private md5ExtDelimiter = [|'.'|]
     let convertCostume isStage costume =
-        let bitmapResolution = costume.bitmapResolution |> Option.defaultValue 1.
+        let bitmapResolution =
+            costume.bitmapResolution
+            |> Option.bind (function 0. -> None | x -> Some x)
+            |> Option.defaultValue 1.
 
         let md5ext = costume.baseLayerMD5
         let md5ext, md5, ext =
