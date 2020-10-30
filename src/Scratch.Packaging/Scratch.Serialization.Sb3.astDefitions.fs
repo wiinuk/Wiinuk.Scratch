@@ -142,6 +142,7 @@ module OpCodes =
 
 module Project =
     open Scratch.Ast
+    open Scratch.AstDefinitions
     open System.Collections.Generic
     module Op = OpCodes
 
@@ -238,16 +239,16 @@ module Project =
 
     let private callArgMap0 = [EmptyArg]
     let procedureNameAsArgMap procedureName =
-        match AstDefinitions.parseProcedureName procedureName with
-        | ValueNone
-        | ValueSome(_, []) -> callArgMap0
-        | ValueSome(_, tail) ->
+        match ProcedureSign.parse procedureName with
+        | ValueNone -> callArgMap0
+        | ValueSome sign when not <| ProcedureSign.hasParam sign -> callArgMap0
+        | ValueSome sign ->
 
         [
         EmptyArg
 
         let mutable inputCount = 0
-        for t, _ in tail do
+        for t in ProcedureSign.paramTypes sign do
             let inputOp =
                 match t with
                 | SType.N -> Op.math_number
@@ -924,24 +925,9 @@ module Project =
         {
             name = sound.soundName
 
-            format =
-                sound.format
-                |> Option.defaultWith (fun _ -> failwith "format not found")
-                |> function
-                    | EmptyFormat -> ""
-                    | Adpcm -> "adpcm"
-
-            rate =
-                sound.rate
-                |> Option.defaultWith (fun _ -> failwith "rate not found")
-                |> function
-                    | R11025 -> 11025.
-                    | R22050 -> 22050.
-                    | R48000 -> 48000.
-
-            sampleCount =
-                sound.sampleCount
-                |> Option.defaultWith (fun _ -> failwith "sampleCount not found")
+            format = sound.format |> Option.map SoundFormat.toString
+            rate = sound.rate |> Option.map SoundRate.toNumber
+            sampleCount = sound.sampleCount
 
             md5ext = md5ext
             //data = None

@@ -40,12 +40,6 @@ type KnownValueComplexExpression<'a> = KnownValueComplexExpression of 'a Complex
 [<Struct>]
 type KnownUnitComplexExpression<'a> = KnownUnitComplexExpression of 'a ComplexExpression
 
-let procedureSignToEscapedName struct(head, tail) =
-    tail
-    |> Seq.map (fun struct(t, text) -> sprintf "%s%%%s" (SType.scratchParameterTypeName t) (escapeProcedureName text))
-    |> String.concat ""
-    |> (+) (escapeProcedureName head)
-
 let complexExpressionArb wrapSymbol (|UnwrapSymbol|) =
     let anyValueGen = Arb.generate<SValue>
     let boolValueGen = Arb.generate<_> |> Gen.map SBool
@@ -102,16 +96,16 @@ let complexExpressionArb wrapSymbol (|UnwrapSymbol|) =
         return [Expression.eString state x]
     }
     let procedureSignGen =
-        let textGen = Arb.generate<_> |> Gen.map (fun (NonNull x) -> x)
-        let placeholderGen = Arb.generate<SType>
-        let tailGen = Gen.arrayOf <| Gen.map2 (fun x y -> struct(x, y)) placeholderGen textGen
-        Gen.map2 (fun x y -> struct(x, y)) textGen tailGen
+        Gen.map3 (fun x (NonNull y) z ->
+            let z = z |> List.map (fun struct(t, NonNull s) -> struct(t, s))
+            ProcedureSign(x, y, z)
+        ) Arb.generate<_> Arb.generate<_> Arb.generate<_>
 
     let procedureNameAndValueExpressionsGen = gen {
         let! state = Arb.generate<_>
-        let! (_, tail) as sign = procedureSignGen
-        let name = procedureSignToEscapedName sign
-        let! arguments = Gen.listOfLength tail.Length <| literalOrValueComplexGen None 
+        let! sign = procedureSignGen
+        let name = ProcedureSign.toEscapedName sign
+        let! arguments = Gen.listOfLength (ProcedureSign.paramCount sign) <| literalOrValueComplexGen None 
 
         return Expression.eString state name::arguments
     }
@@ -181,9 +175,15 @@ let complexExpressionArb wrapSymbol (|UnwrapSymbol|) =
                 Some operands
             
             | OperandType.ProcedureNameAndExpressions, EString(_, name)::operands ->
-                match parseProcedureName name with
+                match ProcedureSign.parse name with
                 | ValueNone -> None
-                | ValueSome(_, tail) ->
+                | ValueSome(ProcedureSign(t0, _, tail)) ->
+
+                match t0, operands with
+                | Some _, []
+                | Some _, ExpressionKind Kind.Statement::_ -> None
+                | Some _, _::operands
+                | None, operands ->
 
                 let rec validateArguments = function
                     | [], operands -> Some operands
@@ -372,30 +372,37 @@ type Arbs =
             (fun x -> (x.state, x.isPersistent, NonNull x.listName, x.contents', NormalFloat x.x, NormalFloat x.y, NormalFloat x.width, NormalFloat x.height, x.visible))
 
     static member ProcedureDefinition() =
+        let parameterType (ParameterDefinition(defaultValue = v)) =
+            match v with
+            | SString _ -> SType.S
+            | SNumber _ -> SType.N
+            | SBool _ -> SType.B
+
         let generator = gen {
             let! state = Arb.generate<_>
+
+            let! parameter0 = Arb.generate<_>
             let! NonNull head = Arb.generate<_>
             let! tailAndParameters = Arb.generate<_>
-            let! isAtomic = Arb.generate<_>
-            let! body = Arb.generate<_>
+
+            let type0 = parameter0 |> Option.map parameterType
             let tail =
                 tailAndParameters
-                |> List.map (fun (NonNull text, ParameterDefinition(defaultValue = v)) ->
-                    let t =
-                        match v with
-                        | SString _ -> SType.S
-                        | SNumber _ -> SType.N
-                        | SBool _ -> SType.B
-                    struct(t, text)
+                |> List.map (fun (NonNull text, p) ->
+                    struct(parameterType p, text)
                 )
-            let name = procedureSignToEscapedName (head, tail)
-            let parameters = tailAndParameters |> List.map snd
+
+            let name = ProcedureSign.toEscapedName (ProcedureSign(type0, head, tail))
+            let parameters = Option.toList parameter0 @ List.map snd tailAndParameters
+
+            let! isAtomic = Arb.generate<_>
+            let! body = Arb.generate<_>
             return ProcedureDefinition(state, name, parameters, isAtomic, body)
         }
         let shrinker (ProcedureDefinition(state, name, parameters, isAtomic, body)) = seq {
             for state, NonNull name, parameters, isAtomic, body in Arb.shrink (state, NonNull name, parameters, isAtomic, body) do
-                match parseProcedureName name with
-                | ValueSome(_, tail) when List.length tail = List.length parameters ->
+                match ProcedureSign.parse name with
+                | ValueSome sign when ProcedureSign.paramCount sign = List.length parameters ->
                     ProcedureDefinition(state, name, parameters, isAtomic, body)
 
                 | _ -> ()
@@ -481,7 +488,7 @@ type Arbs =
         |> Arb.convert
             (fun
                 (
-                    NonNull md5,
+                    (NonNull md5, NonNull ext),
                     NormalFloat soundID,
                     NonNull soundName,
                     OptionMap NormalFloat.op_Explicit sampleCount,
@@ -489,7 +496,7 @@ type Arbs =
                     format
                 ) ->
                 {
-                    md5 = md5
+                    md5 = md5 + "." + ext
                     soundID = soundID
                     soundName = soundName
                     sampleCount = sampleCount
@@ -498,8 +505,13 @@ type Arbs =
                 }
             )
             (fun x ->
+                let md5, ext =
+                    match x.md5.Split([|'.'|], count = 2) with
+                    | [|md5; ext|] -> md5, ext
+                    | _ -> "", ""
+
                 (
-                    NonNull x.md5,
+                    (NonNull md5, NonNull ext),
                     NormalFloat x.soundID,
                     NonNull x.soundName,
                     Option.map NormalFloat x.sampleCount,

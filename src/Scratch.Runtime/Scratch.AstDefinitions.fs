@@ -546,33 +546,68 @@ let escapeProcedureName n =
     then proedureNameSpecialCharsRegex.Replace(n, MatchEvaluator(fun m -> @"\" + m.Value))
     else n
 
-let private procedureNameRegex =
-    let text = @"(?<text>(?:[^\\%]|\\[\\%])*)"
-    let placeholder = "%(?<placeholder>[bns])"
-    Regex <| sprintf "^%s(?:%s%s)*$" text placeholder text
+[<Struct>]
+type ProcedureSign = ProcedureSign of SType option * string * tail: struct(SType * string) list
 
-let parseProcedureName n =
-    let m = procedureNameRegex.Match n
-    if not m.Success then ValueNone else
+[<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
+module ProcedureSign =
+    open FParsec
+    open System.Text
 
-    let texts = m.Groups.["text"].Captures
-    let placeholders = m.Groups.["placeholder"].Captures
+    let private parser =
+        let char = (notFollowedByL (skipChar '\\' <|> skipString " %") "notFollowedBy (\\| %)" >>. anyChar) <|> (pchar '\\' >>. anyOf "\\%")
+        let text = manyChars char
+    
+        let param = pchar '%' >>. anyOf "bns" |>> function
+            | 's' -> SType.S
+            | 'n' -> SType.N
+            | 'b'
+            | _ -> SType.B
+    
+        let tail = pipe3 (pchar ' ') param text (fun _ p t -> struct(p, t)) |> many
+    
+        pipe3 (opt param) text tail (fun p h t -> ProcedureSign(p, h, t)) .>> eof
 
-    let head = escapeProcedureName texts.[0].Value
-    if placeholders.Count = 0 then ValueSome struct(head, []) else
+    let parse n =
+        match runParserOnString parser () "" n with
+        | Success(r, _, _) -> ValueSome r
+        | _ -> ValueNone
 
-    let tail = [
-        for i in 0..placeholders.Count - 1 do
-            let t =
-                match n.[placeholders.[i].Index] with
-                | 's' -> SType.S
-                | 'n' -> SType.N
-                | 'b'
-                | _ -> SType.B
+    let hasParam = function
+        | ProcedureSign(Some _, _, _)
+        | ProcedureSign(_, _, _::_) -> true
+        | _ -> false
 
-            struct(t, escapeProcedureName texts.[i + 1].Value)
-    ]
-    ValueSome struct(head, tail)
+    let paramCount (ProcedureSign(t0, _, ts)) =
+        Option.count t0 + List.length ts
+
+    let paramTypes sign =
+        if not <| hasParam sign then [] :> _ seq else
+
+        let (ProcedureSign(p0, _, ps)) = sign
+        seq {
+            match p0 with
+            | Some t -> t
+            | _ -> ()
+
+            for t, _ in ps do t
+        }
+
+    let toEscapedName = function
+        | ProcedureSign(None, head, []) -> head
+        | ProcedureSign(type0, head, tail) ->
+
+        let sb = StringBuilder()
+        match type0 with
+        | None -> ()
+        | Some t -> sb.Append('%').Append(SType.scratchParameterTypeName t) |> ignore
+
+        sb.Append head |> ignore
+
+        for t, text in tail do
+            sb.Append(" %").Append(SType.scratchParameterTypeName t).Append(escapeProcedureName text) |> ignore
+
+        string sb
 
 let mangleProcedureName baseName parameterTypes =
     let sigName =

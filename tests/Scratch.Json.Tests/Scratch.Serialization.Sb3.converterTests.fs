@@ -492,21 +492,45 @@ type IpcTests(fixture: IpcTestFixture) =
         |> exportScriptToSb3Property
 
     [<Fact>]
+    member _.exportScript_() =
+        ProcedureDefinition((), "u\R@ %b %b  %b %n:\\(mc{ %b]", [
+            ParameterDefinition.make () "p1" SType.B
+            ParameterDefinition.make () "p2" SType.B
+            ParameterDefinition.make () "p3" SType.B
+            ParameterDefinition.make () "p4" SType.N
+            ParameterDefinition.make () "p5" SType.B
+        ], Atomic, BlockExpression((), []))
+        |> Procedure
+        |> exportScriptToSb3Property
+
+    [<Fact>]
     member _.exportAnyStage() = qcheck exportStageToSb3Property
 
     [<Fact>]
-    member _.exportStageWithEmptyCustume() =
+    member _.exportEmptyCustume() =
         { StageData.defaultValue with
             costumes = [CostumeData.empty]
         }
         |> exportStageToSb3Property
 
     [<Fact>]
-    member _.exportStageWithBitmapResolution0Costume() =
+    member _.exportCostumeWithBitmapResolution0() =
         { StageData.defaultValue with
             costumes = [
                 { CostumeData.empty with
                     bitmapResolution = Some 0.
+                }
+            ]
+        }
+        |> exportStageToSb3Property
+
+    [<Fact>]
+    member _.exportDotCostumeMd5() =
+        { StageData.defaultValue with
+            costumes = [
+                { CostumeData.empty with
+                    baseLayerMD5 = "."
+                    baseLayerID = 0.
                 }
             ]
         }
