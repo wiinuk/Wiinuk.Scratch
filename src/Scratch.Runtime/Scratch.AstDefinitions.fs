@@ -526,7 +526,69 @@ let knownListenerHeaders = [
 
 /// `@"%" => @"\%"`
 /// `@"\" => @"\\"`
-let escapeProcedureName n = Regex.Replace(n, @"[%\\]", MatchEvaluator(fun m -> @"\" + m.Value))
+
+[<Struct>]
+type ProcedureSign = ProcedureSign of SType option * string * tail: struct(SType * string) list
+
+[<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
+module ProcedureSign =
+    open FParsec
+    open System.Text
+
+    let private parser =
+        let char = (notFollowedByL (skipChar '\\' <|> skipString " %") "notFollowedBy (\\| %)" >>. anyChar) <|> (pchar '\\' >>. anyOf "\\%")
+        let text = manyChars char
+
+        let param = pchar '%' >>. anyOf "bns" |>> function
+            | 's' -> SType.S
+            | 'n' -> SType.N
+            | 'b'
+            | _ -> SType.B
+
+        let tail = pipe3 (pchar ' ') param text (fun _ p t -> struct(p, t)) |> many
+
+        pipe3 (opt param) text tail (fun p h t -> ProcedureSign(p, h, t)) .>> eof
+
+    let parse n =
+        match runParserOnString parser () "" n with
+        | Success(r, _, _) -> ValueSome r
+        | _ -> ValueNone
+
+    let hasParam = function
+        | ProcedureSign(Some _, _, _)
+        | ProcedureSign(_, _, _::_) -> true
+        | _ -> false
+
+    let paramCount (ProcedureSign(t0, _, ts)) =
+        Option.count t0 + List.length ts
+
+    let paramTypes sign =
+        if not <| hasParam sign then [] :> _ seq else
+
+        let (ProcedureSign(p0, _, ps)) = sign
+        seq {
+            match p0 with
+            | Some t -> t
+            | _ -> ()
+
+            for t, _ in ps do t
+        }
+
+    let toEscapedName = function
+        | ProcedureSign(None, head, []) -> escapeProcedureName head
+        | ProcedureSign(type0, head, tail) ->
+
+        let sb = StringBuilder()
+        match type0 with
+        | None -> ()
+        | Some t -> sb.Append('%').Append(SType.scratchParameterTypeName t) |> ignore
+
+        sb.Append(escapeProcedureName head) |> ignore
+
+        for t, text in tail do
+            sb.Append(" %").Append(SType.scratchParameterTypeName t).Append(escapeProcedureName text) |> ignore
+
+        string sb
 
 let mangleProcedureName baseName parameterTypes =
     let sigName =
