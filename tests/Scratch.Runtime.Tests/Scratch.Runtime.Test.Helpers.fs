@@ -122,12 +122,12 @@ let complexExpressionArb wrapSymbol (|UnwrapSymbol|) =
     let g = gen {
         let! state = Arb.generate<_>
         let! UnwrapSymbol operator = Arb.generate<_>
-    
+
         let! operands = knownAllOperatorMap.[operator].operands |> Gen.collectToSeq operandGen
         let operands = Seq.concat operands |> Seq.toList
         return ComplexExpression(state, operator, operands)
     }
-    
+
     let isValidComplexExpressionOperands operand operands =
         match Map.tryFind operand knownAllOperatorMap with
         | ValueNone -> false
@@ -138,7 +138,7 @@ let complexExpressionArb wrapSymbol (|UnwrapSymbol|) =
             | Block _ -> Some Kind.Statement
             | Complex(ComplexExpression(operator = KnownOperatorInfo(ValueSome { kind = kind }))) -> Some kind
             | _ -> None
-            
+
         let rec includes = function
             | TsType.StringSs ss, SString s when List.contains s ss -> true
             | TsType.GVar _, _ -> true

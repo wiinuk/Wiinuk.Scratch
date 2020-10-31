@@ -1,4 +1,4 @@
-module Scratch.AstDefinitions
+﻿module Scratch.AstDefinitions
 open Scratch.Ast
 open Scratch.Reflection
 open System.Text.RegularExpressions
@@ -46,7 +46,7 @@ module private Privates =
     let g1 v1 f =
         let v1 = TypeVar v1
         [v1], f (G.GVar 0)
-        
+
     let e0 t = [], t
     let e1 t1 t = [opE t1], t
     let e2 t1 t2 t = [opE t1; opE t2], t
@@ -221,7 +221,7 @@ let private knownCallExpressions() = expressionTable [
     O.``contentsOfList:``, Unknown, g1 "T" (fun t -> [op <| O.ListVariableExpression t], gString)
     O.``getLine:ofList:``, Unknown, g1 "T" (fun t -> [opE (gNumber .|. G.StringSs ["random"; "any"; "last"]); op <| O.ListVariableExpression t], (t .|. gStringL ""))
     O.``concatenate:with:``, Pure, g0e2 gString gString gString
-    O.``letter:of:``, Pure, g0e2 gNumber gString gString 
+    O.``letter:of:``, Pure, g0e2 gNumber gString gString
     O.``answer``, Unknown, g0e0 gString
     O.``getAttribute:of:``, Unknown, g0 ([opS attributeNames; opE gString], tValue)
     O.getUserId, Unknown, g0e0 gNumber
@@ -328,7 +328,7 @@ let private statementTable isFooter xs =
             isFooter = isFooter
         }
     )
-// type KnownCallStatement<E> = 
+// type KnownCallStatement<E> =
 //     | Case2<"call", "phosphorus: debug" | E, ReadonlyArray<E>>
 
 // type KnownStatement<E, M, S> =
@@ -633,3 +633,10 @@ let demangleProcedureName mangledName =
 
     let cs, ts = aux [] [] (Seq.toList (mangledName: string))
     System.String(List.toArray cs), ts
+
+let minColorCode = -0x1000000
+let maxColorCode = 0xFFFFFF
+
+let isColorCode n =
+    double minColorCode <= n && n <= double maxColorCode &&
+    truncate n = n
