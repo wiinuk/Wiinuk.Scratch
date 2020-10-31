@@ -1,4 +1,4 @@
-﻿module Scratch.Tests
+module Scratch.Tests
 open System
 open FSharp.Reflection
 open Scratch.Ast
@@ -191,13 +191,18 @@ let genericTypeGenericMethodDefinitionTest() =
     Member.genericTypeGenericMethodDefinition m =? typeof<T2>.GetMethod("showSomes")
 
 [<Fact>]
-let omapTest() =
-    OMap.toListOrdered (OMap.ofList [1, "A"; 3, "C"; 1, "a"]) =? [3, "C"; 1, "a"]
-    OMap.toListSorted (OMap.ofList [1, "A"; 3, "C"; 1, "a"]) =? [1, "a"; 3, "C"]
+let oMapTest() =
+    OMap.toListOrdered (OMap.ofList [3, "C"; 1, "A"; 3, "c"]) =? [3, "c"; 1, "A"]
+    OMap.toListSorted (OMap.ofList [3, "C"; 1, "A"; 3, "c"]) =? [1, "A"; 3, "c"]
 
 [<Fact>]
-let omapEqualityTest() =
-    OMap.ofList ["a", 1; "a", 2] = OMap.ofList ["a", 2]
+let oMapEqualityTest() =
+    OMap.ofList ["a", 1; "a", 2] =? OMap.ofList ["a", 2]
+
+[<Fact>]
+let oMapAsSeqTest() =
+    let kvs = OMap.ofList [2, "2"; 1, "1"; 3, "3"; 1, "_"] :> System.Collections.Generic.KeyValuePair<_,_> seq
+    [ for kv in kvs do kv.Key, kv.Value ] =? [2, "2"; 1, "_"; 3, "3"]
 
 let schedulerNowProperty (NormalFloat processSpan) (NormalFloat flameSpan) =
     /// -1.<s> < s && s < 1.<s>
