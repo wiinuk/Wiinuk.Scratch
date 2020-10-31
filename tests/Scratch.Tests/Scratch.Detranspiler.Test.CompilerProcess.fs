@@ -49,7 +49,7 @@ let buildToBinary outDirectory source references assemblyName = async {
     do! File.WriteAllTextAsync(sourcePath, source) |> Async.AwaitTask
     do! XDocument(project).AsyncSave projectPath
 
-    do! startAsync "dotnet build --nologo \"%s\"" projectPath
+    do! startWithAsync (fun c -> { c with onOut = ignore }) "dotnet build --nologo \"%s\"" projectPath
     return outPath
 }
 let compileToAssembly references moduleName source assemblyFileScope =

@@ -191,6 +191,8 @@ const startAliveTimer = (timeout, timeoutAction) => {
     } CommandArgs
  */
 const startServer = (/** @type {{ port: number, silent: boolean, timeout: number }} */ { port, silent, timeout }) => {
+    if (silent) { require("minilog").disable() }
+
     const server = new Ws.Server({ port: port })
     const timer = startAliveTimer(timeout, () => {
         server.clients.forEach(c => c.close())
