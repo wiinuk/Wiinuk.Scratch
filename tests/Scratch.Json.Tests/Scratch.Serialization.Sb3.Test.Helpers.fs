@@ -2,6 +2,7 @@
 open Scratch.Primitives
 open System
 open System.Net.WebSockets
+open System.Runtime.ExceptionServices
 open System.Text.Json
 open System.Text.Json.Serialization
 
@@ -18,15 +19,33 @@ with
 
 module WebSocketIpcClient =
     let connect address = async {
-        let client = new ClientWebSocket()
-
-        let! cancel = Async.CancellationToken
-        do! client.ConnectAsync(Uri address, cancel) |> Async.AwaitTask
+        let maxRetry = 10
+        let retryMs = 1500
 
         let serializerOptions =
             let o = JsonSerializerOptions()
             o.Converters.Add <| JsonFSharpConverter()
             o
+
+        let mutable client = null
+        let mutable next = true
+        let mutable retryCount = 0
+        while next do
+            client <- new ClientWebSocket()
+            try
+                let! cancel = Async.CancellationToken
+                do! client.ConnectAsync(Uri address, cancel) |> Async.AwaitTask
+                next <- false
+
+            with e ->
+                let info = ExceptionDispatchInfo.Capture e
+
+                client.Dispose()
+                if maxRetry < retryCount then
+                    info.Throw()
+                else
+                    retryCount <- retryCount + 1
+                    do! Async.Sleep retryMs
 
         return {
             socket = client
