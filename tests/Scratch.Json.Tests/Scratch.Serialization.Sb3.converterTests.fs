@@ -33,6 +33,7 @@ type RenameState = {
 [<AutoOpen>]
 module Helpers =
     open Scratch.Serialization.Sb3.OpCodeSpecs
+    open Scratch.Json.Utf8
 
     let sb3OpcodeToBlockSpec =
         sb2ExpressionSpecs
@@ -120,6 +121,21 @@ module Helpers =
         | ColourPicker _
         | Text _ as b -> b
 
+    let normalizeMutation m =
+        let roundtrip syntax x =
+            try
+                x
+                |> Syntax.deserializeString syntax
+                |> Syntax.serializeString syntax
+            with _ ->
+                x
+
+        { m with
+            argumentids = m.argumentids |> Option.map (roundtrip Project.stringListSyntax)
+            argumentdefaults = m.argumentdefaults |> Option.map (roundtrip Project.scalarValueListSyntax)
+            argumentnames = m.argumentnames |> Option.map (roundtrip Project.stringListSyntax)
+        }
+
     let normalizeBlock state = function
         | Simple b -> normalizeSimpleBlock state b |> Simple
         | Complex b ->
@@ -160,6 +176,8 @@ module Helpers =
 
             // NOTE: ここで全ての `{ parent: null }` は `{ parent: undefined }` に変更される
             parent = b.parent |> Option.flatten |> Option.map (renameBlockId state >> Some)
+
+            mutation = Option.map normalizeMutation b.mutation
         }
         |> Complex
 
@@ -484,6 +502,15 @@ type IpcTests(fixture: IpcTestFixture) =
             ComplexExpression((), O.``broadcast:``, [Literal((), SString "0")])
         ])
         |> Statements
+        |> exportScriptToSb3Property
+
+    [<Fact>]
+    member _.exportG17Double() =
+        ProcedureDefinition((), "%n", [
+            ParameterDefinition((), "x1", SNumber 8.39380860293761)
+        ], Atomic, BlockExpression((), [
+        ]))
+        |> Procedure
         |> exportScriptToSb3Property
 
     [<Fact>]
