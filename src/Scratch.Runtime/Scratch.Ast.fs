@@ -397,12 +397,23 @@ type CostumeData = {
 // }
 [<Struct>]
 type SoundRate = R11025 | R22050 | R48000
+module SoundRate =
+    let toNumber = function
+        | R11025 -> 11025.
+        | R22050 -> 22050.
+        | R48000 -> 48000.
+
 [<Struct>]
 type SoundFormat =
     /// ""
     | EmptyFormat
     /// "adpcm"
     | Adpcm
+
+module SoundFormat =
+    let toString = function
+        | EmptyFormat -> ""
+        | Adpcm -> "adpcm"
 
 type SoundData = {
     md5: string
