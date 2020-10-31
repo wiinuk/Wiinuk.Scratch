@@ -179,7 +179,7 @@ let complexExpressionArb wrapSymbol (|UnwrapSymbol|) =
                 let rec validateArguments = function
                     | [], operands -> Some operands
                     | _::signTail, ExpressionKind Kind.Expression::operands -> validateArguments (signTail, operands)
-            | _ -> None
+                    | _ -> None
 
                 validateArguments (tail, operands)
 
