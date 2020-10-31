@@ -70,6 +70,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "files", "files", "{479ED87F
 		.github\workflows\dotnetcore.yml = .github\workflows\dotnetcore.yml
 		global.json = global.json
 		pack.fsx = pack.fsx
+		package.json = package.json
 		paket.dependencies = paket.dependencies
 		publish.fsx = publish.fsx
 		Shell.fsx = Shell.fsx

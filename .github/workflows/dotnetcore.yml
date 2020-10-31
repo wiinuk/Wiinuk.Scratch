@@ -1,4 +1,4 @@
-name: .NET Core
+﻿name: .NET Core
 
 on:
   push:
@@ -19,6 +19,7 @@ jobs:
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
         dotnet-version: [3.1.201]
+        node-version: [12]
 
     runs-on: ${{ matrix.os }}
     steps:
@@ -34,6 +35,10 @@ jobs:
       - uses: actions/setup-dotnet@v1
         with:
           dotnet-version: ${{ matrix.dotnet-version }}
+
+      - uses: actions/setup-node@v1
+        with:
+          node-version: ${{ matrix.node-version }}
 
       - name: Run test script
         run: dotnet fsi ./test.fsx
