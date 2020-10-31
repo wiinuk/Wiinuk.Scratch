@@ -28,6 +28,10 @@ let tryParseSNumberTest() =
     parse "\u3000-123.\u3000" =? ValueSome -123.
     parse "\u3000-.2e3\u3000" =? ValueSome -200.
 
+[<Fact>]
+let emptyStringToNumberTest() =
+    SValue.toNumber (SString "") =? 0.
+
 let makeOptions (runtime: Runtime) (prototype: Entity option) =
     FSharpValue.MakeRecord(
         typeof<EntityInitializeOptions>,
@@ -128,7 +132,7 @@ type T = { v: int } with
     member x.f a (b, c) d = x.v + a + b + c + d
     static member m a (b, c) d = a + b + c + d
     static member n(a, b, c) = a + b + c
-    
+
 let p x = printfn "%A" x; x
 
 [<Fact>]
