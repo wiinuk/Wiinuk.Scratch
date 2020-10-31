@@ -130,7 +130,9 @@ module AdaptorJs =
 
     let startServerAndConnect() = async {
         let port = 55523
-        do! Shell.startAsync "node \"%s\" start-server --port %d" adaptorJsPath port |> Async.StartChild |> Async.Ignore
+        Shell.startAsync "node \"%s\" start-server --port %d" adaptorJsPath port |> Async.Start
+        do! Async.Sleep 1000
+
         let! client = IpcClient.connect <| sprintf "ws://localhost:%d" port
         return {
             ipcClient = client
