@@ -1,70 +1,74 @@
 ﻿module Scratch.Serialization.Sb3.Test.Helpers
 open Scratch.Primitives
 open System
-open System.IO.Pipes
+open System.Net.WebSockets
 open System.Text.Json
 open System.Text.Json.Serialization
 
 
-type NodeIpcClient = {
-    pipe: NamedPipeClientStream
+type WebSocketIpcClient = {
+    socket: ClientWebSocket
     serializerOptions: JsonSerializerOptions
-    readBuffer: byte array
+    buffer: byte array
 }
 with
-    member x.Dispose() = x.pipe.Dispose()
+    member x.Dispose() = x.socket.Dispose()
     interface IDisposable with
         member x.Dispose() = x.Dispose()
 
-module NodeIpcClient =
-    let connect id = async {
-        let pipe = new NamedPipeClientStream(sprintf "tmp-app.%s" id)
-        let! cancel = Async.CancellationToken
-        do! pipe.ConnectAsync cancel |> Async.AwaitTask
+module WebSocketIpcClient =
+    let connect address = async {
+        let client = new ClientWebSocket()
 
-        let serializerOptions = JsonSerializerOptions()
-        serializerOptions.Converters.Add <| JsonFSharpConverter()
+        let! cancel = Async.CancellationToken
+        do! client.ConnectAsync(Uri address, cancel) |> Async.AwaitTask
+
+        let serializerOptions =
+            let o = JsonSerializerOptions()
+            o.Converters.Add <| JsonFSharpConverter()
+            o
+
         return {
-            pipe = pipe
+            socket = client
             serializerOptions = serializerOptions
-            readBuffer = Array.zeroCreate 4096
+            buffer = Array.zeroCreate 4096
         }
     }
 
-    let send { pipe = pipe; serializerOptions = serializerOptions } name value = async {
-        let utf8Json = JsonSerializer.SerializeToUtf8Bytes(struct {| ``type`` = name+""; data = value |}, serializerOptions)
-        let utf8Json = Array.append utf8Json "\f"B
+    let send { socket = client; serializerOptions = serializerOptions } messageType data = async {
         let! cancel = Async.CancellationToken
-        do! pipe.WriteAsync(utf8Json, 0, utf8Json.Length, cancel) |> Async.AwaitTask
 
-        pipe.WaitForPipeDrain()
+        let utf8Bytes = JsonSerializer.SerializeToUtf8Bytes(struct {| ``type`` = messageType + ""; data = data |}, serializerOptions)
+        do! client.SendAsync(ArraySegment utf8Bytes, WebSocketMessageType.Text, endOfMessage = true, cancellationToken = cancel) |> Async.AwaitTask
     }
-    let readTail ({ readBuffer = buffer } as client) = async {
-        let bytes = ResizeArray buffer
-        let mutable next = true
-        while next do
+    let sendAndReceive (_: 'Result The) ({ socket = socket; serializerOptions = serializerOptions; buffer = buffer } as client) messageType data = async {
+        do! send client messageType data
+
+        let! cancel = Async.CancellationToken
+        let! r = socket.ReceiveAsync(ArraySegment buffer, cancel) |> Async.AwaitTask
+        match r.MessageType with
+        | WebSocketMessageType.Text -> ()
+        | WebSocketMessageType.Close ->
             let! cancel = Async.CancellationToken
-            let! readCount = client.pipe.ReadAsync(buffer, 0, buffer.Length, cancel) |> Async.AwaitTask
-            bytes.AddRange buffer.[0..readCount-1]
-            if readCount < buffer.Length then
-                next <- false
+            do! socket.CloseAsync(WebSocketCloseStatus.NormalClosure, "", cancel) |> Async.AwaitTask
+            failwithf "server is closed; %A: %s" r.CloseStatus r.CloseStatusDescription
 
-        if bytes.[bytes.Count-1] <> '\f'B then return failwithf "required '\\f'" else
+        | t ->
+            let! cancel = Async.CancellationToken
+            do! socket.CloseAsync(WebSocketCloseStatus.InvalidMessageType, "", cancel) |> Async.AwaitTask
+            failwithf "unexpected message type: %A" t
 
-        let r = JsonSerializer.Deserialize<struct {| ``type``:string; data: 'Result |}>(ReadOnlySpan(bytes.ToArray(), 0, length = bytes.Count - 1), client.serializerOptions)
-        return struct(r.``type``, r.data)
-    }
-    let sendAndResponse (_: 'Result The) ({ readBuffer = buffer } as client) name value = async {
-        do! send client name value
+        if r.EndOfMessage then
+            return JsonSerializer.Deserialize(ReadOnlySpan(buffer, start = 0, length = r.Count), serializerOptions)
+        else
+            let bytes = ArraySegment(buffer, offset = 0, count = r.Count) |> ResizeArray
+            let mutable endOfMessage = r.EndOfMessage
+            while not endOfMessage do
+                let! r = socket.ReceiveAsync(ArraySegment buffer, cancel) |> Async.AwaitTask
+                ArraySegment(buffer, offset = 0, count = r.Count) |> bytes.AddRange
+                endOfMessage <- r.EndOfMessage
 
-        let! cancel = Async.CancellationToken
-        let! readCount = client.pipe.ReadAsync(buffer, 0, buffer.Length, cancel) |> Async.AwaitTask
-
-        if readCount = buffer.Length then return! readTail client else
-        if buffer.[readCount-1] <> '\f'B then return failwithf "required '\\f'" else
-
-        let r = JsonSerializer.Deserialize<struct {| ``type``: string; data: 'Result |}>(ReadOnlySpan(buffer, 0, length = readCount - 1), client.serializerOptions)
-        return struct(r.``type``, r.data)
+            return JsonSerializer.Deserialize<'Result>(ReadOnlySpan(bytes.ToArray()), serializerOptions)
     }
 
 module AdaptorJs =
@@ -112,26 +116,22 @@ module AdaptorJs =
             (Shell.startAsync """node "%s" importSb2Json "%s" --outPath "%s" """)
         |> Async.RunSynchronously
 
+    module IpcClient = WebSocketIpcClient
     type Client = {
-        ipcClient: NodeIpcClient
+        ipcClient: WebSocketIpcClient
     }
     with
         member x.Dispose() = async {
-            try do! NodeIpcClient.send x.ipcClient "stop" ()
+            try do! IpcClient.send x.ipcClient "stop" ()
             finally x.ipcClient.Dispose()
         }
         interface IDisposable with
             member x.Dispose() = x.Dispose() |> Async.RunSynchronously
 
-    let mutable private id = 0L
     let startServerAndConnect() = async {
-        let id =
-            let pid = System.Diagnostics.Process.GetCurrentProcess().Id
-            let sid = System.Threading.Interlocked.Increment &id
-            sprintf "%d_%d" pid sid
-
-        do! Shell.startAsync "node \"%s\" start-server --id \"%s\" --silent" adaptorJsPath id |> Async.StartChild |> Async.Ignore
-        let! client = NodeIpcClient.connect id
+        let port = 55523
+        do! Shell.startAsync "node \"%s\" start-server --port %d --silent" adaptorJsPath port |> Async.StartChild |> Async.Ignore
+        let! client = IpcClient.connect <| sprintf "ws://localhost:%d" port
         return {
             ipcClient = client
         }
@@ -142,13 +142,13 @@ module AdaptorJs =
 
     let convertBy serialize deserialize commandName client value = async {
         let json = serialize value
-        let! struct(_, result) =
+        let! result =
             struct
                 {|
                 name = commandName
                 args = struct {| projectJson = json |}
                 |}
-            |> NodeIpcClient.sendAndResponse the<JsonElement> client.ipcClient "exec"
+            |> IpcClient.sendAndReceive the<JsonElement> client.ipcClient "exec"
 
         match result.GetProperty("tag").GetString() with
         | "Ok" ->

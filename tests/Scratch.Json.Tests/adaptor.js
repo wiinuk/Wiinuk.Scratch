@@ -6,10 +6,9 @@ const ScratchStorage = require("scratch-storage")
 const Sb2SpecMap = require("scratch-vm/src/serialization/sb2_specmap")
 const Yargs = require("yargs/yargs")
 const Util = require("util")
+const Ws = require("ws")
 const Path = require("path")
-const Ipc = require("node-ipc")
 const _Fs = require("fs")
-const { clearTimeout } = require("timers")
 const Fs = {
     readFile: Util.promisify(_Fs.readFile),
     writeFile: Util.promisify(_Fs.writeFile)
@@ -161,6 +160,26 @@ const protectedCallAsync = async asyncAction => {
 }
 
 /**
+ * @param {number} timeout
+ * @param {() => void} timeoutAction
+ */
+const startAliveTimer = (timeout, timeoutAction) => {
+
+    /**  @type {ReturnType<typeof setTimeout>} */
+    let serverTimeoutId = setTimeout(timeoutAction, timeout)
+
+    return {
+        reset() {
+            clearTimeout(serverTimeoutId)
+            serverTimeoutId = setTimeout(timeoutAction, timeout)
+        },
+        clear() {
+            clearTimeout(serverTimeoutId)
+        }
+    }
+}
+
+/**
  * @template {string} TName
  * @template TArgs
  * @typedef {{ name: TName, args: TArgs }} CommandArg
@@ -171,47 +190,66 @@ const protectedCallAsync = async asyncAction => {
     | CommandArg<"import-sb2-json", { projectJson: string }>
     } CommandArgs
  */
-const startServer = (/** @type {{ id: string, silent: boolean, timeout: number }} */ { id, silent, timeout }) => {
-    const ipc = new Ipc.IPC()
-    ipc.config.id = id
-    ipc.config.retry = 1500
-    ipc.config.silent = silent
-
-    /**  @type {ReturnType<typeof setTimeout> | null} */
-    let serverTimeoutId = null
-    const resetServerTimeout = () => {
-        if (serverTimeoutId) { clearTimeout(serverTimeoutId) }
-
-        serverTimeoutId = setTimeout(() => {
-            ipc.server.stop()
-            throw new Error(`timeout ${timeout}ms`)
-        }, timeout)
+const startServer = (/** @type {{ port: number, silent: boolean, timeout: number }} */ { port, silent, timeout }) => {
+    const server = new Ws.Server({ port: port })
+    const timer = startAliveTimer(timeout, () => {
+        server.clients.forEach(c => c.close())
+        server.close()
+        console.error(new Error(`timeout ${timeout}ms`))
+        process.exit(-1)
+    })
+    const log = (...args) => {
+        if (!silent) { console.log(...args) }
     }
 
-    ipc.serve(() => {
-        resetServerTimeout()
+    log(`[server] starting server on port ${port}`)
 
-        ipc.server.on("echo", async (data, socket) => {
-            resetServerTimeout()
-            ipc.server.emit(socket, "echo", data)
-        })
-        ipc.server.on("exec", async (/** @type {CommandArgs} */ data, /** @type {import("net").Socket} */ socket) => {
-            resetServerTimeout()
-            const result = await protectedCallAsync(async () => {
-                switch (data.name) {
-                    case "roundtrip-json": return { projectJson: await sb3ToSb3Json(data.args.projectJson) }
-                    case "import-sb2-json": return { projectJson: await sb2ToSb3Json(data.args.projectJson) }
-                }
-            })
-            ipc.server.emit(socket, "exec", result)
-        })
+    const utf8 = new Util.TextDecoder("utf-8")
+    server.on('connection', socket => {
+        timer.reset()
 
-        ipc.server.on("stop", () => {
-            clearTimeout(serverTimeoutId)
-            ipc.server.stop()
+        log(`[server] connected`)
+
+        socket.on('error', e => { throw e })
+        socket.on('message', async m => {
+            timer.reset()
+            log("[server] received", m)
+
+            const json =
+                typeof m === "string" ? m :
+                Array.isArray(m) ? m.map(b => utf8.decode(b)).join("") :
+                utf8.decode(m)
+
+            const { type, data } = JSON.parse(json)
+            switch (type) {
+                case "echo":
+                    socket.send(JSON.stringify(data))
+                    break
+
+                case "exec":
+                    const result = await protectedCallAsync(async () => {
+                        switch (data.name) {
+                            case "roundtrip-json": return { projectJson: await sb3ToSb3Json(data.args.projectJson) }
+                            case "import-sb2-json": return { projectJson: await sb2ToSb3Json(data.args.projectJson) }
+                        }
+                    })
+                    socket.send(JSON.stringify(result))
+                    break
+
+                case "stop":
+                    timer.clear()
+                    server.clients.forEach(c => c.close())
+                    server.close()
+                    log(`[server] terminated`)
+                    process.exit()
+            }
+        })
+        socket.on('close', () => {
+            timer.reset()
+            log(`[server] closed '${socket.url}'`)
         })
     })
-    ipc.server.start()
+    server.on('error', e => { throw e })
 }
 
 createInnerArgv()
@@ -219,7 +257,7 @@ createInnerArgv()
         ["start-server"],
         "Start ipc server",
         p => p
-            .option("id", { type: "string", default: "adaptorjs" })
+            .option("port", { type: "number", default: 443 })
             .option("silent", { type: "boolean", default: false })
             .option("timeout", { type: "number", default: 1 * 60 * 1000, description: "ms" }),
         startServer
