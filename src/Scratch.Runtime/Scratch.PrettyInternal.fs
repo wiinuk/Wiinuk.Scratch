@@ -1,4 +1,4 @@
-﻿module internal Scratch.PrettyInternal
+module internal Scratch.PrettyInternal
 open System.Text.RegularExpressions
 open Scratch
 open Scratch.Ast
@@ -433,14 +433,9 @@ let prettyCostumeDataProperties x =
 
 let prettyCostumeData x = prettyAttribute "costumeData" prettyCostumeDataProperties x
 
-let prettySoundRate = function
-    | R11025 -> prettyNumberLiteral 11025.
-    | R22050 -> prettyNumberLiteral 22050.
-    | R48000 -> prettyNumberLiteral 48000.
+let prettySoundRate s = SoundRate.toNumber s |> prettyNumberLiteral
 
-let prettySoundFormat = function
-    | EmptyFormat -> prettyStringLiteral ""
-    | Adpcm -> prettyStringLiteral "adpcm"
+let prettySoundFormat s = SoundFormat.toString s |> prettyStringLiteral
 
 let prettySoundDataProperties x =
     []

@@ -198,14 +198,9 @@ let prettyCostumeAttribute ({ costumeName = costumeName; baseLayerMD5 = baseLaye
     return! prettyKnownAttribute name props
 }
 
-let prettySoundRate = function
-    | R11025 -> prettyIntLiteral 11025
-    | R22050 -> prettyIntLiteral 22050
-    | R48000 -> prettyIntLiteral 48000
+let prettySoundRate x = SoundRate.toNumber x |> int |> prettyIntLiteral
 
-let prettySoundFormat = function
-    | EmptyFormat -> prettyStringLiteral ""
-    | Adpcm -> prettyStringLiteral "adpcm"
+let prettySoundFormat x = SoundFormat.toString x |> prettyStringLiteral
 
 let prettySoundAttribute x = context {
     let props =
