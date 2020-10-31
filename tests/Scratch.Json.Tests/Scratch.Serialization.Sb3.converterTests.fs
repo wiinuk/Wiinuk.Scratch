@@ -282,6 +282,11 @@ module Tests =
             }
         ]
 
+    [<Fact>]
+    let nonWindowsIpcTest() =
+        use client = AdaptorJs.startServerAndConnect() |> Async.RunSynchronously
+        ()
+
 type IpcTestFixture() =
     let client = AdaptorJs.startServerAndConnect() |> Async.RunSynchronously
     member _.AdaptorJsClient = client
