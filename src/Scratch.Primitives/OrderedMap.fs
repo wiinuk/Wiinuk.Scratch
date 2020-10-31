@@ -1,7 +1,8 @@
 ﻿namespace Scratch.Primitives
-open System.Collections.Generic
 open System
 open System.Collections
+open System.Collections.Generic
+
 
 module internal OMapHelpers =
     [<Struct; NoComparison; NoEquality>]
@@ -31,7 +32,34 @@ module internal OMapHelpers =
         interface IEnumerable<KeyValuePair<'K,'V>> with
             override e.GetEnumerator() = { e = (e.map :> _ seq).GetEnumerator() } :> _
 
-    [<RequireQualifiedAccess>]
+    [<Struct; NoComparison; NoEquality>]
+    type OrderedEnumerator<'K,'V> = {
+        e: KeyValuePair<int, KeyValuePair<'K,'V>> IEnumerator
+    }
+    with
+        interface IEnumerator with
+            override e.MoveNext() = e.e.MoveNext()
+            override e.Current = (e :> _ IEnumerator).Current :> _
+            override e.Reset() = e.e.Reset()
+
+        interface IEnumerator<KeyValuePair<'K,'V>> with
+            override e.Current =
+                let mutable kv = e.e.Current
+                kv.Value
+
+            override e.Dispose() = e.e.Dispose()
+
+    [<Struct; NoComparison; NoEquality>]
+    type OrderedEnumerable<'K,'V> = {
+        imap: Map<int, KeyValuePair<'K,'V>>
+    }
+    with
+        interface IEnumerable with
+            override e.GetEnumerator() = (e :> _ seq).GetEnumerator() :> IEnumerator
+        interface IEnumerable<KeyValuePair<'K,'V>> with
+            override e.GetEnumerator() = { e = (e.imap :> _ seq).GetEnumerator() } :> _
+
+    [<Struct>]
     type OMapView<'K,'V> = OMap of ('K * 'V) list
 
 open OMapHelpers
@@ -73,7 +101,7 @@ with
         | _ -> false
 
     override x.GetHashCode() =
-        let (++) x y = (x <<< 1) + y + 631 
+        let (++) x y = (x <<< 1) + y + 631
         let mutable v = 0
         for kv in x do
             v <- v ++ hash kv.Key
@@ -92,7 +120,7 @@ with
 
     interface IReadOnlyDictionary<'K,'V> with
         member m.GetEnumerator() = (m :> _ seq).GetEnumerator() :> IEnumerator
-        member m.GetEnumerator() = ({ map = m.map } :> _ seq).GetEnumerator()
+        member m.GetEnumerator() = ({ imap = m.imap } :> _ seq).GetEnumerator()
         member m.Count = Map.count m.map
 
         member m.ContainsKey k = Map.containsKey k m.map
@@ -109,22 +137,19 @@ with
         member m.Values = m.map |> Seq.map (fun kv -> let mutable v = kv.Value in v.Value)
 
 module OMap =
-    open System.Collections
-
     let empty = { nextIndex = 0; map = Map.empty; imap = Map.empty }
     let isEmpty map = Map.isEmpty map.map
     let containsKey key map = Map.containsKey key map.map
 
-    let add key value { nextIndex = i; map = map; imap = imap } =
-        let imap =
+    let add key value { nextIndex = nextIndex; map = map; imap = imap } =
+        let struct(index, nextIndex) =
             match Map.tryFind key map with
-            | ValueNone -> imap
-            | ValueSome iv -> Map.remove iv.Key imap
-
+            | ValueNone -> struct(nextIndex, nextIndex + 1)
+            | ValueSome iv -> iv.Key, nextIndex
         {
-            nextIndex = i + 1
-            map = Map.add key (KeyValuePair(i, value)) map
-            imap = Map.add i (KeyValuePair(key, value)) imap
+            nextIndex = nextIndex
+            map = Map.add key (KeyValuePair(index, value)) map
+            imap = Map.add index (KeyValuePair(key, value)) imap
         }
 
     let remove key omap =
@@ -135,36 +160,9 @@ module OMap =
                 map = Map.remove key omap.map
                 imap = Map.remove iv.Key omap.imap
             }
-        
-    [<Struct; NoComparison; NoEquality>]
-    type private OrderedEnumerator<'K,'V> = private {
-        e: KeyValuePair<int, KeyValuePair<'K,'V>> IEnumerator
-    }
-    with
-        interface IEnumerator with
-            override e.MoveNext() = e.e.MoveNext()
-            override e.Current = (e :> _ IEnumerator).Current :> _
-            override e.Reset() = e.e.Reset()
-
-        interface IEnumerator<KeyValuePair<'K,'V>> with
-            override e.Current =
-                let mutable kv = e.e.Current
-                kv.Value
-
-            override e.Dispose() = e.e.Dispose()
-
-    [<Struct; NoComparison; NoEquality>]
-    type OrderedEnumerable<'K,'V> = private {
-        omap: Map<int, KeyValuePair<'K,'V>>
-    }
-    with
-        interface IEnumerable with
-            override e.GetEnumerator() = (e :> _ seq).GetEnumerator() :> IEnumerator
-        interface IEnumerable<KeyValuePair<'K,'V>> with
-            override e.GetEnumerator() = { e = (e.omap :> _ seq).GetEnumerator() } :> _
 
     /// `OMap.toListOrdered (OMap.ofList [1, "A"; 3, "C"; 1, "a"]) = [3, "C"; 1, "a"]`
-    let toSeqOrdered omap = { omap = omap.imap } :> _ seq
+    let toSeqOrdered omap = { imap = omap.imap } :> _ seq
 
     /// `OMap.toListSorted (OMap.ofList [1, "A"; 3, "C"; 1, "a"]) = [1, "a"; 3, "C"]`
     let toSeqSorted omap = { map = omap.map } :> _ seq
