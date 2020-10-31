@@ -256,9 +256,9 @@ let jSound =
         ("assetId", jString) @@
         ("name", jString) @@
         ("dataFormat", jString) @@
-        ("format", jString) @@
-        ("rate", jNumber) @@
-        ("sampleCount", jNumber) @@
+        ("format", jString) @@?
+        ("rate", jNumber) @@?
+        ("sampleCount", jNumber) @@?
         ("md5ext", jString) @@
         jEmptyObject
     )
