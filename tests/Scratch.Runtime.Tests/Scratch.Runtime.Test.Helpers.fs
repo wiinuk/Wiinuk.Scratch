@@ -14,8 +14,14 @@ type KnownListenerHeaderName = KnownListenerHeaderName of Symbol
 type KnownComplexExpressionName = KnownComplexExpressionName of Symbol
 [<Struct>]
 type KnownValueComplexExpressionName = KnownValueComplexExpressionName of Symbol
+[<Struct>]
+type KnownUnitComplexExpressionName = KnownUnitComplexExpressionName of Symbol
 
-let nameElements ofString toString names = 
+/// 0. .. 1.
+[<Struct>]
+type VideoAlphaValue = VideoAlphaValue of double
+
+let nameElements ofString toString names =
     let gen = names |> Seq.map ofString |> Gen.elements
     let shrink x = names |> Seq.filter ((>) (toString x)) |> Seq.map ofString
     Arb.fromGenShrink(gen, shrink)
@@ -30,6 +36,9 @@ let knownListenerHeaderMap = Map knownListenerHeaders
 
 [<Struct>]
 type KnownValueComplexExpression<'a> = KnownValueComplexExpression of 'a ComplexExpression
+
+[<Struct>]
+type KnownUnitComplexExpression<'a> = KnownUnitComplexExpression of 'a ComplexExpression
 
 let complexExpressionArb wrapSymbol (|UnwrapSymbol|) =
     let anyValueGen = Arb.generate<SValue>
@@ -96,7 +105,7 @@ let complexExpressionArb wrapSymbol (|UnwrapSymbol|) =
         let! state = Arb.generate<_>
         let! sign = procedureSignGen
         let name = ProcedureSign.toEscapedName sign
-        let! arguments = Gen.listOfLength (ProcedureSign.paramCount sign) <| literalOrValueComplexGen None 
+        let! arguments = Gen.listOfLength (ProcedureSign.paramCount sign) <| literalOrValueComplexGen None
 
         return Expression.eString state name::arguments
     }
@@ -237,6 +246,19 @@ type Arbs =
         |> Seq.map fst
         |> nameElements KnownValueComplexExpressionName (fun (KnownValueComplexExpressionName x) -> x)
 
+    static member KnownUnitComplexExpressionName() =
+        knownAllOperatorMap
+        |> Map.toSeq
+        |> Seq.filter (fun (_, v) -> v.kind = Kind.Statement)
+        |> Seq.map fst
+        |> nameElements KnownUnitComplexExpressionName (fun (KnownUnitComplexExpressionName x) -> x)
+
+    static member VideoAlphaValue() =
+        Arb.from<_>
+        |> Arb.convert
+            (fun (NormalFloat x) -> VideoAlphaValue(x % 1.))
+            (fun (VideoAlphaValue x) -> NormalFloat x)
+
     static member SValue() =
         let sString = gen {
             let! NonNull s = Arb.generate<_>
@@ -263,6 +285,10 @@ type Arbs =
         complexExpressionArb KnownValueComplexExpressionName (fun (KnownValueComplexExpressionName x) -> x)
         |> Arb.convert KnownValueComplexExpression (fun (KnownValueComplexExpression x) -> x)
 
+    static member KnownUnitComplexExpression() =
+        complexExpressionArb KnownUnitComplexExpressionName (fun (KnownUnitComplexExpressionName x) -> x)
+        |> Arb.convert KnownUnitComplexExpression (fun (KnownUnitComplexExpression x) -> x)
+
     static member ComplexExpression() =
         complexExpressionArb KnownComplexExpressionName (fun (KnownComplexExpressionName x) -> x)
 
@@ -278,6 +304,12 @@ type Arbs =
                 FooterStatement(ComplexExpression(state, operator, operands))
         }
         Arb.fromGenShrink(g, s)
+
+    static member BlockExpression() =
+        Arb.from<_>
+        |> Arb.convert
+            (fun (state, body) -> BlockExpression(state, body |> List.map (fun (KnownUnitComplexExpression x) -> x)))
+            (fun (BlockExpression(state, body)) -> state, body |> List.map KnownUnitComplexExpression)
 
     static member ListenerDefinition() =
         let argumentGen spec = gen {
@@ -339,19 +371,62 @@ type Arbs =
             )
             (fun x -> (x.state, x.isPersistent, NonNull x.listName, x.contents', NormalFloat x.x, NormalFloat x.y, NormalFloat x.width, NormalFloat x.height, x.visible))
 
+    static member ProcedureDefinition() =
+        let parameterType (ParameterDefinition(defaultValue = v)) =
+            match v with
+            | SString _ -> SType.S
+            | SNumber _ -> SType.N
+            | SBool _ -> SType.B
+
+        let generator = gen {
+            let! state = Arb.generate<_>
+
+            let! parameter0 = Arb.generate<_>
+            let! NonNull head = Arb.generate<_>
+            let! tailAndParameters = Arb.generate<_>
+
+            let type0 = parameter0 |> Option.map parameterType
+            let tail =
+                tailAndParameters
+                |> List.map (fun (NonNull text, p) ->
+                    struct(parameterType p, text)
+                )
+
+            let name = ProcedureSign.toEscapedName (ProcedureSign(type0, head, tail))
+            let parameters = Option.toList parameter0 @ List.map snd tailAndParameters
+
+            let! isAtomic = Arb.generate<_>
+            let! body = Arb.generate<_>
+            return ProcedureDefinition(state, name, parameters, isAtomic, body)
+        }
+        let shrinker (ProcedureDefinition(state, name, parameters, isAtomic, body)) = seq {
+            for state, NonNull name, parameters, isAtomic, body in Arb.shrink (state, NonNull name, parameters, isAtomic, body) do
+                match ProcedureSign.parse name with
+                | ValueSome sign when ProcedureSign.paramCount sign = List.length parameters ->
+                    ProcedureDefinition(state, name, parameters, isAtomic, body)
+
+                | _ -> ()
+        }
+        Arb.fromGenShrink(generator, shrinker)
+
     static member Script() =
         Arb.from
         |> Arb.convert
             (function
                 | Choice1Of4 x -> Listener x
                 | Choice2Of4 x -> Procedure x
-                | Choice3Of4 x -> Statements x
+                | Choice3Of4(state, NonEmptyArray xs) ->
+                    Statements <| BlockExpression(state, [ for KnownUnitComplexExpression x in xs -> x ])
+
                 | Choice4Of4(KnownValueComplexExpression x) -> Expression x
             )
             (function
                 | Listener x -> Choice1Of4 x
                 | Procedure x -> Choice2Of4 x
-                | Statements x -> Choice3Of4 x
+                | Statements(BlockExpression(state, xs)) ->
+                    let xs = NonEmptyArray [| for x in xs -> KnownUnitComplexExpression x |]
+                    Choice3Of4(state, xs)
+
                 | Expression x -> Choice4Of4(KnownValueComplexExpression x)
             )
         |> Arb.filter (function
@@ -413,7 +488,7 @@ type Arbs =
         |> Arb.convert
             (fun
                 (
-                    NonNull md5,
+                    (NonNull md5, NonNull ext),
                     NormalFloat soundID,
                     NonNull soundName,
                     OptionMap NormalFloat.op_Explicit sampleCount,
@@ -421,7 +496,7 @@ type Arbs =
                     format
                 ) ->
                 {
-                    md5 = md5
+                    md5 = md5 + "." + ext
                     soundID = soundID
                     soundName = soundName
                     sampleCount = sampleCount
@@ -430,8 +505,13 @@ type Arbs =
                 }
             )
             (fun x ->
+                let md5, ext =
+                    match x.md5.Split([|'.'|], count = 2) with
+                    | [|md5; ext|] -> md5, ext
+                    | _ -> "", ""
+
                 (
-                    NonNull x.md5,
+                    (NonNull md5, NonNull ext),
                     NormalFloat x.soundID,
                     NonNull x.soundName,
                     Option.map NormalFloat x.sampleCount,
@@ -527,6 +607,50 @@ type Arbs =
                     NormalFloat x.scratchY,
                     x.spriteInfo,
                     x.visible
+                )
+            )
+
+    static member VariableData() =
+        Arb.from
+        |> Arb.convert
+            (fun (state, isPersistent, NonNull name, value) ->
+                {
+                    state = state
+                    isPersistent = isPersistent
+                    name = name
+                    value = value
+                }
+            )
+            (fun x ->
+                (
+                    x.state,
+                    x.isPersistent,
+                    x.name |> NonNull,
+                    x.value
+                )
+            )
+
+    static member StageDataExtension() =
+        Arb.from
+        |> Arb.convert
+            (fun (children, penLayerMD5, penLayerID, tempoBPM, videoAlpha, info) ->
+                {
+                    children = children
+                    penLayerMD5 = penLayerMD5 |> Option.map (fun (NonNull x) -> x)
+                    penLayerID = penLayerID |> Option.map (fun (NormalFloat x) -> x)
+                    tempoBPM = tempoBPM |> Option.map (fun (NormalFloat x) -> x)
+                    videoAlpha = videoAlpha |> Option.map (fun (VideoAlphaValue x) -> x)
+                    info = info |> Map.toSeq |> Seq.map (fun (NonNull k, v) -> k, v) |> Map.ofSeq
+                }
+            )
+            (fun x ->
+                (
+                    x.children,
+                    x.penLayerMD5 |> Option.map NonNull,
+                    x.penLayerID |> Option.map NormalFloat,
+                    x.tempoBPM |> Option.map NormalFloat,
+                    x.videoAlpha |> Option.map VideoAlphaValue,
+                    x.info |> Map.toSeq |> Seq.map (fun (k, v) -> NonNull k, v) |> Map.ofSeq
                 )
             )
 
