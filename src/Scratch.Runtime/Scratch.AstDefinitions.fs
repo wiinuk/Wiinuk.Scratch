@@ -1,4 +1,4 @@
-module Scratch.AstDefinitions
+﻿module Scratch.AstDefinitions
 open Scratch.Ast
 open Scratch.Reflection
 open System.Text.RegularExpressions
@@ -15,6 +15,7 @@ module TsType =
     let gNumber = TsType.Named("number", [])
     let gString = TsType.Named("string", [])
     let gBoolean = TsType.Named("boolean", [])
+    let gColor = TsType.Named("color", [])
     let gUnit = TsType.Named("()", [])
     let types = {
         tNumber = gNumber
@@ -24,21 +25,32 @@ module TsType =
     }
 open TsType
 
+[<Struct>]
+type OperandInfo = {
+    operandType: TsType OperandType
+    literalOperandType: TsType option
+    forceLiteralType: bool
+}
+
 [<AutoOpen>]
 module private Privates =
     type G = TsType
     type O<'a> = 'a OperandType
+
+    let op t = { operandType = t; forceLiteralType = false; literalOperandType = None }
+    let opE t = op <| O.Expression t
+    let opS ss = op <| O.StringLiterals (Set.ofSeq ss)
 
     let gStringL x = G.StringSs [x]
     let g0 t = [], t
     let g1 v1 f =
         let v1 = TypeVar v1
         [v1], f (G.GVar 0)
-        
+
     let e0 t = [], t
-    let e1 t1 t = [O.Expression t1], t
-    let e2 t1 t2 t = [O.Expression t1; O.Expression t2], t
-    let e3 t1 t2 t3 t = [O.Expression t1; O.Expression t2; O.Expression t3], t
+    let e1 t1 t = [opE t1], t
+    let e2 t1 t2 t = [opE t1; opE t2], t
+    let e3 t1 t2 t3 t = [opE t1; opE t2; opE t3], t
 
     let s0 = [], gUnit
     let s1 t1 = e1 t1 gUnit
@@ -53,13 +65,13 @@ module private Privates =
     let g0e1 t1 t = g0 <| e1 t1 t
     let g0e2 t1 t2 t = g0 <| e2 t1 t2 t
 
-    let v1 t = [O.Variable], t
-    let ebs t = [O.Expression t; O.Block], gUnit
+    let v1 t = [op O.Variable], t
+    let ebs t = [opE t; op O.Block], gUnit
 
     let (.|.) t1 t2 = G.Or(t1, t2)
 
     let tValue = G.Or(G.Or(gString, gNumber), gBoolean)
-    let tAttributeName = G.StringSs [
+    let attributeNames = [
         "x position"
         "y position"
         "direction"
@@ -71,7 +83,7 @@ module private Privates =
         "backdrop #"
         "backdrop name"
     ]
-    let tMathFunctionName = G.StringSs [
+    let mathFunctionNames = [
         "abs"
         "floor"
         "sqrt"
@@ -87,7 +99,7 @@ module private Privates =
         "e ^"
         "10 ^"
     ]
-    let tTimeAndDateFormat = G.StringSs [
+    let timeAndDateFormats = [
         "year"
         "month"
         "date"
@@ -96,7 +108,7 @@ module private Privates =
         "minute"
         "second"
     ]
-    let tFilterName = G.StringSs [
+    let filterNames = [
         "color"
         "fisheye"
         "whirl"
@@ -112,6 +124,7 @@ module private Privates =
         "previous costume"
         "previous backdrop"
     ])
+    let opColor = { opE tRgb with forceLiteralType = true; literalOperandType = Some gColor }
 
 [<Struct; RequireQualifiedAccess>]
 type Kind = Statement | Expression
@@ -131,7 +144,7 @@ type Control =
 type OperatorInfo = {
     kind: Kind
     typeVariables: TypeVar list
-    operands: TsType OperandType list
+    operands: OperandInfo list
     resultType: TsType
     operatorCost: Cost
     control: Control
@@ -201,16 +214,16 @@ let private expressionTable xs =
 //     | Case0<"getUserId">
 //     | Case0<"getUserName">
 let private knownCallExpressions() = expressionTable [
-    O.getParam, LiteralLike, ([], ([O.Expression gString; O.Reporter], tValue))
+    O.getParam, LiteralLike, g0 ([op O.ParameterName; opS ["r"]], tValue)
     O.costumeName, Unknown, g0e0 gString
     O.sceneName, Unknown, g0e0 gString
     O.readVariable, HasSideEffect, g0 (v1 tValue)
-    O.``contentsOfList:``, Unknown, g1 "T" (fun t -> [O.ListVariableExpression t], gString)
-    O.``getLine:ofList:``, Unknown, g1 "T" (fun t -> [O.Expression(gNumber .|. G.StringSs ["random"; "any"; "last"]); O.ListVariableExpression t], (t .|. gStringL ""))
+    O.``contentsOfList:``, Unknown, g1 "T" (fun t -> [op <| O.ListVariableExpression t], gString)
+    O.``getLine:ofList:``, Unknown, g1 "T" (fun t -> [opE (gNumber .|. G.StringSs ["random"; "any"; "last"]); op <| O.ListVariableExpression t], (t .|. gStringL ""))
     O.``concatenate:with:``, Pure, g0e2 gString gString gString
-    O.``letter:of:``, Pure, g0e2 gNumber gString gString 
+    O.``letter:of:``, Pure, g0e2 gNumber gString gString
     O.``answer``, Unknown, g0e0 gString
-    O.``getAttribute:of:``, Unknown, g0e2 tAttributeName gString tValue
+    O.``getAttribute:of:``, Unknown, g0 ([opS attributeNames; opE gString], tValue)
     O.getUserId, Unknown, g0e0 gNumber
     O.getUserName, Unknown, g0e0 gString
 ]
@@ -252,7 +265,7 @@ let private knownNumberExpressions() = expressionTable [
     O.scale, Unknown, g0e0 gNumber
     O.volume, Unknown, g0e0 gNumber
     O.tempo, Unknown, g0e0 gNumber
-    O.``lineCountOfList:``, Unknown, g1 "T" (fun t -> [O.ListVariableExpression t], gNumber)
+    O.``lineCountOfList:``, Unknown, g1 "T" (fun t -> [op <| O.ListVariableExpression t], gNumber)
     O.``+``, Pure, g0e2 gNumber gNumber gNumber
     O.``-``, Pure, g0e2 gNumber gNumber gNumber
     O.``*``, Pure, g0e2 gNumber gNumber gNumber
@@ -264,13 +277,13 @@ let private knownNumberExpressions() = expressionTable [
     O.``%``, Pure, g0e2 gNumber gNumber gNumber
     O.``\\``, Pure, g0e2 gNumber gNumber gNumber
     O.rounded, Pure, g0e1 gNumber gNumber
-    O.``computeFunction:of:``, Pure, g0e2 tMathFunctionName gNumber gNumber
+    O.``computeFunction:of:``, Pure, g0 ([opS mathFunctionNames; opE gNumber], gNumber)
     O.mouseX, Unknown, g0e0 gNumber
     O.mouseY, Unknown, g0e0 gNumber
     O.timer, Unknown, g0e0 gNumber
     O.``distanceTo:``, Unknown, g0e1 (gString .|. gStringL "_mouse_") gNumber
     O.timestamp, Unknown, g0e0 gNumber
-    O.timeAndDate, Unknown, g0e1 tTimeAndDateFormat gNumber
+    O.timeAndDate, Unknown, g0 ([opS timeAndDateFormats], gNumber)
 ]
 
 // type KnownBooleanExpression<E> =
@@ -287,7 +300,7 @@ let private knownNumberExpressions() = expressionTable [
 //     | Case2<"color:sees:", E, E>
 //     | Case1<"keyPressed:", E>
 let private knownBooleanExpressions() = expressionTable [
-    O.``list:contains:``, Unknown, g1 "T" (fun t -> [O.ListVariableExpression t; O.Expression t], gBoolean)
+    O.``list:contains:``, Unknown, g1 "T" (fun t -> [op <| O.ListVariableExpression t; opE t], gBoolean)
     O.``<``, Pure, g1 "T" (fun t -> e2 t t gBoolean)
     O.``>``, Pure, g1 "T" (fun t -> e2 t t gBoolean)
     O.``=``, Pure, g1 "T" (fun t -> e2 t t gBoolean)
@@ -296,8 +309,8 @@ let private knownBooleanExpressions() = expressionTable [
     O.not, Pure, g0e1 gBoolean gBoolean
     O.mousePressed, Unknown, g0e0 gBoolean
     O.``touching:``, Unknown, g0e1 (gString .|. G.StringSs ["_mouse_"; "_edge_"]) gBoolean
-    O.``touchingColor:``, Unknown, g0e1 tRgb gBoolean
-    O.``color:sees:``, Unknown, g0e2 tRgb tRgb gBoolean
+    O.``touchingColor:``, Unknown, g0 ([opColor], gBoolean)
+    O.``color:sees:``, Unknown, g0 ([opColor; opColor], gBoolean)
     O.``keyPressed:``, Unknown, g0e1 (gString .|. gNumber) gBoolean
 ]
 
@@ -315,7 +328,7 @@ let private statementTable isFooter xs =
             isFooter = isFooter
         }
     )
-// type KnownCallStatement<E> = 
+// type KnownCallStatement<E> =
 //     | Case2<"call", "phosphorus: debug" | E, ReadonlyArray<E>>
 
 // type KnownStatement<E, M, S> =
@@ -402,7 +415,7 @@ let private statementTable isFooter xs =
 //     | Case1<"doAsk", E>
 //     | Case0<"timerReset">
 let private knownStatements() = statementTable false [
-    O.call, Control.Call, g0 ([O.Expression gString; O.VariadicExpressions], gUnit)
+    O.call, Control.Call, g0 ([op O.ProcedureNameAndExpressions], gUnit)
     O.``forward:``, Control.Next, g0s1 gNumber
     O.``turnRight:``, Control.Next, g0s1 gNumber
     O.``turnLeft:``, Control.Next, g0s1 gNumber
@@ -415,7 +428,7 @@ let private knownStatements() = statementTable false [
     O.``changeYposBy:``, Control.Next, g0s1 gNumber
     O.``ypos:``, Control.Next, g0s1 gNumber
     O.``bounceOffEdge``, Control.Next, g0s0
-    O.``setRotationStyle``, Control.Next, g0 ([O.Rotation], gUnit)
+    O.``setRotationStyle``, Control.Next, g0 ([opS ["left-right"; "don't rotate"; "normal"]], gUnit)
     O.``lookLike:``, Control.Next, g0s1 tCostume
     O.``nextCostume``, Control.Next, g0s0
     O.``showBackground:``, Control.Next, g0s1 tCostume
@@ -427,8 +440,8 @@ let private knownStatements() = statementTable false [
     O.``say:``, Control.Next, g0s1 gString
     O.``think:duration:elapsed:from:``, Control.ForceYield, g0s2 gString gNumber
     O.``think:``, Control.Next, g0s1 gString
-    O.``changeGraphicEffect:by:``, Control.Next, g0s2 tFilterName gNumber
-    O.``setGraphicEffect:to:``, Control.Next, g0s2 tFilterName gNumber
+    O.``changeGraphicEffect:by:``, Control.Next, g0 ([opS filterNames; opE gNumber], gUnit)
+    O.``setGraphicEffect:to:``, Control.Next, g0 ([opS filterNames; opE gNumber], gUnit)
     O.filterReset, Control.Next, g0s0
     O.``changeSizeBy:``, Control.Next, g0s1 gNumber
     O.``setSizeTo:``, Control.Next, g0s1 gNumber
@@ -450,7 +463,7 @@ let private knownStatements() = statementTable false [
     O.clearPenTrails, Control.Next, g0s0
     O.putPenDown, Control.Next, g0s0
     O.putPenUp, Control.Next, g0s0
-    O.``penColor:``, Control.Next, g0s1 tRgb
+    O.``penColor:``, Control.Next, g0 ([opColor], gUnit)
     O.``setPenHueTo:``, Control.Next, g0s1 gNumber
     O.``changePenHueBy:``, Control.Next, g0s1 gNumber
     O.``setPenShadeTo:``, Control.Next, g0s1 gNumber
@@ -458,30 +471,30 @@ let private knownStatements() = statementTable false [
     O.``penSize:``, Control.Next, g0s1 gNumber
     O.``changePenSizeBy:``, Control.Next, g0s1 gNumber
     O.stampCostume, Control.Next, g0s0
-    O.``setVar:to:``, Control.Next, g0s2 gString gUnknown
-    O.``changeVar:by:``, Control.Next, g0s2 gString gNumber
-    O.``append:toList:``, Control.Next, g1 "T" (fun t -> [O.Expression t; O.ListVariableExpression t], gUnit)
-    O.``deleteLine:ofList:``, Control.Next, g1 "T" (fun t -> [O.Expression(gNumber .|. G.StringSs ["all"; "random"; "any"; "last"]); O.ListVariableExpression t], gUnit)
-    O.``insert:at:ofList:``, Control.Next, g1 "T" (fun t -> [O.Expression t; O.Expression(gNumber .|. G.StringSs ["random"; "last"]); O.ListVariableExpression t], gUnit)
-    O.``setLine:ofList:to:``, Control.Next, g1 "T" (fun t -> [O.Expression(gNumber .|. G.StringSs ["random"; "last"]); O.ListVariableExpression t; O.Expression t], gUnit)
-    O.``showVariable:``, Control.Next, g0 ([O.Variable], gUnit)
-    O.``hideVariable:``, Control.Next, g0 ([O.Variable], gUnit)
-    O.``showList:``, Control.Next, g0 ([O.Variable], gUnit)
-    O.``hideList:``, Control.Next, g0 ([O.Variable], gUnit)
-    O.``broadcast:``, Control.Next, g0s1 gString
-    O.doBroadcastAndWait, Control.NormalYield, g0s1 gString
+    O.``setVar:to:``, Control.Next, g0 ([op O.Variable; opE gUnknown], gUnit)
+    O.``changeVar:by:``, Control.Next, g0 ([op O.Variable; opE gNumber], gUnit)
+    O.``append:toList:``, Control.Next, g1 "T" (fun t -> [opE t; op <| O.ListVariableExpression t], gUnit)
+    O.``deleteLine:ofList:``, Control.Next, g1 "T" (fun t -> [opE (gNumber .|. G.StringSs ["all"; "random"; "any"; "last"]); op <| O.ListVariableExpression t], gUnit)
+    O.``insert:at:ofList:``, Control.Next, g1 "T" (fun t -> [opE t; opE (gNumber .|. G.StringSs ["random"; "last"]); op <| O.ListVariableExpression t], gUnit)
+    O.``setLine:ofList:to:``, Control.Next, g1 "T" (fun t -> [opE (gNumber .|. G.StringSs ["random"; "last"]); op <| O.ListVariableExpression t; opE t], gUnit)
+    O.``showVariable:``, Control.Next, g0 ([op O.Variable], gUnit)
+    O.``hideVariable:``, Control.Next, g0 ([op O.Variable], gUnit)
+    O.``showList:``, Control.Next, g0 ([op O.Variable], gUnit)
+    O.``hideList:``, Control.Next, g0 ([op O.Variable], gUnit)
+    O.``broadcast:``, Control.Next, g0 ([{ opE gString with forceLiteralType = true }], gUnit)
+    O.doBroadcastAndWait, Control.NormalYield, g0 ([{ opE gString with forceLiteralType = true }], gUnit)
     O.doForeverIf, Control.Unknown, g0 (ebs gBoolean)
     O.doIf, Control.Next, g0 (ebs gBoolean)
-    O.doIfElse, Control.Next, g0 ([OperandType.Expression gBoolean; OperandType.Block; OperandType.Block], gUnit)
+    O.doIfElse, Control.Next, g0 ([opE gBoolean; op OperandType.Block; op OperandType.Block], gUnit)
     O.doRepeat, Control.NormalYield, g0 (ebs gNumber)
     O.doReturn, Control.Return, g0s0
     O.doUntil, Control.NormalYield, g0 (ebs gBoolean)
     O.doWhile, Control.Unknown, g0 (ebs gBoolean)
     O.doWaitUntil, Control.ForceYield, g0s1 gBoolean
     O.``glideSecs:toX:y:elapsed:from:``, Control.NormalYield, g0 (s3 gNumber gNumber gNumber)
-    O.stopScripts, Control.Stop, g0 ([OperandType.Stop], gUnit)
+    O.stopScripts, Control.Stop, g0 ([opS ["other scripts in sprite"; "other scripts in stage"]], gUnit)
     O.``wait:elapsed:from:``, Control.NormalYield, g0s1 gNumber
-    O.warpSpeed, Control.Unknown, g0 ([OperandType.Block], gUnit)
+    O.warpSpeed, Control.Unknown, g0 ([op OperandType.Block], gUnit)
     O.createCloneOf, Control.Next, g0s1 (gString .|. gStringL "_myself_")
     O.doAsk, Control.ForceYield, g0s1 gString
     O.timerReset, Control.Next, g0s0
@@ -492,9 +505,9 @@ let private knownStatements() = statementTable false [
 //     | Case1<"stopScripts", "all" | "this script">
 //     | Case0<"deleteClone">
 let private knownFooterStatements() = statementTable true [
-    O.doForever, Control.NormalYield, g0 ([OperandType.Block], gUnit)
+    O.doForever, Control.NormalYield, g0 ([op O.Block], gUnit)
     O.stopAll, Control.Stop, g0s0
-    O.stopScripts, Control.Stop, g0 ([OperandType.StopScript], gUnit)
+    O.stopScripts, Control.Stop, g0 ([opS ["all"; "this script"]], gUnit)
     O.deleteClone, Control.DeleteClone, g0s0
 ]
 
@@ -526,7 +539,72 @@ let knownListenerHeaders = [
 
 /// `@"%" => @"\%"`
 /// `@"\" => @"\\"`
-let escapeProcedureName n = Regex.Replace(n, @"[%\\]", MatchEvaluator(fun m -> @"\" + m.Value))
+let private procedureNameSpecialCharsRegex = Regex @"[%\\]"
+let private replace = MatchEvaluator(fun m -> @"\" + m.Value)
+let escapeProcedureName n = procedureNameSpecialCharsRegex.Replace(n, replace)
+
+[<Struct>]
+type ProcedureSign = ProcedureSign of SType option * string * tail: struct(SType * string) list
+
+[<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
+module ProcedureSign =
+    open FParsec
+    open System.Text
+
+    let private parser =
+        let char = (notFollowedByL (skipChar '\\' <|> skipString " %") "notFollowedBy (\\| %)" >>. anyChar) <|> (pchar '\\' >>. anyOf "\\%")
+        let text = manyChars char
+
+        let param = pchar '%' >>. anyOf "bns" |>> function
+            | 's' -> SType.S
+            | 'n' -> SType.N
+            | 'b'
+            | _ -> SType.B
+
+        let tail = pipe3 (pchar ' ') param text (fun _ p t -> struct(p, t)) |> many
+
+        pipe3 (opt param) text tail (fun p h t -> ProcedureSign(p, h, t)) .>> eof
+
+    let parse n =
+        match runParserOnString parser () "" n with
+        | Success(r, _, _) -> ValueSome r
+        | _ -> ValueNone
+
+    let hasParam = function
+        | ProcedureSign(Some _, _, _)
+        | ProcedureSign(_, _, _::_) -> true
+        | _ -> false
+
+    let paramCount (ProcedureSign(t0, _, ts)) =
+        Option.count t0 + List.length ts
+
+    let paramTypes sign =
+        if not <| hasParam sign then [] :> _ seq else
+
+        let (ProcedureSign(p0, _, ps)) = sign
+        seq {
+            match p0 with
+            | Some t -> t
+            | _ -> ()
+
+            for t, _ in ps do t
+        }
+
+    let toEscapedName = function
+        | ProcedureSign(None, head, []) -> escapeProcedureName head
+        | ProcedureSign(type0, head, tail) ->
+
+        let sb = StringBuilder()
+        match type0 with
+        | None -> ()
+        | Some t -> sb.Append('%').Append(SType.scratchParameterTypeName t) |> ignore
+
+        sb.Append(escapeProcedureName head) |> ignore
+
+        for t, text in tail do
+            sb.Append(" %").Append(SType.scratchParameterTypeName t).Append(escapeProcedureName text) |> ignore
+
+        string sb
 
 let mangleProcedureName baseName parameterTypes =
     let sigName =
@@ -555,3 +633,10 @@ let demangleProcedureName mangledName =
 
     let cs, ts = aux [] [] (Seq.toList (mangledName: string))
     System.String(List.toArray cs), ts
+
+let minColorCode = -0x1000000
+let maxColorCode = 0xFFFFFF
+
+let isColorCode n =
+    double minColorCode <= n && n <= double maxColorCode &&
+    truncate n = n

@@ -417,18 +417,17 @@ module private ExpStartConstructorHelpers =
         |> String.concat ", "
         |> sprintf "(%s)"
 
-    let showOperandType = function
+    let showOperandType operand =
+        match operand.operandType with
         | OperandType.ListVariableExpression t -> sprintf "list %s" (showType <| ofTsType t)
         | OperandType.Block -> showType Types.empty
         | OperandType.Expression t -> showType <| ofTsType t
-        | OperandType.Reporter
-        | OperandType.Rotation
-        | OperandType.Stop
-        | OperandType.StopScript
+        | OperandType.StringLiterals _
             -> showType Types.string
 
         | OperandType.Variable -> "variable"
-        | OperandType.VariadicExpressions -> "[...]"
+        | OperandType.ParameterName -> "parameter"
+        | OperandType.ProcedureNameAndExpressions -> "procedure [...]"
 
     let showTypes ts = ts |> Seq.map showType |> String.concat " " |> sprintf "'%s'"
 
@@ -556,13 +555,11 @@ module private ExpStartConstructorHelpers =
         // TODO:
         | OperandType.ListVariableExpression _ -> ()
         | OperandType.Variable -> ()
-        | OperandType.VariadicExpressions -> ()
+        | OperandType.ParameterName -> ()
+        | OperandType.ProcedureNameAndExpressions -> ()
 
         | OperandType.Expression t -> checkAssignType &source { actual = Exp.varType operand; expected = ofTsType t }
-        | OperandType.Reporter
-        | OperandType.Rotation
-        | OperandType.Stop
-        | OperandType.StopScript
+        | OperandType.StringLiterals _
             -> checkAssignType &source { actual = Exp.varType operand; expected = Types.string }
 
     let checkExpressionTypeInListOperand (source: _ inref) operand expectedType =
@@ -581,19 +578,17 @@ module private ExpStartConstructorHelpers =
 
         // TODO:
         | OperandType.Variable -> ()
-        | OperandType.VariadicExpressions -> ()
+        | OperandType.ProcedureNameAndExpressions -> ()
+        | OperandType.ParameterName -> ()
 
         | OperandType.Expression t -> checkExpressionTypeInListOperand &source operand (ofTsType t)
-        | OperandType.Reporter
-        | OperandType.Rotation
-        | OperandType.Stop
-        | OperandType.StopScript
+        | OperandType.StringLiterals _
             -> checkExpressionTypeInListOperand &source operand Types.string
 
     let rec checkOperandsAux (source: _ inref) allOperands allTypes = function
         | [], [] -> ()
         | o::operands, t::types ->
-            checkOperand &source o t
+            checkOperand &source o t.operandType
             checkOperandsAux &source allOperands allTypes (operands, types)
 
         | _ ->
@@ -611,7 +606,7 @@ module private ExpStartConstructorHelpers =
     let rec checkListOperandsAux (source: _ inref) allOperands allTypes = function
         | [], [] -> ()
         | o::operands, t::types ->
-            checkListOperand &source o t
+            checkListOperand &source o t.operandType
             checkListOperandsAux &source allOperands allTypes (operands, types)
 
         | _ ->

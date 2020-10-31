@@ -1,4 +1,4 @@
-namespace Scratch.Ast
+﻿namespace Scratch.Ast
 open Scratch
 open Scratch.Primitives
 open System
@@ -314,16 +314,10 @@ type OperandType<'t> =
     | Expression of 't
     | Variable
     | ListVariableExpression of itemType: 't
-    | VariadicExpressions
-    /// "left-right" | "don't rotate" | "normal"
-    | Rotation
+    | ParameterName
+    | ProcedureNameAndExpressions
+    | StringLiterals of string Set
     | Block
-    /// "other scripts in sprite" | "other scripts in stage"
-    | Stop
-    /// "all" | "this script"
-    | StopScript
-    /// "r"
-    | Reporter
 
 [<RequireQualifiedAccess>]
 type ListenerHeaderType =

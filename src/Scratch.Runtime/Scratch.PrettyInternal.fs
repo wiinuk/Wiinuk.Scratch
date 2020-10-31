@@ -274,8 +274,8 @@ let rec prettyComplexExpression state maxPrec op ops =
 and prettyExpressions state ops =
     concatNS (group << prettyExpression state Precedence.Primitive) ops
 
-and prettyOperand state operand info =
-    match operand, info with
+and prettyOperand state operand { AstDefinitions.operandType = operandType } =
+    match operand, operandType with
     | Literal(_, SString name), (OperandType.ListVariableExpression _ | OperandType.Variable _) ->
         prettyExpressionOrWrap Precedence.Primitive (prettyVarOrListName state name)
 
