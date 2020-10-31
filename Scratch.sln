@@ -66,15 +66,16 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "files", "files", "{479ED87F-A3F3-4279-B9C8-ADE2B2E81068}"
 	ProjectSection(SolutionItems) = preProject
 		.gitignore = .gitignore
-		.travis.yml = .travis.yml
 		build.fsx = build.fsx
 		.github\workflows\dotnetcore.yml = .github\workflows\dotnetcore.yml
 		global.json = global.json
 		pack.fsx = pack.fsx
+		package.json = package.json
 		paket.dependencies = paket.dependencies
 		publish.fsx = publish.fsx
 		Shell.fsx = Shell.fsx
 		test.fsx = test.fsx
+		tsconfig.json = tsconfig.json
 	EndProjectSection
 EndProject
 Global

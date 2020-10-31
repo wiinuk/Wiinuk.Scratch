@@ -11,3 +11,4 @@ privates/
 .paket/load/
 .paket/
 lcov.info
+/node_modules/

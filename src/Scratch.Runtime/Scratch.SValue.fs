@@ -138,7 +138,10 @@ module SValue =
         f.NaNSymbol <- ""
         f
 
-    let stringToNumber (x: string) =
+    let stringToNumber = function
+        | "" -> 0.
+        | x ->
+
         let mutable r = 0.
         if Double.TryParse(x, NumberStyles.Float, invariantCultureNumberFormatWithoutSymbol, &r) then r else
 
@@ -162,19 +165,23 @@ module SValue =
         | SString "false" -> false
         | x -> toNumber x <> 0.
 
-    let toString = function
+
+    let numberToString = function
 
         // `0` -or- `-0`
-        | SNumber 0. -> "0"
+        | 0. -> "0"
 
-        | SNumber x ->
-            if Double.IsNaN x then "NaN"
-            elif Double.IsPositiveInfinity x then "Infinity"
-            elif Double.IsNegativeInfinity x then "-Infinity"
+        | x ->
 
-            // round trip
-            else x.ToString "G17"
+        if Double.IsNaN x then "NaN"
+        elif Double.IsPositiveInfinity x then "Infinity"
+        elif Double.IsNegativeInfinity x then "-Infinity"
 
+        // round trip
+        else x.ToString "G17"
+
+    let toString = function
+        | SNumber x -> numberToString x
         | SString x -> x
         | SBool true -> "true"
         | SBool false -> "false"

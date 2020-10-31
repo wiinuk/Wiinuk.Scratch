@@ -181,10 +181,10 @@ type Sound = {
     // e.g. "wav"
     dataFormat: string
     // e.g. ""
-    format: string
+    format: string optional
     // e.g. 44100
-    rate: double
-    sampleCount: double
+    rate: double optional
+    sampleCount: double optional
     // e.g. "b00b100000ea1000abee90000a7903ff.wav"
     md5ext: string
 }
