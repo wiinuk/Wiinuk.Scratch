@@ -514,6 +514,19 @@ type IpcTests(fixture: IpcTestFixture) =
         |> exportScriptToSb3Property
 
     [<Fact>]
+    member _.exportBroadcastInDoForeverIf() =
+        BlockExpression((), [
+            ComplexExpression((), O.doForeverIf, [
+                Literal((), SBool true)
+                Block(BlockExpression((), [
+                    ComplexExpression((), O.``broadcast:``, [Literal((), SString "a")])
+                ]))
+            ])
+        ])
+        |> Statements
+        |> exportScriptToSb3Property
+
+    [<Fact>]
     member _.exportAnyStage() = qcheck exportStageToSb3Property
 
     [<Fact>]

@@ -153,17 +153,75 @@ module Project =
         meta = Meta.defaultValue
     }
 
+    let private callArgMap0 = [EmptyArg]
+    let procedureNameAsArgMap procedureName =
+        match ProcedureSign.parse procedureName with
+        | ValueNone -> callArgMap0
+        | ValueSome sign when not <| ProcedureSign.hasParam sign -> callArgMap0
+        | ValueSome sign ->
+
+        [
+        EmptyArg
+
+        let mutable inputCount = 0
+        for t in ProcedureSign.paramTypes sign do
+            let inputOp =
+                match t with
+                | SType.N -> Op.math_number
+                | SType.S -> Op.text
+                | SType.B -> Op.boolean
+
+            InputArg(inputOp, sprintf "input%d" inputCount, None)
+            inputCount <- inputCount + 1
+        ]
+
+    let blockSpecFromOperator operator = Map.tryFind operator sb2ExpressionSpecs
+    let blockSpecFromExpression (ComplexExpression(operator = operator) as expression) =
+        blockSpecFromOperator operator
+        |> VOption.map (fun spec ->
+            match expression with
+            | ComplexExpression(_, O.call, Literal(_, SString procedureName)::_) ->
+                { spec with argMap = procedureNameAsArgMap procedureName }
+
+            | _ -> spec
+        )
+
+    let foldConvertibleBlocks folder state e =
+        let rec ofComplexExpression folder state (ComplexExpression(operator = op; operands = ops) as e) =
+            match blockSpecFromOperator op with
+            | ValueNone -> state
+            | ValueSome spec ->
+
+            let state = folder struct(state, spec, e)
+            ofExpressions folder state ops
+
+        and ofExpression folder state = function
+            | Literal _ -> state
+            | Complex x -> ofComplexExpression folder state x
+            | Block x -> ofBlock folder state x
+
+        and ofExpressions folder state es = List.fold (ofExpression folder) state es
+        and ofBlock folder state (BlockExpression(body = es)) = List.fold (ofComplexExpression folder) state es
+
+        let ofScript folder state = function
+            | Listener(ListenerDefinition(arguments = es; body = b)) -> ofBlock folder (ofExpressions folder state es) b
+            | Expression e -> ofComplexExpression folder state e
+            | Procedure(ProcedureDefinition(body = b))
+            | Statements b -> ofBlock folder state b
+
+        ofScript folder state e
+
     let collectBroadcastsAtEntity uniqueId map entity =
         entity.scripts
-        |> List.fold (fun map s ->
+        |> List.fold (fun map { script = script } ->
             let map =
-                match s.script with
+                match script with
                 | Listener(ListenerDefinition(name = O.whenIReceive; arguments = Literal(_, SString name)::_)) ->
                     OMap.add (Id.createBroadcastId name |> VOption.defaultValue uniqueId) (BroadcastData <| name.ToLowerInvariant()) map
                 | _ -> map
 
-            s.script
-            |> Script.fold (fun map e ->
+            script
+            |> foldConvertibleBlocks (fun struct(map, _, e) ->
                 match e with
                 | ComplexExpression(operator = O.``broadcast:`` | O.doBroadcastAndWait; operands = name::_) ->
                     let name =
@@ -237,42 +295,9 @@ module Project =
             |> Id.createBroadcastId
             |> VOption.defaultValue builder.broadcastIdForEmptyBroadcastName
 
-    let private callArgMap0 = [EmptyArg]
-    let procedureNameAsArgMap procedureName =
-        match ProcedureSign.parse procedureName with
-        | ValueNone -> callArgMap0
-        | ValueSome sign when not <| ProcedureSign.hasParam sign -> callArgMap0
-        | ValueSome sign ->
-
-        [
-        EmptyArg
-
-        let mutable inputCount = 0
-        for t in ProcedureSign.paramTypes sign do
-            let inputOp =
-                match t with
-                | SType.N -> Op.math_number
-                | SType.S -> Op.text
-                | SType.B -> Op.boolean
-
-            InputArg(inputOp, sprintf "input%d" inputCount, None)
-            inputCount <- inputCount + 1
-        ]
-
     let procedureNameToParameterIds procedureName =
         procedureNameAsArgMap procedureName
         |> List.choose (function InputArg(inputName = x) -> Some x | _ -> None)
-
-    let blockSpecFromOperator operator = Map.tryFind operator sb2ExpressionSpecs
-    let blockSpecFromExpression (ComplexExpression(operator = operator) as expression) =
-        blockSpecFromOperator operator
-        |> VOption.map (fun spec ->
-            match expression with
-            | ComplexExpression(_, O.call, Literal(_, SString procedureName)::_) ->
-                { spec with argMap = procedureNameAsArgMap procedureName }
-
-            | _ -> spec
-        )
 
     [<Struct>]
     type BlocksAcc<'Input> = {
@@ -963,37 +988,14 @@ module Project =
         "sound"
     ]
     let collectStageExtensionIds stage =
-        let rec ofComplexExpression ids (ComplexExpression(operator = op; operands = ops)) =
-            match blockSpecFromOperator op with
-            | ValueNone -> ids
-            | ValueSome spec ->
-
-            let ids =
-                let id = spec.category
-                if id = "" || Set.contains id defaultExtensionIds then ids else
-
-                OMap.add id () ids
-
-            ofExpressions ids ops
-
-        and ofExpression ids = function
-            | Literal _ -> ids
-            | Complex x -> ofComplexExpression ids x
-            | Block x -> ofBlock ids x
-
-        and ofExpressions ids es = List.fold ofExpression ids es
-        and ofBlock ids (BlockExpression(body = es)) = List.fold ofComplexExpression ids es
-
-        let ofScript ids = function
-            | Listener(ListenerDefinition(arguments = es; body = b)) -> ofBlock (ofExpressions ids es) b
-            | Expression e -> ofComplexExpression ids e
-            | Procedure(ProcedureDefinition(body = b))
-            | Statements b -> ofBlock ids b
-
         stage.scripts
         |> List.fold (fun ids s ->
             s.script
-            |> ofScript ids
+            |> foldConvertibleBlocks (fun struct(ids, spec, _) -> 
+                let id = spec.category
+                if id = "" || Set.contains id defaultExtensionIds then ids else
+                OMap.add id () ids
+            ) ids
         ) OMap.empty
 
     let fleshKey makeKey xs =
