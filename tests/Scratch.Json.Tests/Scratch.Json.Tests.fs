@@ -1,4 +1,4 @@
-module Scratch.Json.Tests
+﻿module Scratch.Json.Tests
 open Scratch
 open Scratch.Ast
 open Scratch.Json.Utf8
@@ -16,7 +16,8 @@ let print s = Syntax.serializeString <| Syntax.box s
 let parse s = Syntax.deserializeString <| Syntax.box s
 let empty = None
 
-let qcheck test = qcheckWith (fun c -> { c with Arbitrary = typeof<Arbs> :: c.Arbitrary }) test
+let qcheckWith withConfig test = qcheckWith (fun c -> withConfig { c with Arbitrary = typeof<Arbs> :: c.Arbitrary }) test
+let qcheck test = qcheckWith id test
 
 let roundTrip syntax x = parse syntax (print syntax x)
 let roundTripTest syntax mapping = qcheck <| fun x ->

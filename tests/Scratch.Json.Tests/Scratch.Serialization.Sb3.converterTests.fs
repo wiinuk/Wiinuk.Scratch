@@ -234,6 +234,7 @@ module Helpers =
 
             Assert.True(false, sprintf "diff:\n%s\nl:\n%s\nr:\n%s" diffText l r)
 
+    let qcheckWith = Scratch.Json.Tests.qcheckWith
     let qcheck = Scratch.Json.Tests.qcheck
 
 module CostumeData =
@@ -415,7 +416,7 @@ type IpcTests(fixture: IpcTestFixture) =
     member _.normalizeAnyStage() = qcheck sb3NormalizeStageProperty
 
     [<Fact>]
-    member _.exportAnyScript() = qcheck exportScriptToSb3Property
+    member _.exportAnyScript() = qcheckWith (fun x -> { x with MaxTest = x.MaxTest * 10 }) exportScriptToSb3Property
 
     [<Fact>]
     member _.exportEmptyBlock() =
