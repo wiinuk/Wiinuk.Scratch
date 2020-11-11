@@ -1,4 +1,4 @@
-﻿//@ts-check
+﻿// @ts-check
 "use strict";
 
 globalThis.Blob = /** @type {any} */ (require("fetch-blob"))
@@ -12,8 +12,7 @@ const Yargs = require("yargs/yargs")
 const Util = require("util")
 const Ws = require("ws")
 const Path = require("path")
-const Fs = require("fs/promises")
-const Os = require("os")
+const { promises: Fs } = require("fs")
 
 const newDummyStorage = () => new ScratchStorage()
 
