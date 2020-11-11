@@ -1,10 +1,8 @@
 ﻿module Scratch.Json.Tests
-open Scratch
 open Scratch.Ast
 open Scratch.Json.Utf8
 open Scratch.Serialization.Sb2.Syntax
 open Scratch.Primitives
-open Scratch.Json.Test.Helpers
 open FsCheck
 open Scratch.Runtime.Test
 open Xunit
