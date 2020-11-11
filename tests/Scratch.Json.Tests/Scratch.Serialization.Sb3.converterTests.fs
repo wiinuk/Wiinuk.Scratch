@@ -254,12 +254,15 @@ module CostumeData =
 namespace Scratch.Serialization.Sb3.Converter
 open Scratch
 open Scratch.Ast
+open Scratch.Packaging
 open Scratch.Primitives
 open Scratch.Serialization.Sb3
 open Scratch.Serialization.Sb3.Ast
 open Scratch.Serialization.Sb3.Test.Helpers
 open Scratch.Serialization.Sb3.Converter.Test
 open System
+open System.IO
+open System.IO.Compression
 open Xunit
 
 
@@ -331,6 +334,51 @@ type IpcTests(fixture: IpcTestFixture) =
         assertProjectEq (normalizeProject sb3ProjectFromFs) (normalizeProject sb3ProjectFromJs)
 
     let exportScriptToSb3Property = exportStageToSb3Property << scriptToStage
+
+    let sb3BytesSaveAndLoadProperty package =
+        let packageToSb3Bytes package =
+            use stream = new MemoryStream()
+            writeSb3PackageToStream stream package |> Async.RunSynchronously
+            stream.Flush()
+            stream.ToArray()
+
+        let packageToSb2Bytes package =
+            use stream = new MemoryStream()
+            writeSb2PackageToStream stream package |> Async.RunSynchronously
+            stream.Flush()
+            stream.ToArray()
+
+        let usingReadZipEntry stream fullName action = async {
+            use zip = new ZipArchive(stream, ZipArchiveMode.Read, leaveOpen = true)
+            match zip.GetEntry fullName with
+            | null -> return raise <| FileNotFoundException("zip entry not found.", fullName)
+            | entry ->
+                use stream = entry.Open()
+                return! action stream
+        }
+        let sb3BytesToProject bytes = async {
+            use stream = new MemoryStream(bytes, 0, bytes.Length, writable = false, publiclyVisible = false)
+            return! usingReadZipEntry stream "project.json" <| fun stream ->
+                Json.Utf8.Syntax.deserializeStream Syntax.jProject stream
+        }
+
+        let projectFromFs =
+            package
+            |> packageToSb3Bytes
+            |> AdaptorJs.packageBinaryToSb3BinaryBy client
+            |> Async.RunSynchronously
+            |> sb3BytesToProject
+            |> Async.RunSynchronously
+
+        let projectFromJs =
+            package
+            |> packageToSb2Bytes
+            |> AdaptorJs.packageBinaryToSb3BinaryBy client
+            |> Async.RunSynchronously
+            |> sb3BytesToProject
+            |> Async.RunSynchronously
+
+        normalizeProject projectFromFs =? normalizeProject projectFromJs
 
     interface IClassFixture<IpcTestFixture>
 
@@ -625,3 +673,25 @@ type IpcTests(fixture: IpcTestFixture) =
             ]
         }
         |> exportStageToSb3Property
+
+    [<Fact>]
+    member _.bytesEmpty() =
+        {
+            project = StageData.defaultValue
+            images = []
+            sounds = []
+        }
+        |> sb3BytesSaveAndLoadProperty
+
+    [<Fact>]
+    member _.bytesSimple() =
+        {
+            project =
+                ComplexExpression((), O.timer, [])
+                |> Expression
+                |> scriptToStage
+
+            images = []
+            sounds = []
+        }
+        |> sb3BytesSaveAndLoadProperty

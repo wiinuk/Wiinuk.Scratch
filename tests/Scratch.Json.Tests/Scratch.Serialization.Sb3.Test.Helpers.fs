@@ -1,6 +1,7 @@
 ﻿module Scratch.Serialization.Sb3.Test.Helpers
 open Scratch.Primitives
 open System
+open System.Buffers
 open System.Net.WebSockets
 open System.Runtime.ExceptionServices
 open System.Text.Json
@@ -159,21 +160,24 @@ module AdaptorJs =
         if e.ValueKind = JsonValueKind.Undefined then "undefined" else
         JsonSerializer.Serialize(e, JsonSerializerOptions(WriteIndented = true))
 
-    let convertBy serialize deserialize commandName client value = async {
-        let json = serialize value
+    let deserializeJsonElement (_: 'T The) (element: JsonElement) options =
+        let bufferWriter = ArrayBufferWriter()
+        use writer = new Utf8JsonWriter(bufferWriter)
+        element.WriteTo writer
+        writer.Flush()
+        JsonSerializer.Deserialize<'T>(bufferWriter.WrittenSpan, options)
+
+    let exec resultType client commandName args = async {
         let! result =
             struct
                 {|
-                name = commandName
-                args = struct {| projectJson = json |}
+                name = commandName + ""
+                args = args
                 |}
             |> IpcClient.sendAndReceive the<JsonElement> client.ipcClient "exec"
 
         match result.GetProperty("tag").GetString() with
-        | "Ok" ->
-            let resultJson = result.GetProperty("value").GetProperty("projectJson").GetString()
-            return deserialize resultJson
-
+        | "Ok" -> return deserializeJsonElement resultType (result.GetProperty "value") client.ipcClient.serializerOptions
         | "Error" ->
             return
                 result.GetProperty "value"
@@ -182,6 +186,11 @@ module AdaptorJs =
 
         | x ->
             return failwithf "unknown tag: %A" x
+    }
+    let convertBy serialize deserialize commandName client value = async {
+        let json: string = serialize value
+        let! result = exec the<JsonElement> client commandName struct {| projectJson = json |}
+        return deserialize <| result.GetProperty("projectJson").GetString()
     }
     let sb3ToSb3By client value =
         value
@@ -198,3 +207,8 @@ module AdaptorJs =
             (Syntax.deserializeString Sb3.Syntax.jProject)
             "import-sb2-json"
             client
+
+    let packageBinaryToSb3BinaryBy client value = async {
+        let! result = exec the<struct {| binary: byte[] |}> client "roundtrip-package" struct {| binary = (value: byte[]) |}
+        return result.binary
+    }
