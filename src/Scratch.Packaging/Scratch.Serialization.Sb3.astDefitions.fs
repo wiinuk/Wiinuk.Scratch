@@ -941,7 +941,7 @@ module Project =
         let md5ext = costume.baseLayerMD5
         let md5ext, md5, ext =
             match md5ext.Split(md5ExtDelimiter, count = 2) with
-            | [|md5; ext|] when ext <> "" -> md5ext, md5, "." + ext
+            | [|md5; ext|] when ext <> "" -> md5ext, md5, ext
             | parts ->
                 let ext = "png"
                 sprintf "%s.%s" md5ext ext, parts.[0], if md5ext = "." then "." + ext else ext
