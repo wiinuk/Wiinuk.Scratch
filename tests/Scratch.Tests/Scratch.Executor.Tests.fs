@@ -77,7 +77,7 @@ let simpleTest() =
 [<Fact>]
 let atomicProcedureTest() =
     <@
-        let out2 x = tightrope {
+        let out2 (x: double) = tightrope {
             do! repeatAsync 2 {
                 out (string x)
                 out ";"
