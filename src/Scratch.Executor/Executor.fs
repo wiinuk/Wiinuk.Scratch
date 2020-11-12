@@ -35,11 +35,7 @@ let makeEntityState image = {
         )
 
     drawingData = {
-        currentCostumeIndex =
-            match image.currentCostumeIndex with
-            | None -> 0
-            | Some i -> int i
-
+        currentCostumeIndex = int image.currentCostumeIndex
         filters = {
             whirl = 0.
             fisheye = 0.

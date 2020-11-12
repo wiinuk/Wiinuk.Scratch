@@ -8,6 +8,7 @@ const Sb3 = require("scratch-vm/src/serialization/sb3")
 const Sb2 = require("scratch-vm/src/serialization/sb2")
 const ScratchStorage = require("scratch-storage")
 const Sb2SpecMap = require("scratch-vm/src/serialization/sb2_specmap")
+const validate = require("scratch-parser/lib/validate")
 const Yargs = require("yargs/yargs")
 const Util = require("util")
 const Ws = require("ws")
@@ -17,6 +18,42 @@ const { promises: Fs } = require("fs")
 const newDummyStorage = () => new ScratchStorage()
 
 /**
+ * @param {object} sb2OrSb3ProjectJsonObject
+ * @returns {Promise<void>}
+ */
+const validateProject = sb2OrSb3ProjectJsonObject => new Promise((onSuccess, onError) =>
+    validate(false, sb2OrSb3ProjectJsonObject, validationErrors => {
+        if (validationErrors == null) { onSuccess() }
+        else {
+            onError(new (class ValidationError extends Error {
+                validationErrors = validationErrors
+            }))
+        }
+    })
+)
+
+/**
+ * @template {string} TName
+ * @template TValue
+ * @param {Error | unknown} error
+ * @param {TName extends keyof Error ? never : TName} propertyName
+ * @param {TValue} propertyValue
+ */
+const assignErrorInfo = (error, propertyName, propertyValue) => {
+    if (error instanceof Error) {
+        error[/** @type {string} */ (propertyName)] = propertyValue
+        return error
+    }
+    else {
+        class ErrorWithInfo extends Error {
+            underlyingError = error
+            [propertyName] = propertyValue
+        }
+        return new ErrorWithInfo()
+    }
+}
+
+/**
  * @param {string} sb3ProjectJson
  */
 const sb3ToSb3Json = async sb3ProjectJson => {
@@ -24,12 +61,14 @@ const sb3ToSb3Json = async sb3ProjectJson => {
         const runtime = new Runtime()
         // runtime.attachStorage(newDummyStorage())
 
-        const { targets } = await Sb3.deserialize(JSON.parse(sb3ProjectJson), runtime, undefined, undefined)
+        const project = JSON.parse(sb3ProjectJson)
+        await validateProject(project)
+        const { targets } = await Sb3.deserialize(project, runtime, undefined, undefined)
         runtime.targets = targets
 
         return JSON.stringify(Sb3.serialize(runtime))
     }
-    catch (e) { e.source = sb3ProjectJson; throw e }
+    catch (e) { throw assignErrorInfo(e, "source", sb3ProjectJson) }
 }
 /**
  * @param {string} sb2ProjectJson
@@ -39,11 +78,13 @@ const sb2ToSb3Json = async sb2ProjectJson => {
         const runtime = new Runtime()
         // runtime.attachStorage(newDummyStorage())
 
-        const { targets } = await Sb2.deserialize(JSON.parse(sb2ProjectJson), runtime, undefined, undefined)
+        const project = JSON.parse(sb2ProjectJson)
+        await validateProject(project)
+        const { targets } = await Sb2.deserialize(project, runtime, undefined, undefined)
         runtime.targets = targets
         return JSON.stringify(Sb3.serialize(runtime))
     }
-    catch (e) { e.source = sb2ProjectJson; throw e }
+    catch (e) { throw assignErrorInfo(e, "source", sb2ProjectJson) }
 }
 /**
  * @param {string} sb3BinaryBase64
@@ -61,10 +102,11 @@ const sb3ToSb3Binary = async sb3BinaryBase64 => {
     }
     catch (e) {
         const maxLength = 1000
-        e.source =
+        const source =
             (maxLength < sb3BinaryBase64.length) ? (sb3BinaryBase64.substr(0, maxLength) + "...") :
             sb3BinaryBase64
-        throw e
+
+        throw assignErrorInfo(e, "source", source)
     }
 }
 

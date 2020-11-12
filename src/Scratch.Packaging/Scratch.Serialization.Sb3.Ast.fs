@@ -66,6 +66,10 @@ type Monitor = {
     max: double option
 }
 
+type StringOrNumber = Scratch.SValue
+/// e.g. "#0006FF"
+type ColorHexString = string
+
 type SimpleBlock =
     // null
     | EmptyBlock
@@ -81,20 +85,20 @@ type SimpleBlock =
     | DiffBlockShadow of block: SimpleBlock * shadow: SimpleBlock
 
     // [4, value: number | "all"]
-    | MathNumber of value: SValue
+    | MathNumber of value: StringOrNumber
     // [5, number]
-    | MathPositiveNumber of value: SValue
+    | MathPositiveNumber of value: StringOrNumber
     // [6, number]
-    | MathWholeNumber of value: SValue
+    | MathWholeNumber of value: StringOrNumber
     // [7, number]
-    | MathInteger of value: SValue
+    | MathInteger of value: StringOrNumber
     // [8, number]
-    | MathAngle of value: SValue
+    | MathAngle of value: StringOrNumber
     // [9, string]
     // e.g. "#0006EF"
-    | ColourPicker of colorHexString: SValue
+    | ColourPicker of colorHexString: ColorHexString
     // [10, string]
-    | Text of value: SValue
+    | Text of value: StringOrNumber
 
     // [11, string, string]
     | EventBroadcastMenu of name: string * id: BroadcastId
@@ -246,8 +250,8 @@ type Meta = {
     semver: string
     // e.g. "0.2.0-prerelease.20190116202234"
     vm: string
-    // e.g. "Mozilla/5.0 ...", null
-    agent: string nullable
+    // e.g. "Mozilla/5.0 ..."
+    agent: string
 }
 type Project = {
     targets: CompressedBlock Target list

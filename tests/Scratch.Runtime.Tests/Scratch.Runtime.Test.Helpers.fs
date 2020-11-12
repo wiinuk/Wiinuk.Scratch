@@ -1,4 +1,4 @@
-[<AutoOpen>]
+﻿[<AutoOpen>]
 module Scratch.Runtime.Test.Helpers
 open FsCheck
 open Scratch
@@ -105,7 +105,16 @@ let complexExpressionArb wrapSymbol (|UnwrapSymbol|) =
         let! state = Arb.generate<_>
         let! sign = procedureSignGen
         let name = ProcedureSign.toEscapedName sign
-        let! arguments = Gen.listOfLength (ProcedureSign.paramCount sign) <| literalOrValueComplexGen None
+        let! arguments =
+            ProcedureSign.paramTypes sign
+            |> Gen.collect (fun p ->
+                let t =
+                    match p with
+                    | SType.S
+                    | SType.N -> TsType.gNumberOrString
+                    | SType.B -> TsType.gBoolean
+                literalOrValueComplexGen (Some t)
+            )
 
         return Expression.eString state name::arguments
     }
@@ -115,9 +124,10 @@ let complexExpressionArb wrapSymbol (|UnwrapSymbol|) =
         | OperandType.Block -> blockGen
         | OperandType.Expression t ->
             let t =
-                if info.forceLiteralType
-                then info.literalOperandType |> Option.defaultValue t |> Some
-                else None
+                match info.literalOperandType with
+                | LiteralOperandTypeInfo.Any -> None
+                | LiteralOperandTypeInfo.ForceInherit -> Some t
+                | LiteralOperandTypeInfo.Force t -> Some t
             t
             |> literalOrValueComplexGen
             |> Gen.map List.singleton
@@ -163,8 +173,8 @@ let complexExpressionArb wrapSymbol (|UnwrapSymbol|) =
         let validateAndTakeOperands (info, operands) =
             match info.operandType, operands with
             | OperandType.Expression t, (ExpressionKind Kind.Expression as operand)::operands ->
-                match operand with
-                | Literal(_, v) when info.forceLiteralType && not (includes (t, v)) -> None
+                match operand, info.literalOperandType with
+                | Literal(_, v), (LiteralOperandTypeInfo.Force _ | LiteralOperandTypeInfo.ForceInherit) when not (includes (t, v)) -> None
                 | _ -> Some operands
 
             | OperandType.Block, Block _::operands
@@ -638,7 +648,7 @@ type Arbs =
                     children = children
                     penLayerMD5 = penLayerMD5 |> Option.map (fun (NonNull x) -> x)
                     penLayerID = penLayerID |> Option.map (fun (NormalFloat x) -> x)
-                    tempoBPM = tempoBPM |> Option.map (fun (NormalFloat x) -> x)
+                    tempoBPM = tempoBPM |> NormalFloat.op_Explicit
                     videoAlpha = videoAlpha |> Option.map (fun (VideoAlphaValue x) -> x)
                     info = info |> Map.toSeq |> Seq.map (fun (NonNull k, v) -> k, v) |> Map.ofSeq
                 }
@@ -648,7 +658,7 @@ type Arbs =
                     x.children,
                     x.penLayerMD5 |> Option.map NonNull,
                     x.penLayerID |> Option.map NormalFloat,
-                    x.tempoBPM |> Option.map NormalFloat,
+                    x.tempoBPM |> NormalFloat,
                     x.videoAlpha |> Option.map VideoAlphaValue,
                     x.info |> Map.toSeq |> Seq.map (fun (k, v) -> NonNull k, v) |> Map.ofSeq
                 )
@@ -665,7 +675,7 @@ type Arbs =
                     sounds,
                     variables,
                     lists,
-                    OptionMap NormalFloat.op_Explicit currentCostumeIndex,
+                    NormalFloat currentCostumeIndex,
                     objectDataExtension
                 ) ->
                 {
@@ -675,7 +685,7 @@ type Arbs =
                     sounds = sounds
                     variables = variables
                     lists = lists
-                    currentCostumeIndex = currentCostumeIndex
+                    currentCostumeIndex = abs currentCostumeIndex
                     ObjectDataExtension = objectDataExtension
                 }
             )
@@ -687,7 +697,7 @@ type Arbs =
                 x.sounds,
                 x.variables,
                 x.lists,
-                Option.map NormalFloat x.currentCostumeIndex,
+                NormalFloat x.currentCostumeIndex,
                 x.ObjectDataExtension
                 )
             )

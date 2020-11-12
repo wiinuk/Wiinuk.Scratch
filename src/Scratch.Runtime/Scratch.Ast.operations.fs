@@ -1,4 +1,4 @@
-namespace Scratch.Ast
+﻿namespace Scratch.Ast
 #nowarn "0086" // The '=' operator should not normally be redefined.
 open Scratch.Ast
 
@@ -132,7 +132,7 @@ module EntityData =
         scripts = []
         costumes = []
         sounds = []
-        currentCostumeIndex = Some 0.
+        currentCostumeIndex = 0.
 
         ObjectDataExtension = extension
     }
@@ -168,7 +168,7 @@ module SpriteData =
         scripts = []
         costumes = []
         sounds = []
-        currentCostumeIndex = Some 0.
+        currentCostumeIndex = 0.
 
         ObjectDataExtension = {
             direction = 90.
@@ -203,13 +203,13 @@ module StageData =
         scripts = []
         costumes = []
         sounds = []
-        currentCostumeIndex = Some 0.
+        currentCostumeIndex = 0.
     
         ObjectDataExtension = {
             children = []
             penLayerID = None // 0
             penLayerMD5 = None // "5c81a336fab8be57adc039a8a2b33ca9.png"
-            tempoBPM = Some 60.
+            tempoBPM = Scratch.AstDefinitions.defaultTempoBPM
             videoAlpha = Some 0.5
             info = Map.empty
             (*
@@ -241,7 +241,7 @@ module StageData =
         | _, [] -> stage
         | _, scripts ->
     
-        // TODO: �X�v���C�g�̖��O���Փ˂��Ȃ��悤�ɂ���
+        // TODO: スプライトの名前が衝突しないようにする
         let moduleSprite =
             let d = SpriteData.defaultValue
             { d with

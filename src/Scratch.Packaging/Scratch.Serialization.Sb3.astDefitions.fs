@@ -15,7 +15,7 @@ module Target =
         broadcasts = OMap.empty
         blocks = OMap.empty
         comments = OMap.empty
-        currentCostume = -1.
+        currentCostume = 0.
         costumes = []
         sounds = []
         volume = Some 100.
@@ -50,7 +50,7 @@ module Meta =
     let defaultValue = {
         semver = "3.0.0"
         vm = "0.2.0"
-        agent = Some "none"
+        agent = "none"
     }
 
 module VariableType =
@@ -750,7 +750,7 @@ module Project =
         | Op.math_whole_number -> findFieldValue block "NUM" |> MathWholeNumber |> ValueSome
         | Op.math_integer -> findFieldValue block "NUM" |> MathInteger |> ValueSome
         | Op.math_angle -> findFieldValue block "NUM" |> MathAngle |> ValueSome
-        | Op.colour_picker -> findFieldValue block "COLOUR" |> ColourPicker |> ValueSome
+        | Op.colour_picker -> findFieldValue block "COLOUR" |> SValue.toString |> ColourPicker |> ValueSome
         | Op.text -> findFieldValue block "TEXT" |> Text |> ValueSome
         | Op.event_broadcast_menu ->
             let field = findField block "BROADCAST_OPTION"
@@ -1151,19 +1151,16 @@ module Project =
             comments = OMap.empty
 
             currentCostume =
-                entity.currentCostumeIndex
-                |> Option.defaultValue 0.
-                |> fun x ->
-                    match List.length costumes with
-                    | 0 -> -1.
-                    | length -> clamp (0., double <| length - 1) <| floor x
+                match List.length costumes with
+                | 0 -> 0.
+                | length -> clamp (0., double <| length - 1) <| floor entity.currentCostumeIndex
 
             costumes = costumes
             sounds = sounds
 
             volume = Target.defaultStage.volume
             layerOrder = None
-            tempo = entityExtension |> mapStageOrNone (fun x -> x.tempoBPM |> Option.orElseWith (fun _ -> Some 60.))
+            tempo = entityExtension |> mapStageOrNone (fun x -> Some x.tempoBPM)
             videoTransparency =
                 entityExtension
                 |> mapStageOrNone (fun x ->

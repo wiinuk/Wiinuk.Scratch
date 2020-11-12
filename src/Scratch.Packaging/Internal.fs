@@ -87,13 +87,10 @@ let checkEntity state data =
         checkSound state s
 
 let checkStage state stageData = async {
-    match stageData.currentCostumeIndex with
-    | None -> ()
-    | Some i ->
-        let i = int i
-        match List.tryItem i stageData.costumes with
-        | None -> IdNotFound(stageData.objName, int i) |> raiseError
-        | Some _ -> ()
+    let i = int stageData.currentCostumeIndex
+    match List.tryItem i stageData.costumes with
+    | None -> IdNotFound(stageData.objName, int i) |> raiseError
+    | Some _ -> ()
 
     match stageData.ObjectDataExtension.penLayerID, stageData.ObjectDataExtension.penLayerMD5 with
     | None, None -> ()
