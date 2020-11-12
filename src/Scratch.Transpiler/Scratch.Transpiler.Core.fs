@@ -1,4 +1,4 @@
-[<AutoOpen>]
+﻿[<AutoOpen>]
 module Scratch.Transpiler.Core
 open System
 open System.Collections.Generic
@@ -952,7 +952,7 @@ let updateSpriteDataByClassAttributes thisType data =
     let currentCostumeIndex =
         typeDatas the<CurrentCostumeIndexAttribute> thisType
         |> Seq.tryHead
-        |> Option.map (double >> Some)
+        |> Option.map double
         |> Option.defaultValue data.currentCostumeIndex
 
     let extension = data.ObjectDataExtension

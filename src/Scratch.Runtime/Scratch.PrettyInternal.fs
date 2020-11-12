@@ -1,4 +1,4 @@
-module internal Scratch.PrettyInternal
+﻿module internal Scratch.PrettyInternal
 open System.Text.RegularExpressions
 open Scratch
 open Scratch.Ast
@@ -513,7 +513,7 @@ let prettySpriteData state x =
         []
         |> prettyRevAppend prettyCostumeData x.costumes
         |> prettyRevAppend prettySoundData x.sounds
-        |> prettyAddNoDefault x.currentCostumeIndex x'.currentCostumeIndex (prettyOptionalAttribute "currentCostumeIndex" prettyNumberLiteral)
+        |> prettyAddNoDefault x.currentCostumeIndex x'.currentCostumeIndex (prettyAttribute "currentCostumeIndex" prettyNumberLiteral)
         |> prettyAddAttribute e.direction e'.direction "direction" prettyNumberLiteral
         |> prettyAddAttribute e.indexInLibrary e'.indexInLibrary "indexInLibrary" prettyNumberLiteral
         |> prettyAddAttribute e.isDraggable e'.isDraggable "isDraggable" prettyBoolLiteral
@@ -579,10 +579,10 @@ let prettyStageData plugins x =
         []
         |> prettyRevAppend prettyCostumeData x.costumes
         |> prettyRevAppend prettySoundData x.sounds
-        |> prettyAddNoDefault x.currentCostumeIndex x'.currentCostumeIndex (prettyOptionalAttribute "currentCostumeIndex" prettyNumberLiteral)
+        |> prettyAddNoDefault x.currentCostumeIndex x'.currentCostumeIndex (prettyAttribute "currentCostumeIndex" prettyNumberLiteral)
         |> prettyAddNoDefault e.penLayerID e'.penLayerID (prettyOptionalAttribute "penLayerID" prettyNumberLiteral)
         |> prettyAddNoDefault e.penLayerMD5 e'.penLayerMD5 (prettyOptionalAttribute "penLayerMD5" prettyStringLiteral)
-        |> prettyAddNoDefault e.tempoBPM e'.tempoBPM (prettyOptionalAttribute "tempoBPM" prettyNumberLiteral)
+        |> prettyAddNoDefault e.tempoBPM e'.tempoBPM (prettyAttribute "tempoBPM" prettyNumberLiteral)
         |> prettyAddAttribute e.info e'.info "info" prettyInfo
         |> List.rev
 

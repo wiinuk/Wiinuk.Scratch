@@ -47,7 +47,8 @@ let [<Fact>] singleStatementsAsExpressionTest() =
           ],
           "currentCostumeIndex": 0,
           "tempoBPM": 60,
-          "videoAlpha": 0.5
+          "videoAlpha": 0.5,
+          "penLayerMD5": null
         }
     """
     json

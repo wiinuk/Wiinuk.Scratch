@@ -14,6 +14,7 @@ module TsType =
     let gUnknown = TsType.Named("unknown", [])
     let gNumber = TsType.Named("number", [])
     let gString = TsType.Named("string", [])
+    let gNumberOrString = TsType.Or(gNumber, gString)
     let gBoolean = TsType.Named("boolean", [])
     let gColor = TsType.Named("color", [])
     let gUnit = TsType.Named("()", [])
@@ -25,11 +26,16 @@ module TsType =
     }
 open TsType
 
+[<RequireQualifiedAccess>]
+type LiteralOperandTypeInfo =
+    | Any
+    | ForceInherit
+    | Force of TsType
+
 [<Struct>]
 type OperandInfo = {
     operandType: TsType OperandType
-    literalOperandType: TsType option
-    forceLiteralType: bool
+    literalOperandType: LiteralOperandTypeInfo
 }
 
 [<AutoOpen>]
@@ -37,7 +43,23 @@ module private Privates =
     type G = TsType
     type O<'a> = 'a OperandType
 
-    let op t = { operandType = t; forceLiteralType = false; literalOperandType = None }
+    let tNumberOrString = LiteralOperandTypeInfo.Force TsType.gNumberOrString
+    let literalOperandTypeFromOperandType = function
+        | OperandType.Variable
+        | OperandType.ListVariableExpression _
+        | OperandType.ParameterName
+        | OperandType.ProcedureNameAndExpressions
+        | OperandType.StringLiterals _
+        | OperandType.Block -> LiteralOperandTypeInfo.Any
+
+        | OperandType.Expression t ->
+
+        match t with
+        | TsType.GVar _ -> tNumberOrString
+        | _ when t = gNumber || t = gString || t = gUnknown -> tNumberOrString
+        | _ -> LiteralOperandTypeInfo.ForceInherit
+
+    let op t = { operandType = t; literalOperandType = literalOperandTypeFromOperandType t }
     let opE t = op <| O.Expression t
     let opS ss = op <| O.StringLiterals (Set.ofSeq ss)
 
@@ -124,7 +146,7 @@ module private Privates =
         "previous costume"
         "previous backdrop"
     ])
-    let opColor = { opE tRgb with forceLiteralType = true; literalOperandType = Some gColor }
+    let opColor = { opE tRgb with literalOperandType = LiteralOperandTypeInfo.Force gColor }
 
 [<Struct; RequireQualifiedAccess>]
 type Kind = Statement | Expression
@@ -481,8 +503,8 @@ let private knownStatements() = statementTable false [
     O.``hideVariable:``, Control.Next, g0 ([op O.Variable], gUnit)
     O.``showList:``, Control.Next, g0 ([op O.Variable], gUnit)
     O.``hideList:``, Control.Next, g0 ([op O.Variable], gUnit)
-    O.``broadcast:``, Control.Next, g0 ([{ opE gString with forceLiteralType = true }], gUnit)
-    O.doBroadcastAndWait, Control.NormalYield, g0 ([{ opE gString with forceLiteralType = true }], gUnit)
+    O.``broadcast:``, Control.Next, g0 ([{ opE gString with literalOperandType = LiteralOperandTypeInfo.ForceInherit }], gUnit)
+    O.doBroadcastAndWait, Control.NormalYield, g0 ([{ opE gString with literalOperandType = LiteralOperandTypeInfo.ForceInherit }], gUnit)
     O.doForeverIf, Control.Unknown, g0 (ebs gBoolean)
     O.doIf, Control.Next, g0 (ebs gBoolean)
     O.doIfElse, Control.Next, g0 ([opE gBoolean; op OperandType.Block; op OperandType.Block], gUnit)
@@ -640,3 +662,5 @@ let maxColorCode = 0xFFFFFF
 let isColorCode n =
     double minColorCode <= n && n <= double maxColorCode &&
     truncate n = n
+
+let defaultTempoBPM = 60.

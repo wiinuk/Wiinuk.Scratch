@@ -206,8 +206,8 @@ module Helpers =
 
     let normalizeMeta x =
         { x with
-            vm = ""
-            agent = None
+            vm = "0.0.0"
+            agent = ""
         }
     let normalizeProject x =
         { x with
@@ -250,6 +250,10 @@ module CostumeData =
         rotationCenterX = 0.
         rotationCenterY = 0.
     }
+    let dummy =
+        { empty with
+            baseLayerMD5 = "d41d8cd98f00b204e9800998ecf8427e.png"
+        }
 
 namespace Scratch.Serialization.Sb3.Converter
 open Scratch
@@ -319,7 +323,26 @@ type IpcTests(fixture: IpcTestFixture) =
         | _ -> ()
         p =? p'
 
+    let addDummyCostumeIfEmpty stage =
+        let addToEntity = function
+            | { EntityData.costumes = [] } as x -> { x with costumes = [CostumeData.dummy] }
+            | x -> x
+
+        { stage with
+            ObjectDataExtension =
+                { stage.ObjectDataExtension with
+                    StageDataExtension.children =
+                        [ for c in stage.ObjectDataExtension.children do
+                            match c with
+                            | Choice2Of3 sprite -> addToEntity sprite |> Choice2Of3
+                            | _ -> c
+                        ]
+                }
+        }
+        |> addToEntity
+
     let sb3NormalizeStageProperty (stage: unit StageData) =
+        let stage = addDummyCostumeIfEmpty stage
         let sb3Project = Project.ofStage stage |> AdaptorJs.sb3ToSb3By client |> Async.RunSynchronously |> normalizeProject
         let sb3Project' = sb3Project |> AdaptorJs.sb3ToSb3By client |> Async.RunSynchronously |> normalizeProject
 
@@ -328,6 +351,7 @@ type IpcTests(fixture: IpcTestFixture) =
     let sb3NormalizeScriptProperty = sb3NormalizeStageProperty << scriptToStage
 
     let exportStageToSb3Property (stage: unit StageData) =
+        let stage = addDummyCostumeIfEmpty stage
         let sb3ProjectFromFs = Project.ofStage stage
         let sb3ProjectFromJs = AdaptorJs.sb2ToSb3By client stage |> Async.RunSynchronously
 
@@ -464,6 +488,24 @@ type IpcTests(fixture: IpcTestFixture) =
     member _.normalizeAnyStage() = qcheck sb3NormalizeStageProperty
 
     [<Fact>]
+    member _.normalizeList() =
+        { StageData.defaultValue with
+            lists = [
+                ListData.make () "list" []
+            ]
+        }
+        |> sb3NormalizeStageProperty
+
+    [<Fact>]
+    member _.normalizeVariable() =
+        { StageData.defaultValue with
+            variables = [
+                VariableData.make () "v" SType.N
+            ]
+        }
+        |> sb3NormalizeStageProperty
+
+    [<Fact>]
     member _.exportAnyScript() = qcheckWith (fun x -> { x with MaxTest = x.MaxTest * 10 }) exportScriptToSb3Property
 
     [<Fact>]
@@ -579,6 +621,11 @@ type IpcTests(fixture: IpcTestFixture) =
     member _.exportAnyStage() = qcheck exportStageToSb3Property
 
     [<Fact>]
+    member _.exportDefaultStage() =
+        StageData.defaultValue
+        |> exportStageToSb3Property
+
+    [<Fact>]
     member _.exportEmptyCostume() =
         { StageData.defaultValue with
             costumes = [CostumeData.empty]
@@ -621,24 +668,6 @@ type IpcTests(fixture: IpcTestFixture) =
                     |> Expression
                     |> scriptData
             ]
-        }
-        |> exportStageToSb3Property
-
-    [<Fact>]
-    member _.exportCurrentCostumeIndexDefault() =
-        { StageData.defaultValue with
-            currentCostumeIndex = None
-        }
-        |> exportStageToSb3Property
-
-    [<Fact>]
-    member _.exportTempoBPMDefault() =
-        let stage = StageData.defaultValue
-        { stage with
-            ObjectDataExtension =
-            { stage.ObjectDataExtension with
-                tempoBPM = None
-            }
         }
         |> exportStageToSb3Property
 

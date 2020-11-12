@@ -13,8 +13,8 @@
     <Compile Include="Scratch.Threading.fs" />
     <Compile Include="Scratch.SValue.fs" />
     <Compile Include="Scratch.Ast.fs" />
-    <Compile Include="Scratch.Attributes.fs" />
     <Compile Include="Scratch.AstDefinitions.fs" />
+    <Compile Include="Scratch.Attributes.fs" />
     <Compile Include="Scratch.Symbol.fs" />
     <Compile Include="Scratch.Ast.rec.fs" />
     <Compile Include="Scratch.Ast.operations.fs" />
