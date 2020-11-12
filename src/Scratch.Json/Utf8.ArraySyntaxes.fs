@@ -52,7 +52,8 @@ with
 type DefaultHCons<'T,'TTail,'TSource,'TTailSource>
     when 'TSource :> 'T ISyntax
     and 'TTailSource :> 'TTail IArraySyntax
-    and 'TTail :> HList = internal {
+    and 'TTail :> HList
+    and 'T : equality = internal {
     mutable head: 'TSource
     mutable tail: 'TTailSource
     defaultValue: 'T
@@ -77,17 +78,24 @@ with
             { head = head; tail = tail }
 
         member s.TrySerialize(w, c, x) =
-            if c.count <> 0 then w.WriteValueSeparator()
-            c.count <- c.count + 1
+            (
+                if LanguagePrimitives.GenericEqualityER x.head s.defaultValue then true else
+                if c.count <> 0 then w.WriteValueSeparator()
+                c.count <- c.count + 1
 
-            s.head.TrySerialize(&w, x.head) &&
+                s.head.TrySerialize(&w, x.head)
+            )
+            &&
             s.tail.TrySerialize(&w, &c, x.tail)
 
         member s.Serialize(w, c, x) =
-            if c.count <> 0 then w.WriteValueSeparator()
-            c.count <- c.count + 1
+            (
+                if LanguagePrimitives.GenericEqualityER x.head s.defaultValue then () else
+                if c.count <> 0 then w.WriteValueSeparator()
+                c.count <- c.count + 1
 
-            s.head.Serialize(&w, x.head)
+                s.head.Serialize(&w, x.head)
+            )
             s.tail.Serialize(&w, &c, x.tail)
 
 [<Struct; NoEquality; NoComparison; RequireQualifiedAccess>]

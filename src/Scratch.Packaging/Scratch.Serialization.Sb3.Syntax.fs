@@ -22,8 +22,8 @@ let jOptionalBoolItem = (jBoolean, false) **! jEmptyArray
 let variableData = isoFromUnion3 <@ VariableData @>
 let jVariableData = jArray (jString ** jSValue ** jOptionalBoolItem) |>> variableData
 
-let listData = isoFromUnion3 <@ ListData @>
-let jListData = jArray (jString ** jImmutableArray jSValue ** jOptionalBoolItem) |>> listData
+let listData = isoFromUnion2 <@ ListData @>
+let jListData = jArray (jString ** jImmutableArray jSValue ** jEmptyArray) |>> listData
 
 let broadcastData = {
     forward = BroadcastData >> Ok
@@ -93,7 +93,7 @@ let jSimpleBlock =
             | 6, [x1] -> return! svalue1 MathWholeNumber x1
             | 7, [x1] -> return! svalue1 MathInteger x1
             | 8, [x1] -> return! svalue1 MathAngle x1
-            | 9, [x1] -> return! svalue1 ColourPicker x1
+            | 9, [Json(_, JString x1)] -> return ColourPicker x1
             | 10, [x1] -> return! svalue1 Text x1
 
             | 11, [Json(_, JString name); Json(_, JString id)] -> return EventBroadcastMenu(name, Id id)
@@ -129,7 +129,7 @@ let jSimpleBlock =
         | MathWholeNumber v -> return! svalue1 6 v
         | MathInteger v -> return! svalue1 7 v
         | MathAngle v -> return! svalue1 8 v
-        | ColourPicker v -> return! svalue1 9 v
+        | ColourPicker v -> return makeFromTokens 9 [JString v]
         | Text v -> return! svalue1 10 v
 
         | EventBroadcastMenu(name, Id id) -> return makeFromTokens 11 [JString name; JString id]
@@ -367,7 +367,7 @@ let jMeta =
     jObject (
         ("semver", jString) @@
         ("vm", jString) @@
-        ("agent", jNullable jString) @@
+        ("agent", jString) @@
         jEmptyObject
     )
     |>> meta

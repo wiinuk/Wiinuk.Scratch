@@ -5,7 +5,6 @@ open System.IO
 open System.IO.Compression
 open Scratch.Ast
 open Scratch.Json.Utf8
-open Scratch.Serialization
 open Scratch.Packaging
 open Scratch.Primitives
 
@@ -25,30 +24,41 @@ with
         override s.Dispose() =
             for f in s.usingFiles do f.Dispose()
 
+let hashWithExtension resource = async {
+    match resource with
+    | ResourceBase64(base64, ext) -> return HashWithExtension.ofBytes (Base64.toBytes base64) ext
+    | ResourcePath path ->
+        let ext = Path.GetExtension path
+        let image = File.Open(path, FileMode.Open, FileAccess.Read, FileShare.Read)
+        return! HashWithExtension.ofStream image ext
+
+    | ResourceInZip(path, fullPath, ext) ->
+        return! usingReadZipEntry path fullPath <| fun entry ->
+            HashWithExtension.ofStream entry ext
+}
 let checkResourceFile { usingFiles = usingFiles } resourceName id md5 paths resourceExtensions =
     match Array.tryItem id paths with
     | None -> IdNotFound(resourceName, id) |> raiseError
-    | Some(ResourceBase64(base64, ext) as resource) ->
-        if not <| Set.contains ext resourceExtensions then InvalidExtension(resource, resourceExtensions) |> raiseError
-        let hash = HashWithExtension.ofBytes (Base64.toBytes base64) ext
-        if md5 <> hash then HashMismatch(md5, hash) |> raiseError
-        async.Return ext
+    | Some resource -> async {
 
-    | Some(ResourcePath path as resource) -> async {
+    let! hash = hashWithExtension resource
+    if md5 <> hash then HashMismatch(md5, hash) |> raiseError
+
+    match resource with
+    | ResourceBase64(_, ext) ->
+        if not <| Set.contains ext resourceExtensions then InvalidExtension(resource, resourceExtensions) |> raiseError
+        return ext
+
+    | ResourcePath path ->
         let ext = Path.GetExtension path
         if not <| Set.contains ext resourceExtensions then InvalidExtension(resource, resourceExtensions) |> raiseError
         let image = File.Open(path, FileMode.Open, FileAccess.Read, FileShare.Read)
         usingFiles.Add image
-        let! hash = HashWithExtension.ofStream image ext
-        if md5 <> hash then HashMismatch(md5, hash) |> raiseError
         return ext
-        }
-    | Some(ResourceInZip(path, fullPath, ext)) ->
-        usingReadZipEntry path fullPath <| fun entry -> async {
-            let! hash = HashWithExtension.ofStream entry ext
-            if md5 <> hash then HashMismatch(md5, hash) |> raiseError
-            return ext
-        }
+
+    | ResourceInZip(_, _, ext) ->
+        return ext
+}
 
 let checkHashWithExtension name x =
     match HashWithExtension.ofString x with
@@ -77,13 +87,10 @@ let checkEntity state data =
         checkSound state s
 
 let checkStage state stageData = async {
-    match stageData.currentCostumeIndex with
-    | None -> ()
-    | Some i ->
-        let i = int i
-        match List.tryItem i stageData.costumes with
-        | None -> IdNotFound(stageData.objName, int i) |> raiseError
-        | Some _ -> ()
+    let i = int stageData.currentCostumeIndex
+    match List.tryItem i stageData.costumes with
+    | None -> IdNotFound(stageData.objName, int i) |> raiseError
+    | Some _ -> ()
 
     match stageData.ObjectDataExtension.penLayerID, stageData.ObjectDataExtension.penLayerMD5 with
     | None, None -> ()
@@ -116,16 +123,29 @@ let compressionLevelFromExtension = function
     | ".wav" -> CompressionLevel.Fastest
     | _ -> CompressionLevel.NoCompression
 
-let writeResourceFile zip resource index = async {
+let sb2ResourceNaming struct (index, resource) =
+    let ext =
+        match resource with
+        | ResourcePath path -> Path.GetExtension path
+        | ResourceBase64(_, ext)
+        | ResourceInZip(_, _, ext) -> ext
+
+    async.Return <| sprintf "%d%s" index ext
+
+let sb3ResourceNaming struct(_, resource) = async {
+    let! name = hashWithExtension resource
+    return HashWithExtension.toString name
+}
+let writeResourceFile zip resourceNaming resource index = async {
+    let! entryName = resourceNaming struct (index, resource)
+
     match resource with
     | ResourcePath path ->
         let ext = Path.GetExtension path
-        let entryName = sprintf "%d%s" index ext
         let level = compressionLevelFromExtension ext
         ZipFileExtensions.CreateEntryFromFile(zip, path, entryName, level) |> ignore
 
     | ResourceBase64(base64, ext) ->
-        let entryName = sprintf "%d%s" index ext
         let level = compressionLevelFromExtension ext
         let entry = zip.CreateEntry(entryName, level)
         use entry = entry.Open()
@@ -134,7 +154,6 @@ let writeResourceFile zip resource index = async {
 
     | ResourceInZip(path, entryFullName, ext) ->
         do! usingReadZipEntry path entryFullName <| fun source -> async {
-            let entryName = sprintf "%d%s" index ext
             let level = compressionLevelFromExtension ext
             let destination = zip.CreateEntry(entryName, level)
             use destination = destination.Open()
@@ -143,7 +162,16 @@ let writeResourceFile zip resource index = async {
         }
 }
 let white2x2PngBase64 = Base64 "iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAYAAABytg0kAAAAEUlEQVQYV2P8DwQMQMAIYwAAV9UH+3zjkgoAAAAASUVORK5CYII="
-let defaultImage = ResourceBase64(white2x2PngBase64, ".png")
+let defaultPenImage = ResourceBase64(white2x2PngBase64, ".png")
+let emptySvgBase64 =
+    "PHN2ZyB2ZXJzaW9uPSIxLjEiIHdpZHRoPSIyIiBoZWlnaHQ9IjIiIHZpZXdCb3g"
+    + "9Ii0xIC0xIDIgMiIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIi"
+    + "B4bWxuczp4bGluaz0iaHR0cDovL3d3dy53My5vcmcvMTk5OS94bGluayI+CiAgP"
+    + "CEtLSBFeHBvcnRlZCBieSBTY3JhdGNoIC0gaHR0cDovL3NjcmF0Y2gubWl0LmVk"
+    + "dS8gLS0+Cjwvc3ZnPg=="
+    |> Base64
+
+let defaultCostumeImage = ResourceBase64(emptySvgBase64, ".svg")
 
 let costumeDataFromResource costumeName bitmapResolution rotationCenterX rotationCenterY baseResource index = async {
     let! md5 = ResourceDescriptor.md5 baseResource
@@ -210,14 +238,18 @@ let fixChoice3 fix1 fix2 fix3 x = async {
 let nofix _ = async.Return None
 
 let fixPackage package = async {
-    let mutable defaultImageAndIndex = None    
-    let getDefaultImageAndIndex() =
-        match defaultImageAndIndex with
+    let defaultImageAndIndex defaultImage index stores =
+        let store = Seq.item index stores
+        match !store with
         | Some x -> x
         | None ->
-            let x = defaultImage, List.length package.images
-            defaultImageAndIndex <- Some x
+            let x = defaultImage, List.length package.images + Seq.sumBy ((!) >> Option.count) stores
+            store := Some x
             x
+
+    let defaultImageAndIndexes = List.init 2 <| fun _ -> ref None
+    let getDefaultCostumeImageAndIndex() = defaultImageAndIndex defaultCostumeImage 0 defaultImageAndIndexes
+    let getDefaultPenImageAndIndex() = defaultImageAndIndex defaultPenImage 1 defaultImageAndIndexes
 
     let (|InvalidBaseLayerMD5|) x = x = ""
     let (|InvalidCostumeName|) x = x = ""
@@ -241,7 +273,7 @@ let fixPackage package = async {
                 | Some index -> return Some { c with baseLayerID = double index }
             }
         | _ -> nofix()
-        
+
     let fixCostume_BaseLayerIdToName c =
         match c.baseLayerID, c.costumeName with
         | InvalidBaseLayerID true, InvalidCostumeName true -> nofix()
@@ -277,7 +309,7 @@ let fixPackage package = async {
     let fixCostumeList = function
         | (_::_) as cs -> fixList fixCostume cs
         | [] -> async {
-            let image, index = getDefaultImageAndIndex()
+            let image, index = getDefaultCostumeImageAndIndex()
             let! c = costumeDataFromResource "costume1" 1. 0. 0. image index
             return Some [c]
         }
@@ -290,7 +322,7 @@ let fixPackage package = async {
         match stage.ObjectDataExtension.penLayerMD5, stage.ObjectDataExtension.penLayerID with
         | Some _, Some _ -> nofix()
         | _ -> async {
-            let image, index = getDefaultImageAndIndex()
+            let image, index = getDefaultPenImageAndIndex()
             let! md5 = ResourceDescriptor.md5 image
             return Some {
                 stage with
@@ -311,20 +343,34 @@ let fixPackage package = async {
     | None -> return package
     | Some stage ->
         let package = { package with project = stage }
-        match defaultImageAndIndex with
-        | None -> return package
-        | Some(image, _) -> return { package with images = package.images @ [image] }
+        return
+            defaultImageAndIndexes
+            |> Seq.fold (fun package store ->
+                match !store with
+                | None -> package
+                | Some(image, _) -> { package with images = package.images @ [image] }
+            ) package
 }
-let writeFixedSb2Package sb2Path packageData _usingFiles = async {
-    use zip = ZipFile.Open(sb2Path, ZipArchiveMode.Create)
-
+let writeResources zip resourceNaming packageData = async {
     for i, image in packageData.images |> Seq.indexed do
-        do! writeResourceFile zip image i
+        do! writeResourceFile zip resourceNaming image i
 
     for i, sound in packageData.sounds |> Seq.indexed do
-        do! writeResourceFile zip sound i
-
+        do! writeResourceFile zip resourceNaming sound i
+}
+let writeProjectJson (zip: ZipArchive) syntax packageData = async {
     let project = zip.CreateEntry "project.json"
     use stream = project.Open()
-    do! Syntax.serializeStream (Sb2.Syntax.stageData HasDefault.unchecked) stream packageData.project
+    do! Syntax.serializeStream syntax stream packageData.project
+}
+let writePackage zip resourceNaming packageData projectJsonSyntax = async {
+    do! writeResources zip resourceNaming packageData
+    do! writeProjectJson zip projectJsonSyntax packageData
+}
+let fixAndWritePackageToStream stream (packageData: 'a StageData PackageData) write = async {
+    let! packageData = fixPackage packageData
+    return! checkOrRaisePackage packageData <| fun _ -> async {
+        use zip = new ZipArchive(stream, ZipArchiveMode.Create, leaveOpen = true)
+        return! write zip packageData
+    }
 }

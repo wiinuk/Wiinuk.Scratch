@@ -1,4 +1,4 @@
-[<AutoOpen>]
+﻿[<AutoOpen>]
 module Scratch.Package
 open System
 open System.IO
@@ -63,10 +63,22 @@ let readSb2Package sb2Path = async {
         sounds = entries |> filterOfExt soundExtensions
     }
 }
-
 let fixSb2Package packageData = fixPackage packageData
 
+let writeSb2PackageToStream stream packageData =
+    fixAndWritePackageToStream stream packageData <| fun zip packageData ->
+        writePackage zip sb2ResourceNaming packageData (Sb2.Syntax.stageData HasDefault.unchecked)
+
+let writeSb3PackageToStream stream packageData =
+    fixAndWritePackageToStream stream packageData <| fun zip packageData ->
+        let packageData = PackageData.withProject (Sb3.Project.ofStage packageData.project) packageData
+        writePackage zip sb3ResourceNaming packageData Sb3.Syntax.jProject
+
 let writeSb2Package sb2Path packageData = async {
-    let! packageData = fixPackage packageData
-    return! checkOrRaisePackage packageData <| writeFixedSb2Package sb2Path packageData
+    use file = File.Create sb2Path
+    do! writeSb2PackageToStream file packageData
+}
+let writeSb3Package sb3Path packageData = async {
+    use file = File.Create sb3Path
+    do! writeSb3PackageToStream file packageData
 }

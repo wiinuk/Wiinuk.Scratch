@@ -1,4 +1,4 @@
-namespace Scratch
+﻿namespace Scratch
 open System
 open Scratch.Ast
 open Scratch.Ast.PartialData
@@ -91,7 +91,7 @@ type StageAttribute() =
     let mutable data = {
         penLayerMD5 = None
         penLayerID = None
-        tempoBPM = None
+        tempoBPM = AstDefinitions.defaultTempoBPM
         videoAlpha = None
 
         children = []
@@ -99,7 +99,7 @@ type StageAttribute() =
     }
     member _.PenLayerMD5 with set v = data <- { data with penLayerMD5 = Some v }
     member _.PenLayerID with set v = data <- { data with penLayerID = Some v }
-    member _.TempoBPM with set v = data <- { data with tempoBPM = Some v }
+    member _.TempoBPM with set v = data <- { data with tempoBPM = v }
     member _.VideoAlpha with set v = data <- { data with videoAlpha = Some v }
 
     override _.GetData() = data

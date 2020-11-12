@@ -1,10 +1,8 @@
-module Scratch.Json.Tests
-open Scratch
+﻿module Scratch.Json.Tests
 open Scratch.Ast
 open Scratch.Json.Utf8
 open Scratch.Serialization.Sb2.Syntax
 open Scratch.Primitives
-open Scratch.Json.Test.Helpers
 open FsCheck
 open Scratch.Runtime.Test
 open Xunit
@@ -16,7 +14,8 @@ let print s = Syntax.serializeString <| Syntax.box s
 let parse s = Syntax.deserializeString <| Syntax.box s
 let empty = None
 
-let qcheck test = qcheckWith (fun c -> { c with Arbitrary = typeof<Arbs> :: c.Arbitrary }) test
+let qcheckWith withConfig test = qcheckWith (fun c -> withConfig { c with Arbitrary = typeof<Arbs> :: c.Arbitrary }) test
+let qcheck test = qcheckWith id test
 
 let roundTrip syntax x = parse syntax (print syntax x)
 let roundTripTest syntax mapping = qcheck <| fun x ->
@@ -48,7 +47,8 @@ let [<Fact>] singleStatementsAsExpressionTest() =
           ],
           "currentCostumeIndex": 0,
           "tempoBPM": 60,
-          "videoAlpha": 0.5
+          "videoAlpha": 0.5,
+          "penLayerMD5": null
         }
     """
     json
