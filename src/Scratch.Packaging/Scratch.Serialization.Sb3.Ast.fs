@@ -12,8 +12,8 @@ type 'a nullable = 'a option
 // e.g. ["varName", 330], ["varName", "a", true]
 type VariableData = VariableData of name: string * initial: SValue * isCloud: bool
 
-// e.g. ["listName", []], ["listName", ["a"], true]
-type ListData = ListData of name: string * initial: SValue ImmutableArray * isCloud: bool
+// e.g. ["listName", []]
+type ListData = ListData of name: string * initial: SValue ImmutableArray
 [<Struct>]
 type BroadcastData = BroadcastData of name: string
 

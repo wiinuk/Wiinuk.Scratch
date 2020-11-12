@@ -40,6 +40,11 @@ type KnownValueComplexExpression<'a> = KnownValueComplexExpression of 'a Complex
 [<Struct>]
 type KnownUnitComplexExpression<'a> = KnownUnitComplexExpression of 'a ComplexExpression
 
+[<Struct>]
+type HashWithImageExtension = HashWithImageExtension of string
+[<Struct>]
+type HashWithSoundExtension = HashWithSoundExtension of string
+
 let complexExpressionArb wrapSymbol (|UnwrapSymbol|) =
     let anyValueGen = Arb.generate<SValue>
     let boolValueGen = Arb.generate<_> |> Gen.map SBool
@@ -230,6 +235,24 @@ let complexExpressionArb wrapSymbol (|UnwrapSymbol|) =
     }
     Arb.fromGenShrink(g, s)
 
+let hashWithExtensionArb (wrap, extensions) =
+    let md5HashGen af =
+        Gen.oneof [
+            Gen.elements ['0'..'9']
+            Gen.elements af
+        ]
+        |> Gen.arrayOfLength 32
+
+    let md5HashGen = Gen.oneof [md5HashGen ['a'..'f']; md5HashGen ['A'..'F']]
+    let extensionGen = Gen.elements extensions
+
+    let g = gen {
+        let! hexChars = md5HashGen
+        let! ext = extensionGen
+        return wrap <| sprintf "%s.%s" (System.String hexChars) ext
+    }
+    Arb.fromGen g
+
 type Arbs =
     static member KnownFooterStatementName() =
         knownAllOperatorMap
@@ -268,6 +291,18 @@ type Arbs =
         |> Arb.convert
             (fun (NormalFloat x) -> VideoAlphaValue(x % 1.))
             (fun (VideoAlphaValue x) -> NormalFloat x)
+
+    static member HashWithImageExtension() =
+        hashWithExtensionArb (
+            HashWithImageExtension,
+            ["png"; "svg"; "jpeg"; "jpg"; "bmp"; "gif"]
+        )
+
+    static member HashWithSoundExtension() =
+        hashWithExtensionArb (
+            HashWithSoundExtension,
+            ["wav"; "wave"; "mp3"]
+        )
 
     static member SValue() =
         let sString = gen {
@@ -460,7 +495,7 @@ type Arbs =
         |> Arb.convert
             (fun
                 (
-                    NonNull baseLayerMD5,
+                    HashWithImageExtension baseLayerMD5,
                     NormalFloat baseLayerID,
                     textLayerMD5,
                     OptionMap NormalFloat.op_Explicit textLayerID,
@@ -482,7 +517,7 @@ type Arbs =
             )
             (fun x ->
                 (
-                    NonNull x.baseLayerMD5,
+                    HashWithImageExtension x.baseLayerMD5,
                     NormalFloat x.baseLayerID,
                     x.textLayerMD5,
                     Option.map NormalFloat x.textLayerID,
@@ -498,7 +533,7 @@ type Arbs =
         |> Arb.convert
             (fun
                 (
-                    (NonNull md5, NonNull ext),
+                    HashWithSoundExtension md5,
                     NormalFloat soundID,
                     NonNull soundName,
                     OptionMap NormalFloat.op_Explicit sampleCount,
@@ -506,7 +541,7 @@ type Arbs =
                     format
                 ) ->
                 {
-                    md5 = md5 + "." + ext
+                    md5 = md5
                     soundID = soundID
                     soundName = soundName
                     sampleCount = sampleCount
@@ -515,13 +550,8 @@ type Arbs =
                 }
             )
             (fun x ->
-                let md5, ext =
-                    match x.md5.Split([|'.'|], count = 2) with
-                    | [|md5; ext|] -> md5, ext
-                    | _ -> "", ""
-
                 (
-                    (NonNull md5, NonNull ext),
+                    HashWithSoundExtension x.md5,
                     NormalFloat x.soundID,
                     NonNull x.soundName,
                     Option.map NormalFloat x.sampleCount,

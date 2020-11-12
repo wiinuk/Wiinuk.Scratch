@@ -1122,7 +1122,7 @@ module Project =
                 let id = Builder.createVariableId builder v.listName VariableType.List
 
                 // v.isPersistent はここで捨てられる
-                KeyValuePair(id, ListData(v.listName, v.contents', isCloud = false))
+                KeyValuePair(id, ListData(v.listName, v.contents'))
         }
         let blocks = scriptDataListAsBlocks builder entity.scripts
 

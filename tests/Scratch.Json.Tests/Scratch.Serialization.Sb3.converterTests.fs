@@ -488,6 +488,24 @@ type IpcTests(fixture: IpcTestFixture) =
     member _.normalizeAnyStage() = qcheck sb3NormalizeStageProperty
 
     [<Fact>]
+    member _.normalizeList() =
+        { StageData.defaultValue with
+            lists = [
+                ListData.make () "list" []
+            ]
+        }
+        |> sb3NormalizeStageProperty
+
+    [<Fact>]
+    member _.normalizeVariable() =
+        { StageData.defaultValue with
+            variables = [
+                VariableData.make () "v" SType.N
+            ]
+        }
+        |> sb3NormalizeStageProperty
+
+    [<Fact>]
     member _.exportAnyScript() = qcheckWith (fun x -> { x with MaxTest = x.MaxTest * 10 }) exportScriptToSb3Property
 
     [<Fact>]
