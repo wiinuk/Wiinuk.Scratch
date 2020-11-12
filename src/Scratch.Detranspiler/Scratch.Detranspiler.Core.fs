@@ -217,11 +217,7 @@ let prettySoundAttribute x = context {
     return! prettyKnownAttribute name props
 }
 let prettyCurrentCostumeIndexAttribute x = context {
-    let props =
-        match x with
-        | None -> []
-        | Some x -> [prettyDoubleLiteral x]
-
+    let props = [prettyDoubleLiteral x]
     let! name = nameOf the<CurrentCostumeIndexAttribute>
     return! prettyKnownAttribute name props
 }
@@ -230,7 +226,7 @@ let prettyStageAttribute x = context {
         []
         |> prettyAddAttributeOptionalProperty prettyStringLiteral ("PenLayerMD5", x.penLayerMD5)
         |> prettyAddAttributeOptionalProperty prettyDoubleLiteral ("PenLayerID", x.penLayerID)
-        |> prettyAddAttributeOptionalProperty prettyDoubleLiteral ("TempoBPM", x.tempoBPM)
+        |> prettyAddAttributeProperty prettyDoubleLiteral ("TempoBPM", x.tempoBPM)
         |> prettyAddAttributeOptionalProperty prettyDoubleLiteral ("VideoAlpha", x.videoAlpha)
         |> List.rev
 

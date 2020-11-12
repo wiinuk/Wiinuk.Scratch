@@ -322,7 +322,7 @@ let objectData (_s: The<'_s>) restToExtensionData =
         ("sounds", jList soundData, []) @@!
         ("variables", jList variableData, []) @@!
         ("lists", jList listVariableData, []) @@!
-        ("currentCostumeIndex", jNumber) @@?
+        ("currentCostumeIndex", jNumber) @@
         restToExtensionData
         |> jObject
         |>> objectData'
@@ -394,9 +394,9 @@ let makeStageData _s =
         // < 2.x: { children?: ReadonlyArray<WatcherData | SpriteData> }
         // 3.x: { children: ReadonlyArray<WatcherData | SpriteData> }
         ("children", jList stageChild, []) @@!
-        ("penLayerMD5", jString) @@?
+        ("penLayerMD5", jNullable jString) @@
         ("penLayerID", jNumber) @@?
-        ("tempoBPM", jNumber) @@?
+        ("tempoBPM", jNumber) @@
         ("videoAlpha", jNumber) @@?
         ("info", info, Map.empty) @@!
 

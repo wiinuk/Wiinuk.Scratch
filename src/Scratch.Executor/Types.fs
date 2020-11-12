@@ -1,4 +1,4 @@
-namespace Scratch.Executor
+﻿namespace Scratch.Executor
 open System
 open System.Collections.Generic
 open Scratch
@@ -80,7 +80,7 @@ type EntityImage<'a> = {
     listVariables: 'a ListVariableData iarray
     costumes: CostumeData iarray
     sounds: SoundData iarray
-    currentCostumeIndex: double option
+    currentCostumeIndex: double
     spriteImage: SpriteDataExtension option
 
     // debug info

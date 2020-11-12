@@ -563,7 +563,7 @@ type EntityData<'Extension,'Script,'Variable,'List,'a> = {
     sounds: ReadonlyArray<SoundData>
     variables: ReadonlyArray<'Variable>
     lists: ReadonlyArray<'List>
-    currentCostumeIndex: number option
+    currentCostumeIndex: number
 
     ObjectDataExtension: 'Extension
 }
@@ -586,19 +586,13 @@ type SpriteData<'a> = SpriteData<'a Script,'a VariableData,'a ListVariableData,'
 
 type StageDataChild<'Script,'Variable,'List,'a> = Choice<WatcherData, SpriteData<'Script,'Variable,'List,'a>, ListVariableData<'a>>
 type StageDataChild<'a> = StageDataChild<'a Script,'a VariableData,'a ListVariableData,'a>
-// interface StageData extends ObjectData {
-//     readonly penLayerMD5?: string
-//     readonly penLayerID?: number
-//     readonly tempoBPM?: number
-//     readonly videoAlpha?: number
-//     readonly info?: {}
-// }
+
 type StageDataExtension<'Script,'Variable,'List,'a> = {
     children: ReadonlyArray<StageDataChild<'Script,'Variable,'List,'a>>
 
-    penLayerMD5: string option
+    penLayerMD5: string nullable
     penLayerID: number option
-    tempoBPM: number option
+    tempoBPM: number
     videoAlpha: number option
     info: Map<string, SValue>
 }
