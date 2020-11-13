@@ -33,6 +33,9 @@ module Isolated =
 #if NETCOREAPP3_1
         "netcoreapp3.1"
 #endif
+#if NET5_0
+        "net5.0"
+#endif
     let testerPath = Path.Combine(__SOURCE_DIRECTORY__, sprintf "../scratch-tester/bin/Debug/%s/scratch-tester.dll" tfm)
 
     type ProcessExit = {

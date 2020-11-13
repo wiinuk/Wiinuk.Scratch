@@ -281,63 +281,90 @@ let eliminateDeadConditionExpression es env =
 
         | _ -> R.noModify ees
 
-let algebraicSimplification e _ =
-    match e with
-
+[<AutoOpen>]
+module private AlgebraicSimplificationPatterns =
     // Scratch では `NaN * x = 0`, `NaN + x = x`
 
     // `n * 0 = 0`
-    | Mul(Y2(Number(Y 0.) & n, _))
-    | Mul(Y2(_, Number(Y 0.) & n)) -> R.modified n
+    let (|NMul0|) = function
+        | Mul(Y2(Number(Y 0.) & n, _))
+        | Mul(Y2(_, Number(Y 0.) & n)) -> Y(R.modified n)
+        | _ -> N
 
     // `n * 1 = n` ( n の型は NaN 以外の数値 )
-    | Mul(Y2(Number(Y 1.), n))
-    | Mul(Y2(n, Number(Y 1.))) when isNumberWithoutNaN n -> R.modified n
+    let (|NMul1|) = function
+        | Mul(Y2(Number(Y 1.), n))
+        | Mul(Y2(n, Number(Y 1.))) when isNumberWithoutNaN n -> Y(R.modified n)
+        | _ -> N
 
     // `a * (b * n)` =
     // `a * (n * b)` =
     // `(a * n) * b` =
     // `(n * a) * b` = `(a * b) * n` ( a は定数, b は定数 )
-    | Mul(Y2(Literal _ & a, Mul(Y2(Literal _ & b, n))))
-    | Mul(Y2(Literal _ & a, Mul(Y2(n, Literal _ & b))))
-    | Mul(Y2(Mul(Y2(Literal _ & a, n)), Literal _ & b))
-    | Mul(Y2(Mul(Y2(n, Literal _ & a)), Literal _ & b)) ->
-        let s = Expression.state e |> removeTags
-        match Expressions.``*`` s a b |> evaluateExpressionWithGlobalContext with
-        | Error _ -> R.noModify e
-        | Ok c -> Expressions.``*`` s (Literal(s, c)) n |> R.modified
+    let (|AMulBMulN|) = function
+        | Mul(Y2(Literal _ & a, Mul(Y2(Literal _ & b, n))))
+        | Mul(Y2(Literal _ & a, Mul(Y2(n, Literal _ & b))))
+        | Mul(Y2(Mul(Y2(Literal _ & a, n)), Literal _ & b))
+        | Mul(Y2(Mul(Y2(n, Literal _ & a)), Literal _ & b)) as e ->
+            let s = Expression.state e |> removeTags
+            match Expressions.``*`` s a b |> evaluateExpressionWithGlobalContext with
+            | Error _ -> R.noModify e |> Y
+            | Ok c -> Expressions.``*`` s (Literal(s, c)) n |> R.modified |> Y
+        | _ -> N
 
     // `a + (b + n)` =
     // `a + (n + b)` =
     // `(a + n) + b` =
     // `(n + a) + b` = `(a + b) + n` ( a は定数, b は定数 )
-    | Add(Y2(Literal _ & a, Add(Y2(Literal _ & b, n))))
-    | Add(Y2(Literal _ & a, Add(Y2(n, Literal _ & b))))
-    | Add(Y2(Add(Y2(Literal _ & a, n)), Literal _ & b))
-    | Add(Y2(Add(Y2(n, Literal _ & a)), Literal _ & b)) ->
-        let s = Expression.state a |> removeTags
-        match Expressions.``+`` s a b |> evaluateExpressionWithGlobalContext with
-        | Error _ -> R.noModify e
-        | Ok c -> Expressions.``+`` s (Literal(s, c)) n |> R.modified
+    let (|AAddBAddN|) = function
+        | Add(Y2(Literal _ & a, Add(Y2(Literal _ & b, n))))
+        | Add(Y2(Literal _ & a, Add(Y2(n, Literal _ & b))))
+        | Add(Y2(Add(Y2(Literal _ & a, n)), Literal _ & b))
+        | Add(Y2(Add(Y2(n, Literal _ & a)), Literal _ & b)) as e ->
+            let s = Expression.state a |> removeTags
+            match Expressions.``+`` s a b |> evaluateExpressionWithGlobalContext with
+            | Error _ -> R.noModify e |> Y
+            | Ok c -> Expressions.``+`` s (Literal(s, c)) n |> R.modified |> Y
+        | _ -> N
 
     // `(x - x) = 0`
-    | Sub(Y2(x, x')) when Expression.map ignore x = Expression.map ignore x' ->
-        Expression.eNumber (Expression.state e |> removeTags) 0. |> R.modified
+    let (|XSubX|) = function
+        | Sub(Y2(x, x')) as e when Expression.map ignore x = Expression.map ignore x' ->
+            Expression.eNumber (Expression.state e |> removeTags) 0. |> R.modified |> Y
+        | _ -> N
 
     // `(x + -y) = (x - y)`
-    | Add(Y2(x, Mul(Y2(Number(Y -1.), y))))
-    | Add(Y2(x, Mul(Y2(y, Number(Y -1.))))) ->
-        Expressions.``-`` (Expression.state e) x y |> R.modified
+    let (|XAddNegY|) = function
+        | Add(Y2(x, Mul(Y2(Number(Y -1.), y))))
+        | Add(Y2(x, Mul(Y2(y, Number(Y -1.))))) as e ->
+            Expressions.``-`` (Expression.state e) x y |> R.modified |> Y
+        | _ -> N
 
     // `x * 2 = x + x` (x は定数様)
-    | Mul(Y2(Number(Y 2.), x))
-    | Mul(Y2(x, Number(Y 2.))) when maxCost x <= LiteralLike ->
-        Expressions.``+`` (Expression.state e |> removeTags) x x |> R.modified
+    let (|XMul2|) = function
+        | Mul(Y2(Number(Y 2.), x))
+        | Mul(Y2(x, Number(Y 2.))) as e when maxCost x <= LiteralLike ->
+            Expressions.``+`` (Expression.state e |> removeTags) x x |> R.modified |> Y
+        | _ -> N
 
     // `(x / a) = (x * (1 / a))` (a は定数)
-    | Div(Y2(x, Number(Y a))) ->
-        let s = Expression.state e |> removeTags
-        Expressions.``*`` s x (Expression.eNumber s (1. / a)) |> R.modified
+    let (|XDivA|) = function
+        | Div(Y2(x, Number(Y a))) as e ->
+            let s = Expression.state e |> removeTags
+            Expressions.``*`` s x (Expression.eNumber s (1. / a)) |> R.modified |> Y
+        | _ -> N
+
+let algebraicSimplification e _ =
+    match e with
+    | NMul0(Y r)
+    | NMul1(Y r)
+    | AMulBMulN(Y r)
+    | AAddBAddN(Y r)
+    | XSubX(Y r)
+    | XAddNegY(Y r)
+    | XMul2(Y r)
+    | XDivA(Y r)
+        -> r
 
     | e -> R.noModify e
 

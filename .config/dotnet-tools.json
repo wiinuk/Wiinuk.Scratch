@@ -1,9 +1,9 @@
-{
+﻿{
   "version": 1,
   "isRoot": true,
   "tools": {
     "paket": {
-      "version": "5.243.0",
+      "version": "5.253.0",
       "commands": [
         "paket"
       ]
