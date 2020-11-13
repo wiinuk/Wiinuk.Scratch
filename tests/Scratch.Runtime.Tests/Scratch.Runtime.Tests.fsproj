@@ -7,7 +7,7 @@
     <Compile Include="Scratch.Runtime.Test.Helpers.fs" />
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="FsCheck" Version="2.14.0" />
+    <PackageReference Include="FsCheck" Version="2.14.3" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Scratch.Test.Helpers\Scratch.Test.Helpers.fsproj" />

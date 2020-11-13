@@ -7,8 +7,8 @@
     <Compile Include="Scratch.IsolatedTester.fs" />
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="Argu" Version="5.5.0" />
-    <PackageReference Include="Newtonsoft.Json" Version="12.0.2" />
+    <PackageReference Include="Argu" Version="6.1.1" />
+    <PackageReference Include="Newtonsoft.Json" Version="12.0.3" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\src\Scratch.Primitives\Scratch.Primitives.fsproj" />
