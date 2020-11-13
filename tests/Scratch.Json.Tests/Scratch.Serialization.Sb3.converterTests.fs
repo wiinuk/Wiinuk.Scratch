@@ -704,6 +704,16 @@ type IpcTests(fixture: IpcTestFixture) =
         |> exportStageToSb3Property
 
     [<Fact>]
+    member _.exportDuplicatedCostumeName10_10() =
+        { StageData.defaultValue with
+            costumes = [
+                { CostumeData.empty with costumeName = "a10" }   // ⇒ "a10"
+                { CostumeData.empty with costumeName = "a10" }   // ⇒ "a2"
+            ]
+        }
+        |> exportStageToSb3Property
+
+    [<Fact>]
     member _.bytesEmpty() =
         {
             project = StageData.defaultValue

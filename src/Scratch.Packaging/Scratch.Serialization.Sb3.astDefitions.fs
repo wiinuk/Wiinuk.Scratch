@@ -927,7 +927,7 @@ module Project =
             if not <| has name xs then name else
 
             match splitSuffix name with
-            | ValueSome(baseName, n) -> fleshName xs baseName (max 2 (n + 1))
+            | ValueSome(baseName, _) -> fleshName xs baseName 2
             | _ -> fleshName xs name 2
 
         let bitmapResolution =
