@@ -1,10 +1,8 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project Sdk="Microsoft.NET.Sdk">
+  <Import Project="..\..\LibraryBuildSettings.targets" />
   <PropertyGroup>
-    <TargetFramework>netstandard2.0</TargetFramework>
-    <OtherFlags>--warnon:1182</OtherFlags>
     <WarningLevel>5</WarningLevel>
-    <GenerateDocumentationFile>true</GenerateDocumentationFile>
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="Scratch.Evaluator.Environments.fs" />

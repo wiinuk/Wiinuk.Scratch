@@ -36,7 +36,7 @@ module private AsyncHelpers =
         | E.Call(Some(E.Var b'), m, es) when b = b' -> Some(m.Name, es)
         | _ -> None
 
-    /// <@ (let $b = %generator in $b) { %body } @>
+    /// <summary>&lt;@ (let $b = %generator in $b) { %body } @&gt;</summary>
     let (|GeneratorBody|_|) = function
         | E.Application(E.Lambda(b, e), generator & ExprType et) when isGeneratorBuilderType et ->
             match e with

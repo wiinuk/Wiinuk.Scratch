@@ -324,4 +324,4 @@ let name = function
 
         let mutable r = null
         if symbolToName.TryGetValue(LanguagePrimitives.EnumToValue x, &r) then r
-        else failwithf "symbol %A is not registed" x
+        else failwithf $"symbol {x} is not registed"

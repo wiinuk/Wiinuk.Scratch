@@ -130,7 +130,7 @@ let sb2ResourceNaming struct (index, resource) =
         | ResourceBase64(_, ext)
         | ResourceInZip(_, _, ext) -> ext
 
-    async.Return <| sprintf "%d%s" index ext
+    async.Return <| $"{index}%s{ext}"
 
 let sb3ResourceNaming struct(_, resource) = async {
     let! name = hashWithExtension resource

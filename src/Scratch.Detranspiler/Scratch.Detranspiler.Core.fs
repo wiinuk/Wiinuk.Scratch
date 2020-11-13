@@ -130,7 +130,7 @@ let lookupKnownShortestId name = context {
     | ValueSome(ValueSpec _)
     | ValueSome(ProcedureSpec _)
     | ValueSome(SpriteSpec _)
-    | ValueNone -> return failwithf "internal error: EntityNotFound(%A)" name
+    | ValueNone -> return failwithf $"internal error: EntityNotFound({name})"
 }
 let prettyKnownGlobalName name = context {
     let! struct(k, id) = lookupKnownShortestId name

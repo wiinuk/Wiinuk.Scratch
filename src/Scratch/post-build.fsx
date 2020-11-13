@@ -1,5 +1,5 @@
 ﻿#load "../../tests/analyzers/AssemblyAnalyzer.fsx"
-#load "../../.paket/load/netstandard2.0/Argu.fsx"
+#r "nuget: Argu"
 open System.IO
 open System.Text
 open System.Text.RegularExpressions
@@ -46,9 +46,9 @@ let split (line: string) =
     let s2 = line.Substring(p, line.Length - p)
     [s1; s2]
 
-let parser = ArgumentParser.Create<PostBuildArg>(sprintf "fsi %s" __SOURCE_FILE__)
+let parser = ArgumentParser.Create<PostBuildArg> $"fsi %s{__SOURCE_FILE__}"
 let rec parseCommand depth config inputs =
-    if 10 < depth then failwithf "Too deep command call: %A" depth else
+    if 10 < depth then failwithf $"Too deep command call: {depth}" else
 
     parser.ParseCommandLine(inputs, raiseOnUsage = true).GetAllResults()
     |> Seq.fold (fun s -> function

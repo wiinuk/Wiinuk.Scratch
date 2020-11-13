@@ -1,4 +1,4 @@
-﻿#load "../../.paket/load/netstandard2.0/Mono.Cecil.fsx"
+﻿#r "nuget: Mono.Cecil"
 #load "Print.fsx"
 open System
 open System.IO
@@ -286,7 +286,7 @@ let opcodes filter =
         | _ -> None
     )
     |> Seq.filter filter
-    |> Seq.map (fun c -> sprintf "| C.%O" c.Code)
+    |> Seq.map (fun c -> $"| C.%O{c.Code}")
     |> String.concat "\n"
 
 let rec stackType (t: TypeReference) =

@@ -572,7 +572,7 @@ let executeStopScripts (thread: _ inref) scheduler (state: _ byref) (result: _ o
 
 
 [<MethodImpl(MethodImplOptions.NoInlining)>]
-let private raiseNotImplementedCode (i: _ inref) = raise <| NotImplementedException(sprintf "%A" i.code)
+let private raiseNotImplementedCode (i: _ inref) = raise <| NotImplementedException $"{i.code}"
 
 [<NoGcAllocation(AllocatableTypes = [|typeof<exn>|])>]
 let execute (task: _ byref) (threadInfo: _ inref) =
@@ -1008,9 +1008,9 @@ let execute (task: _ byref) (threadInfo: _ inref) =
     match result with
     | Return _ ->
         if not (Stack.isEmpty &state.flames) then
-            failwithf "error %A" state.flames
+            failwithf $"error {state.flames}"
         if not (Stack.isEmpty &state.data) then
-            failwithf "error %A" state.data
+            failwithf $"error {state.data}"
     | _ -> ()
 #endif
     task.environment.custom.OnLeaveExecute(&state, &result)
