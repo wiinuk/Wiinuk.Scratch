@@ -1,5 +1,5 @@
 ﻿#load "../../tests/analyzers/AssemblyAnalyzer.fsx"
-#load "../../.paket/load/netstandard2.0/Argu.fsx"
+#r "nuget: Argu"
 open System.IO
 open System.Text
 open System.Text.RegularExpressions

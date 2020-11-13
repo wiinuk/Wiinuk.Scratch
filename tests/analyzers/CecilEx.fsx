@@ -1,4 +1,4 @@
-﻿#load "../../.paket/load/netstandard2.0/Mono.Cecil.fsx"
+﻿#r "nuget: Mono.Cecil"
 #load "Print.fsx"
 open System
 open System.IO
