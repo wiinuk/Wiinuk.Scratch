@@ -1,4 +1,4 @@
-namespace Scratch.Primitives
+﻿namespace Scratch.Primitives
 
 type IGeneratorBuilder = inherit ISyntaxInfrastructure
 

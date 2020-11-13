@@ -1,4 +1,4 @@
-namespace Scratch.Primitives
+﻿namespace Scratch.Primitives
 open System
 open System.Text
 open System.Runtime.InteropServices

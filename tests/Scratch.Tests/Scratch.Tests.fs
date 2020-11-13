@@ -1,4 +1,4 @@
-module Scratch.Tests
+﻿module Scratch.Tests
 open System
 open FSharp.Reflection
 open Scratch.Ast

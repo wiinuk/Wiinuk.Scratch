@@ -1,4 +1,4 @@
-module Scratch.Transpiler.Format
+﻿module Scratch.Transpiler.Format
 open System
 open Scratch.Reflection
 open Scratch.Reflection.Expr

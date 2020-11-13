@@ -1,4 +1,4 @@
-module Scratch.Primitives.Fiber
+﻿module Scratch.Primitives.Fiber
 open System.Runtime.InteropServices
 open System.Collections.Generic
 

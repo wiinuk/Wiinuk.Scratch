@@ -1,4 +1,4 @@
-module Scratch.Executor.Blocks
+﻿module Scratch.Executor.Blocks
 open System
 open System.Text
 open Scratch

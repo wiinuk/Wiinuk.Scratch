@@ -1,4 +1,4 @@
-module Scratch.Primitives.Generator
+﻿module Scratch.Primitives.Generator
 open System.Runtime.InteropServices
 
 

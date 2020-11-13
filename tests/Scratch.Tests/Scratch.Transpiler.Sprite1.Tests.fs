@@ -1,4 +1,4 @@
-module Scratch.Transpiler.Tests
+﻿module Scratch.Transpiler.Tests
 open Xunit
 open Scratch
 open Scratch.Ast

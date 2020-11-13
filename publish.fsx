@@ -1,4 +1,4 @@
-#load "Shell.fsx"
+﻿#load "Shell.fsx"
 //#r "nuget: Argu"
 //open Argu
 open System.IO
