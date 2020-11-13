@@ -87,7 +87,7 @@ let rec generalizeType typeMap tvars = function
         | ValueNone ->
             match List.tryFindIndex (fun (_, vt) -> vt = var) tvars with
             | Some i -> T.GVar i
-            | None -> failwithf "freevar %A" t
+            | None -> failwithf $"freevar {t}"
 
 let generalize typeMap t =
     let tvars = freeVarsType typeMap [] t |> List.rev
@@ -221,7 +221,7 @@ let expressionLocation e = let (VTyped(state, _)) = Expression.state e in state
 let blockLocation (BlockExpression(state = VTyped(state, _))) = state
 
 let procedureType (ProcedureDefinition(name = n; parameters = ps)) = 
-    let n = sprintf "proc.<%s>" n
+    let n = $"proc.<{n}>"
     let pts = ps |> Seq.map (fun (ParameterDefinition(state = VTyped(_, t))) -> t) |> Seq.toList
     V.Named(n, pts)
 

@@ -1,4 +1,4 @@
-#if INTERACTIVE
+﻿#if INTERACTIVE
 [<AutoOpen>]
 #endif
 module Shell
@@ -13,7 +13,7 @@ exception ProcessException of ExitCode: int * ErrorLines: string seq * FileName:
     override e.Message =
         let nl = Environment.NewLine
         let message = String.concat nl e.ErrorLines
-        sprintf "Process terminated with exit code %d. `%s %s`%smessage:%s%s" e.ExitCode e.FileName e.Arguments nl message nl
+        $"Process terminated with exit code {e.ExitCode}. `%s{e.FileName} %s{e.Arguments}`%s{nl}message:%s{message}%s{nl}"
 
 type StartConfig = {
     priorityClass: ProcessPriorityClass

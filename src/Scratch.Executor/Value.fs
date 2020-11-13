@@ -143,10 +143,10 @@ type Value private (_number: double, _obj: obj) =
 
     [<NoGcAllocation(TreatAsNoAllocation = true)>]
     override v.ToString() =
-        if v.IsNumber then sprintf "SNumber(%0.17f)" v.NumberOrDefault
+        if v.IsNumber then $"SNumber(%0.17f{v.NumberOrDefault})"
         elif v.IsTrue then "SBool(true)"
         elif v.IsFalse then "SBool(false)"
-        else sprintf "SString(%A)" v.StringOrDefault
+        else $"SString({v.StringOrDefault})"
 
 module Value =
     module Tags =

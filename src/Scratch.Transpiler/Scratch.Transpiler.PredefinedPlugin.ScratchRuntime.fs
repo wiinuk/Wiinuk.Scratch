@@ -299,7 +299,7 @@ let scratchCallExpressions() = [
                     | _ -> None
                 )
                 |> Option.defaultWith (fun _ ->
-                    failwithf "invalid record field expr: %A" recordField
+                    failwithf $"invalid record field expr: {recordField}"
                 )
                 |> Field.recordFieldRaw
                 |> double

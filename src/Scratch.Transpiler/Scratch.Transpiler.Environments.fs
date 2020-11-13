@@ -174,12 +174,12 @@ module Error =
         |> Seq.mapi (fun i line -> struct(i + 1, line))
         |> Seq.filter (fun struct(l, _) -> p1.line - 1 <= l && l <= p2.line + 1)
         |> Seq.collect (fun struct(lineNumber, line) ->
-            let lineWithNum = sprintf "%4d | %s" lineNumber line
+            let lineWithNum = $"%4d{lineNumber} | %s{line}"
             if p1.line <= lineNumber && lineNumber <= p2.line then
                 let columnMin = if lineNumber = p1.line then p1.column + 1 else 1
                 let columnMax = if lineNumber = p2.line then p2.column else String.length line
                 let underLine = String.replicate (columnMin - 1) " " + String.replicate (columnMax - columnMin + 1) "^"
-                let messageLine = sprintf "     | %s" underLine
+                let messageLine = $"     | %s{underLine}"
                 [|
                     lineWithNum
                     messageLine
@@ -190,7 +190,7 @@ module Error =
 
     let locationText = function
         | None -> None
-        | Some { path = path; position1 = { line = line; column = column } } -> sprintf "%s(%d,%d)" path line column |> Some
+        | Some { path = path; position1 = { line = line; column = column } } -> $"%s{path}({line},{column})" |> Some
 
     let buildSourceText = function
         | None -> None
@@ -199,7 +199,7 @@ module Error =
             with _ -> None
 
     // TODO:
-    let buildError error = sprintf "%A" error
+    let buildError error = $"{error}"
 
     let transpileErrorNumber =
         let tag = Reflection.FSharpValue.PreComputeUnionTagReader typeof<TranspileErrorInfo>
@@ -211,11 +211,11 @@ module Error =
         let stack =
             match stack with
             | None -> ""
-            | Some st -> sprintf "--->\r\n%O\r\n<---\r\n" st
+            | Some st -> $"--->\r\n%O{st}\r\n<---\r\n"
                 
         let errorNumber = transpileErrorNumber error
         let locationText = locationText location |> Option.map (fun s -> s + ": ") |> Option.defaultValue ""
-        let exprText = sprintf "\r\nexpr: %s" <| (SourceCode.buildErrorText code)
+        let exprText = $"\r\nexpr: %s{SourceCode.buildErrorText code}"
 
         let sourceText =
             match buildSourceText location with

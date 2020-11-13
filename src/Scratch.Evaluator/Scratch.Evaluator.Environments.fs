@@ -243,9 +243,9 @@ module internal Internals =
                 | Expression(ComplexExpression(operator = n)) -> Symbol.name n
                 | Statements(BlockExpression _) -> "<%block>"
 
-            let arguments = arguments |> Map.toSeq |> Seq.map (fun (k, v) -> sprintf "%s=%A" k v) |> String.concat ","
+            let arguments = arguments |> Map.toSeq |> Seq.map (fun (k, v) -> $"%s{k}={v}") |> String.concat ","
 
-            sprintf "\r\n%s: %s.%s {%A}" (state.blockState.config.showState location) self.shared.objectName name arguments
+            $"\r\n%s{state.blockState.config.showState location}: %s{self.shared.objectName}.%s{name} {{{arguments}}}"
         )
         |> String.concat ""
         |> sprintf "%s: %s%s" (state.blockState.config.showState location) e
@@ -264,7 +264,7 @@ module internal Internals =
         | ValueNone ->
 
         if state.blockState.config.useVariableDefinitionCheck then
-            cfailwithf state location "list '%s' not found" name
+            cfailwithf state location $"list '%s{name}' not found"
         else
             // TODO:
             ResizeArray()
@@ -279,20 +279,20 @@ module internal Internals =
         | ValueNone ->
 
         if state.blockState.config.useVariableDefinitionCheck then
-            cfailwithf state location "variable '%s' not found" name
+            cfailwithf state location $"variable '%s{name}' not found"
         else
             // TODO:
             ref (SString "")
 
     let getProcedureOrRaise (state: _ inref) location name =
         match Map.tryFind name state.self.shared.procs with
-        | ValueNone -> cfailwithf state location "procedure '%s' not found" name
+        | ValueNone -> cfailwithf state location $"procedure '%s{name}' not found"
         | ValueSome proc -> proc
 
     let setCloudValue (state: _ inref) location name v =
         if not <| SValue.isCloudValue v then
             if state.blockState.config.useCloudValueCheck then
-                cfailwithf state location "invalid cloud value: serVar:to:, '%s' '%A'" name v
+                cfailwithf state location $"invalid cloud value: serVar:to:, '%s{name}' '{v}'"
         else
             Cloud.set &state.blockState.cloud name v
 
