@@ -33,8 +33,8 @@ module internal ToLinqExpression =
     module ConvertEnv =
         let errorf env e format =
             let cont m =
-                let path = env.epath |> Seq.rev |> Seq.map (fun struct(n, i) -> sprintf "%s.[%d]" n i) |> String.concat "."
-                failwithf "%A: %s; %A" path m e
+                let path = env.epath |> Seq.rev |> Seq.map (fun struct(n, i) -> $"%s{n}.[{i}]") |> String.concat "."
+                failwithf $"{path}: %s{m}; {e}"
 
             Printf.ksprintf cont format
 
@@ -45,7 +45,7 @@ module internal ToLinqExpression =
             if env.vars.TryGetValue(v, &result) then
                 result :> L
             else
-                errorf env e "free var: %A" v
+                errorf env e $"free var: {v}"
 
         let bind (v, v') env = { env with vars = Map.add v v' env.vars }
     open ConvertEnv
@@ -109,7 +109,7 @@ module internal ToLinqExpression =
             match V.PreComputeUnionTagMemberInfo(case.DeclaringType, allowAccessToPrivateRepresentation = true) with
             | :? PropertyInfo as p -> L.Property(e1, p) :> L
             | :? MethodInfo as m -> L.Call(m, e1) :> L
-            | m -> errorf env e "unknown UnionTagMember %A" m
+            | m -> errorf env e $"unknown UnionTagMember {m}"
 
         L.Equal(getTag, L.Constant case.Tag) :> L
 
@@ -268,7 +268,7 @@ let toLinqLambdaExpression e = ToLinqExpression.toFuncExpression e
 
 let showLocation = function
     | None -> "???(?,?)"
-    | Some x -> sprintf "%s(%d,%d)" x.path x.position1.line x.position1.column
+    | Some x -> $"%s{x.path}({x.position1.line},{x.position1.column})"
 
 let private exprLocationTable = System.Runtime.CompilerServices.ConditionalWeakTable()
 

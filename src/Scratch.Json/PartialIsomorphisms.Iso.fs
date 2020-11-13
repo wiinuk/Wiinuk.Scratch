@@ -126,7 +126,7 @@ with
 let singletonWith equals x = {
     SingletonWith.equals = OptimizedClosures.FSharpFunc<_,_,_>.Adapt equals
     value = x
-    errorMessage = sprintf "singletonWith(%A)" x
+    errorMessage = $"singletonWith({x})"
 }
 let singleton x = singletonWith (=) x
 

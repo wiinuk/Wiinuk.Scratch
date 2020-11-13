@@ -77,7 +77,7 @@ module Id =
         | "\"" -> "quot"
         | x -> x
     )
-    let naming phantom targetId name type' = create phantom <| sprintf "%s-%s-%s" targetId (escape name) type'
+    let naming phantom targetId name type' = create phantom <| $"%s{targetId}-%s{escape name}-%s{type'}"
     let createVariableId (topLevel, targetId) (globalVariableNameToId, name, type') =
         if topLevel then
             let freshName = naming the<VariableOrListPhantom> targetId name <| VariableType.namingText type'
@@ -116,7 +116,7 @@ module Color =
     /// 0x0099EE ⇒ "#0099ee"
     let numberToColorCode n =
         let x = if n < 0. then n + double 0xFFFFFF + 1. else n
-        sprintf "#%06x" <| int x
+        $"#%06x{int x}"
 
 module OpCodes =
     let [<Literal>] text = "text"
@@ -171,7 +171,7 @@ module Project =
                 | SType.S -> Op.text
                 | SType.B -> Op.boolean
 
-            InputArg(inputOp, sprintf "input%d" inputCount, None)
+            InputArg(inputOp, $"input{inputCount}", None)
             inputCount <- inputCount + 1
         ]
 
@@ -584,10 +584,7 @@ module Project =
         match operand with
         | Complex _
         | Block _ ->
-            failwithf "field operand must be literal.\nexpected field name: %A\nexpected variable type: %A\nactual operand: %A"
-                fieldName
-                variableType
-                operand
+            failwithf $"field operand must be literal.\nexpected field name: {fieldName}\nexpected variable type: {variableType}\nactual operand: {operand}"
 
         | Literal(_, operand) ->
 
@@ -896,7 +893,7 @@ module Project =
             match b.Value with
             | CompressedBlock.Complex _
             | Simple(DataVariable _ | DataListContents _) -> ()
-            | Simple _ -> failwithf "unexpected top level block: %A" b
+            | Simple _ -> failwithf $"unexpected top level block: {b}"
         blocks
 
     let inline private mapStageOrNone f = function
@@ -921,7 +918,7 @@ module Project =
                     ValueNone
 
             let rec fleshName xs baseName n =
-                let name = sprintf "%s%d" baseName n
+                let name = $"%s{baseName}{n}"
 
                 if has name xs
                 then fleshName xs baseName (n + 1)
@@ -944,7 +941,7 @@ module Project =
             | [|md5; ext|] when ext <> "" -> md5ext, md5, ext
             | parts ->
                 let ext = "png"
-                sprintf "%s.%s" md5ext ext, parts.[0], if md5ext = "." then "." + ext else ext
+                $"%s{md5ext}.%s{ext}", parts.[0], if md5ext = "." then "." + ext else ext
 
         {
             name = uniqueName acc costume.costumeName
