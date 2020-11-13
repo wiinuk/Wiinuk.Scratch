@@ -23,10 +23,10 @@ and N<[<Measure>]'u> = NWithUnit<'u>
 and [<Struct>] NWithUnit<[<Measure>]'u> = N of float<'u> with
     interface IWord with
         override x.Value = let (N x) = x in SNumber(double<float<'u>> x)
-    static member op_Implicit x = N x
-    static member op_Implicit x = N(LanguagePrimitives.FloatWithMeasure<'u0>(float<int<'u0>> x))
-    static member op_Implicit(N x) = x
-    static member op_Implicit(N x) = LanguagePrimitives.Int32WithMeasure<'u0>(Checked.int<float<'u0>> x)
+    static member op_Implicit< >(x: float<'u>) = N x
+    static member op_Implicit< >(x: int<'u>) = N(LanguagePrimitives.FloatWithMeasure<'u>(float<int<'u>> x))
+    static member op_Implicit< >(N x: N<'u>) = x
+    static member op_Implicit< >(N x: N<'u>) = LanguagePrimitives.Int32WithMeasure<'u>(Checked.int<float<'u>> x)
 
     static member (+) (N x, N y) = N(x + y)
     static member (-) (N x, N y) = N(x - y)
