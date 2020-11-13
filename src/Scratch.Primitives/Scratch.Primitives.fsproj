@@ -1,11 +1,6 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project Sdk="Microsoft.NET.Sdk">
-  <PropertyGroup>
-    <TargetFramework>netstandard2.0</TargetFramework>
-    <OtherFlags>--warnon:1182</OtherFlags>
-    <WarningLevel>5</WarningLevel>
-    <GenerateDocumentationFile>true</GenerateDocumentationFile>
-  </PropertyGroup>
+  <Import Project="..\..\LibraryBuildSettings.targets" />
   <ItemGroup>
     <Compile Include="types.fs" />
     <Compile Include="global.Map.fs" />

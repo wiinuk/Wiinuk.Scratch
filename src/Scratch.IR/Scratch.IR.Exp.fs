@@ -958,6 +958,7 @@ module ExpSmartConstructorExtensions =
             let xpos source = op source O.xpos []
             let ypos source = op source O.ypos []
 
+            /// <param name="source"></param>
             /// <param name="name">"_myself" | SpriteName</param>
             let createCloneOf source name = op source O.createCloneOf [string source name]
             let deleteClone source = op source O.deleteClone []
