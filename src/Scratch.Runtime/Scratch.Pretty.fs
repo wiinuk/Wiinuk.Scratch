@@ -1,4 +1,4 @@
-module Scratch.Pretty
+﻿module Scratch.Pretty
 open Scratch.Ast
 open Scratch.PrettyInternal
 open Scratch.Primitives

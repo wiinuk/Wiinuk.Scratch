@@ -1,4 +1,4 @@
-namespace Scratch.Primitives
+﻿namespace Scratch.Primitives
 
 [<Struct>]
 type FiberResult<'Y,'R> =

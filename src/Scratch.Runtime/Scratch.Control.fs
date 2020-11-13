@@ -1,4 +1,4 @@
-namespace rec Scratch
+﻿namespace rec Scratch
 open System
 open Scratch.Ast
 open Scratch.Primitives

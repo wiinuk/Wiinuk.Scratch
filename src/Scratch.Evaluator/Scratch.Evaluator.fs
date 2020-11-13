@@ -1,4 +1,4 @@
-[<AutoOpen>]
+﻿[<AutoOpen>]
 module Scratch.Evaluator.Evaluator
 open System
 open Scratch

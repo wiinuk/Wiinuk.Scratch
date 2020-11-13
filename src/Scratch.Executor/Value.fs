@@ -1,4 +1,4 @@
-namespace Scratch
+﻿namespace Scratch
 open NonStructuralComparison
 open System
 open System.Globalization

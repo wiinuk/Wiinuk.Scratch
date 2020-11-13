@@ -1,4 +1,4 @@
-namespace Scratch.IR.Transformers
+﻿namespace Scratch.IR.Transformers
 open Scratch.Ast
 open Scratch.IR
 open Scratch.Primitives

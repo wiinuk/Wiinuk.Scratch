@@ -1,4 +1,4 @@
-module Scratch.Transpiler.PredefinedPlugins
+ï»¿module Scratch.Transpiler.PredefinedPlugins
 open FSharp.Quotations
 open Scratch
 open Scratch.Ast.Transformers
@@ -68,7 +68,7 @@ module private Helpers =
             if includeV then
                 let count = count @+Location.merge l1 l2
 
-                // TODO: Substitute “à‚Ì v' ‚©‚ç i' ‚É location ‚ð“`”d‚³‚¹‚é
+                // TODO: Substitute å†…ã® v' ã‹ã‚‰ i' ã« location ã‚’ä¼æ’­ã•ã›ã‚‹
                 let i' = E.Var i :> Expr |> Some
                 let body = body.Substitute(fun v' -> if v' = v then i' else None) |> E.Cast<unit>
                 let body = <@ %body; %(E.VarSet(i, <@ %(E.Var i @+l) + 1 @> @+l) @+l) @> @+l

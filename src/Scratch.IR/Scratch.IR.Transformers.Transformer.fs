@@ -1,4 +1,4 @@
-module Scratch.IR.Transformers.Transformer
+﻿module Scratch.IR.Transformers.Transformer
 open Scratch.Ast
 open Scratch.Primitives
 open Scratch.Transformers

@@ -1,4 +1,4 @@
-[<AutoOpen>]
+﻿[<AutoOpen>]
 module Scratch.Transpiler.Main
 open System
 open Scratch

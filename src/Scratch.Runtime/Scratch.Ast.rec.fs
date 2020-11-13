@@ -1,4 +1,4 @@
-namespace rec Scratch.Ast
+﻿namespace rec Scratch.Ast
 open Scratch
 open Scratch.Ast
 open Scratch.Primitives
