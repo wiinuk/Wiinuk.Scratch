@@ -170,13 +170,13 @@ type Costume = {
     assetId: string
     name: string
     // e.g. 2
-    bitmapResolution: double
+    bitmapResolution: double optional
     // e.g. "b00b100000ea1000abee90000a7903ff.png"
-    md5ext: string
+    md5ext: string optional
     // e.g. "png"
     dataFormat: string
-    rotationCenterX: double
-    rotationCenterY: double
+    rotationCenterX: double optional
+    rotationCenterY: double optional
 }
 type Sound = {
     // e.g. "b00b100000ea1000abee90000a7903ff"
@@ -190,7 +190,7 @@ type Sound = {
     rate: double optional
     sampleCount: double optional
     // e.g. "b00b100000ea1000abee90000a7903ff.wav"
-    md5ext: string
+    md5ext: string optional
 }
 type RotationStyle =
     /// "all around"

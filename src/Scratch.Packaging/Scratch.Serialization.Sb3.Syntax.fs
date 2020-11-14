@@ -206,11 +206,11 @@ let jCostume =
     jObject (
         ("assetId", jString) @@
         ("name", jString) @@
-        ("bitmapResolution", jNumber) @@
-        ("md5ext", jString) @@
+        ("bitmapResolution", jNumber) @@?
+        ("md5ext", jString) @@?
         ("dataFormat", jString) @@
-        ("rotationCenterX", jNumber) @@
-        ("rotationCenterY", jNumber) @@
+        ("rotationCenterX", jNumber) @@?
+        ("rotationCenterY", jNumber) @@?
         jEmptyObject
     )
     |>> costume
@@ -259,7 +259,7 @@ let jSound =
         ("format", jString) @@?
         ("rate", jNumber) @@?
         ("sampleCount", jNumber) @@?
-        ("md5ext", jString) @@
+        ("md5ext", jString) @@?
         jEmptyObject
     )
     |>> sound
