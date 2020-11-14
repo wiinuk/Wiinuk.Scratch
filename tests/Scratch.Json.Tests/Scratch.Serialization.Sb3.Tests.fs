@@ -128,3 +128,45 @@ let jInputParseTest() =
     "[ 1, null ]"
         |> parse Sb3.jInput
         =? Ok(SameBlockShadow EmptyBlock)
+
+[<Fact>]
+let costumeParseTest() =
+    """
+    {
+        "assetId": "cd21514d0531fdffb22204e0ec5ed84a",
+        "name": "a",
+        "dataFormat": "svg"
+    }
+    """
+    |> parse Sb3.jCostume
+    =? Ok {
+        assetId = "cd21514d0531fdffb22204e0ec5ed84a"
+        name = "a"
+        dataFormat = "svg"
+
+        bitmapResolution = None
+        md5ext = None
+        rotationCenterX = None
+        rotationCenterY = None
+    }
+
+[<Fact>]
+let soundParseTest() =
+    """
+    {
+        "assetId": "83a9787d4cb6f3b7632b4ddfebf74367",
+        "name": "a",
+        "dataFormat": "wav"
+    }
+    """
+    |> parse Sb3.jSound
+    =? Ok {
+        assetId = "83a9787d4cb6f3b7632b4ddfebf74367"
+        name = "a"
+        dataFormat = "wav"
+
+        format = None
+        rate = None
+        sampleCount = None
+        md5ext = None
+    }
