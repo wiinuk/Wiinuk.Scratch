@@ -583,7 +583,7 @@ const messageType = messageSchema
 const startServer = (/** @type {{ port: number, silent: boolean, timeout: number }} */ { port, silent, timeout }) => {
     if (silent) { require("minilog").disable() }
 
-    const server = new Ws.Server({ port: port })
+    const server = new Ws.Server({ port })
     const timer = startAliveTimer(timeout, () => {
         server.clients.forEach(c => c.close())
         server.close()
@@ -594,7 +594,14 @@ const startServer = (/** @type {{ port: number, silent: boolean, timeout: number
         if (!silent) { console.log(...args) }
     }
 
-    log(`[server] starting server on port ${port}`)
+    const address = server.address()
+    if (typeof address === "string") {
+        log(`[server] starting server on ${address}`)
+    }
+    else {
+        if (port === 0) { console.log(`port: ${address.port}`) }
+        log(`[server] starting server on port ${address.port}`)
+    }
 
     const utf8 = new Util.TextDecoder("utf-8")
     server.on('connection', socket => {
