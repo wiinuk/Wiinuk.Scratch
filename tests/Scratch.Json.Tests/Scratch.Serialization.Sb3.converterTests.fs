@@ -216,6 +216,12 @@ module Helpers =
         }
     let scriptToStage (script: unit Ast.Script) = { Ast.StageData.defaultValue with scripts = [{ x = 0.; y = 0.; script = script }] }
 
+    let assertProjectEq p p' =
+        match p.targets, p'.targets with
+        | { blocks = bs }::_, { blocks = bs' }::_ -> bs =? bs'
+        | _ -> ()
+        p =? p'
+
     let (=?) l r =
         if not <| LanguagePrimitives.GenericEqualityER l r then
             let l, r = sprintf "%0A" l, sprintf "%0A" r
@@ -254,6 +260,56 @@ module CostumeData =
         { empty with
             baseLayerMD5 = "d41d8cd98f00b204e9800998ecf8427e.png"
         }
+
+module Target =
+    let defaultStage = {
+        isStage = true
+        name = "Stage"
+        variables = OMap.empty
+        lists = OMap.empty
+        broadcasts = OMap.empty
+        blocks = OMap.empty
+        comments = OMap.empty
+        currentCostume = 0.
+        costumes = []
+        sounds = []
+        volume = Some 100.
+        layerOrder = Some 0.
+        tempo = Some 60.
+        videoTransparency = Some 50.
+        videoState = Some VideoState.On
+        textToSpeechLanguage = Some(Some "en")
+
+        visible = None
+        x = None
+        y = None
+        size = None
+        direction = None
+        draggable = None
+        rotationStyle = None
+    }
+
+[<AutoOpen>]
+module AstHelpers =
+    open Scratch.Ast
+
+    let addDummyCostumeIfEmpty stage =
+        let addToEntity = function
+            | { EntityData.costumes = [] } as x -> { x with costumes = [CostumeData.dummy] }
+            | x -> x
+
+        { stage with
+            ObjectDataExtension =
+                { stage.ObjectDataExtension with
+                    StageDataExtension.children =
+                        [ for c in stage.ObjectDataExtension.children do
+                            match c with
+                            | Choice2Of3 sprite -> addToEntity sprite |> Choice2Of3
+                            | _ -> c
+                        ]
+                }
+        }
+        |> addToEntity
 
 namespace Scratch.Serialization.Sb3.Converter
 open Scratch
@@ -308,6 +364,53 @@ module Tests =
             }
         ]
 
+    [<Fact>]
+    let extensionTest() =
+        let extension s id args = ComplexExpression(s, Symbol.Extension, Expression.eString s id::args)
+        let translate_getTranslate s words language = extension s "translate_getTranslate" [words; language]
+        let translate_menu_languages s language = extension s "translate_menu_languages" [language]
+
+        translate_getTranslate ()
+            (Expression.eString () "Hello")
+            (translate_menu_languages () (Expression.eString () "sr") |> Expression.Complex)
+
+        |> Expression
+        |> scriptToStage
+        |> Project.ofStage
+        |> normalizeProject
+        =?
+        { Project.defaultValue with
+            targets = [
+                { Target.defaultStage with
+                    blocks = OMap.ofList [
+                        Id "1", Complex {
+                            ComplexBlock.defaultValue with
+                                opcode = Some "translate_getTranslate"
+                                inputs = OMap.ofList [
+                                    Id "WORDS", SameBlockShadow(Text(SString "Hello"))
+                                    Id "LANGUAGE", SameBlockShadow(BlockReference(Id "2"))
+                                ]
+                                topLevel = true
+                                x = Some 68.
+                                y = Some 80.
+                        }
+                        Id "2", Complex {
+                            ComplexBlock.defaultValue with
+                                opcode = Some "translate_menu_languages"
+                                parent = Some(Some(Id "1"))
+                                fields = OMap.ofList [
+                                    Id "languages", { value = SString "sr"; name = Some None }
+                                ]
+                                shadow = true
+                        }
+                    ]
+                }
+            ]
+            extensions = [
+                "translate"
+            ]
+        }
+
 type IpcTestFixture() =
     let client = AdaptorJs.startServerAndConnect() |> Async.RunSynchronously
     member _.AdaptorJsClient = client
@@ -316,30 +419,6 @@ type IpcTestFixture() =
 
 type IpcTests(fixture: IpcTestFixture) =
     let client = fixture.AdaptorJsClient
-
-    let assertProjectEq p p' =
-        match p.targets, p'.targets with
-        | { blocks = bs }::_, { blocks = bs' }::_ -> bs =? bs'
-        | _ -> ()
-        p =? p'
-
-    let addDummyCostumeIfEmpty stage =
-        let addToEntity = function
-            | { EntityData.costumes = [] } as x -> { x with costumes = [CostumeData.dummy] }
-            | x -> x
-
-        { stage with
-            ObjectDataExtension =
-                { stage.ObjectDataExtension with
-                    StageDataExtension.children =
-                        [ for c in stage.ObjectDataExtension.children do
-                            match c with
-                            | Choice2Of3 sprite -> addToEntity sprite |> Choice2Of3
-                            | _ -> c
-                        ]
-                }
-        }
-        |> addToEntity
 
     let sb3NormalizeStageProperty (stage: unit StageData) =
         let stage = addDummyCostumeIfEmpty stage
