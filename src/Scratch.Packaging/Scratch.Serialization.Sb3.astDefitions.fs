@@ -945,10 +945,10 @@ module Project =
 
         {
             name = uniqueName acc costume.costumeName
-            bitmapResolution = bitmapResolution
-            rotationCenterX = if isStage then 240. * bitmapResolution else costume.rotationCenterX
-            rotationCenterY = if isStage then 180. * bitmapResolution else costume.rotationCenterY
-            md5ext = md5ext
+            bitmapResolution = Some bitmapResolution
+            rotationCenterX = Some <| if isStage then 240. * bitmapResolution else costume.rotationCenterX
+            rotationCenterY = Some <| if isStage then 180. * bitmapResolution else costume.rotationCenterY
+            md5ext = Some md5ext
             dataFormat = ext.ToLowerInvariant()
             assetId = md5
         }::acc
@@ -965,7 +965,7 @@ module Project =
             rate = sound.rate |> Option.map SoundRate.toNumber
             sampleCount = sound.sampleCount
 
-            md5ext = md5ext
+            md5ext = Some md5ext
             //data = None
             dataFormat = ext
             assetId = md5
