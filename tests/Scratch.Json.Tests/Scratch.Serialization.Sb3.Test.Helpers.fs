@@ -149,8 +149,16 @@ module AdaptorJs =
             member x.Dispose() = x.Dispose() |> Async.RunSynchronously
 
     let startServerAndConnect() = async {
-        let port = 55523
-        do! Shell.startAsync "node \"%s\" start-server --port %d --silent" adaptorJsPath port |> Async.StartChild |> Async.Ignore
+        let onPortReceive = Event<_>()
+        let portPattern = System.Text.RegularExpressions.Regex @"^port: (\d+)"
+        let checkPort input =
+            if portPattern.IsMatch input then
+                portPattern.Replace(input, "$1")
+                |> int
+                |> onPortReceive.Trigger
+
+        do! Shell.startWithAsync (fun c -> { c with onOut = fun x -> checkPort x; c.onOut x }) "node \"%s\" start-server --port 0 --silent" adaptorJsPath |> Async.StartChild |> Async.Ignore
+        let! port = Async.AwaitEvent onPortReceive.Publish
         let! client = IpcClient.connect <| sprintf "ws://localhost:%d" port
         return {
             ipcClient = client
