@@ -71,7 +71,7 @@ let writeSb2PackageToStream stream packageData =
 
 let writeSb3PackageToStream stream packageData =
     fixAndWritePackageToStream stream packageData <| fun zip packageData ->
-        let packageData = PackageData.withProject (Sb3.Project.ofStage packageData.project) packageData
+        let packageData = PackageData.withProject (Sb3.Project.ofStage id packageData.project) packageData
         writePackage zip sb3ResourceNaming packageData Sb3.Syntax.jProject
 
 let writeSb2Package sb2Path packageData = async {
