@@ -1,4 +1,4 @@
-﻿namespace Scratch.Serialization.Sb3
+namespace Scratch.Serialization.Sb3
 open Scratch
 open Scratch.Primitives
 open Scratch.Serialization.Sb3.Ast
@@ -783,7 +783,7 @@ module Project =
         fields
         |> OMap.map (fun _ field -> {
             value = field.value
-            name = field.id |> Option.map Some
+            name = field.id
         })
 
     let simplifyBlock block =

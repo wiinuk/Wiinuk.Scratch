@@ -1,4 +1,4 @@
-﻿namespace Scratch.Serialization.Sb3.Converter.Test
+namespace Scratch.Serialization.Sb3.Converter.Test
 open Scratch
 open Scratch.Serialization.Sb3
 open Scratch.Serialization.Sb3.Ast
@@ -161,7 +161,7 @@ module Helpers =
                     match variableType with
                     | ValueSome t ->
                         let renameId =
-                            let renameIdInField rename state x = x |> Option.map (Option.map (Id.create the<_> >> rename state >> Id.toString))
+                            let renameIdInField rename state x = x |> Option.map (Id.create the<_> >> rename state >> Id.toString)
                             match t with
                             | VariableType.BroadcastMessage -> renameIdInField renameBroadcastId
                             | VariableType.List -> renameIdInField renameListId

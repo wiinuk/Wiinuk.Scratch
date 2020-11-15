@@ -114,7 +114,7 @@ type Input = SimpleBlock
 //      ["broadcastName", "broadcastMsgId-broadcastName"]
 type Field = {
     value: SValue
-    name: string nullable optional
+    name: string optional
 }
 
 type Mutation = {

@@ -1,4 +1,4 @@
-﻿module Scratch.Serialization.Sb3.Syntax
+module Scratch.Serialization.Sb3.Syntax
 open System.Collections.Generic
 open Scratch
 open Scratch.Primitives
@@ -142,7 +142,7 @@ let jSimpleBlock =
 let jInput = jSimpleBlock
 
 let field = isoFromRecord <@ fun r -> r.value^^r.name^^HUnit @>
-let jField = jArray (jSValue ** jNullable jString **? jEmptyArray) |>> field
+let jField = jArray (jSValue ** jString **? jEmptyArray) |>> field
 
 let mutation = isoFromRecord <@ fun r -> r.tagName^^r.children^^r.proccode^^r.argumentids^^r.argumentdefaults^^r.argumentnames^^r.warp^^r.hasnext^^HUnit @>
 let jMutation =
