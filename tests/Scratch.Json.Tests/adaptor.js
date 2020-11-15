@@ -203,6 +203,32 @@ const writeSb2Spec = async ({ path }) => {
     console.log(`wrote: ${Path.resolve(path)}`)
 }
 
+const writeExtensionSpec = async (/** @type {Readonly<{ path: string }>} */ { path }) => {
+    // from https://github.com/LLK/scratch-vm/blob/c6b63a8f096b398341daf27b3fa10817e3ef29d5/src/extension-support/extension-manager.js#L11
+    const extensionNames = [
+        "pen",
+        "wedo2",
+        "music",
+        "microbit",
+        "text2speech",
+        "translate",
+        "video_sensing",
+        "ev3",
+        "makeymakey",
+        "boost",
+        "gdx_for",
+    ]
+    const extensionsDirPath = Path.resolve(Path.join(require.resolve("scratch-vm/src/extensions/scratch3_pen"), "../.."))
+
+    globalThis.navigator = /** @type {any} */ ({ languages: [] })
+    const runtime = new Runtime()
+    const xs = extensionNames.map(name => {
+        const Extension = require(Path.join(extensionsDirPath, `scratch3_${name}`))
+        return new Extension(runtime).getInfo()
+    })
+    await Fs.writeFile(path, JSON.stringify(xs))
+}
+
 let createInnerArgv = () => Yargs()
     .command(
         ["roundtrip-json <jsonPath>"],
@@ -237,6 +263,12 @@ let createInnerArgv = () => Yargs()
             .positional("packagePath", { type: "string", demandOption: true })
             .option("outPath", { type: "string" }),
         packageToSb3File
+    )
+    .command(
+        ["write-extension-specs <path>"],
+        "Write extension specs json file",
+        p => p.positional("path", { type: "string", demandOption: true }),
+        async ({ path }) => writeExtensionSpec({ path })
     )
     .demandCommand(1)
     .help()
