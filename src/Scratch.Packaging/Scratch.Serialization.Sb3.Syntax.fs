@@ -1,4 +1,4 @@
-module Scratch.Serialization.Sb3.Syntax
+﻿module Scratch.Serialization.Sb3.Syntax
 open System.Collections.Generic
 open Scratch
 open Scratch.Primitives
@@ -49,7 +49,7 @@ let jOMapWith keyMapping value =
             let! kvs =
                 OMap.toSeqOrdered map
                 |> Result.mapSeq (fun kv -> result {
-                    let! k = keyMapping.reverse kv.Key 
+                    let! k = keyMapping.reverse kv.Key
                     return KeyValuePair(k, kv.Value)
                 })
             return IArray.ofSeq kvs
@@ -305,7 +305,7 @@ let jTarget =
         ("currentCostume", jNumber) @@
         ("costumes", jList jCostume) @@
         ("sounds", jList jSound) @@
-        
+
         ("volume", jNumber) @@?
         ("layerOrder", jNumber) @@?
         ("tempo", jNumber) @@?
