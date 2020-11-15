@@ -146,7 +146,7 @@ type StageToProjectConfig = {
 }
 module StageToProjectConfig =
     let defaultValue = {
-        extensionSpec = fun _ -> ValueNone
+        extensionSpec = fun _ -> Map.tryFind x.id KnownExtensionSpecMap.knownBlockSpecs
     }
 
 module Project =
