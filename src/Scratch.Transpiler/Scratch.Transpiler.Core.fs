@@ -683,7 +683,7 @@ and transpileIfExpression senv testE ifTrueE ifFalseE source =
 and transpilePropertyOrVarGetExpression senv k source =
     let s = lookupSpec k senv.e
     if OutputLevel.Debug <= (get FConfig senv.e).outputLevel then
-        printfn "  PropertyOrVarGet %A -> %A -> %A" (SourceCode.buildText source) k s
+        printfn $"  PropertyOrVarGet %A{SourceCode.buildText source} -> %A{k} -> %A{s}"
 
     let l = SourceCode.tag source
     match s with
@@ -730,8 +730,8 @@ let transpileProcedureSpec export inlining var (procedureThis, parameters) body 
     }
 
 let private printProcedure spec source =
-    let varName = sprintf "%A -> " spec.procedureVar
-    let paramNames = spec.parameters |> Seq.map (fun { parameterIRVar = v } -> sprintf "%A" v) |> String.concat " "
+    let varName = $"%A{spec.procedureVar} -> "
+    let paramNames = spec.parameters |> Seq.map (fun { parameterIRVar = v } -> $"%A{v}") |> String.concat " "
     let location = SourceCode.location source |> locationText |> Option.defaultValue ""
     printfn "%s %s %s" varName paramNames location
 

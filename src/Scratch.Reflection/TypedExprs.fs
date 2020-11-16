@@ -15,7 +15,7 @@ module TypedExpr =
     [<RequiresExplicitTypeArguments>]
     let CastVar<'T> (untypedVar: Var) =
         if typeof<'T> <> untypedVar.Type then
-            sprintf "untypedVar: %A = type: %s" untypedVar typeof<'T>.FullName
+            $"untypedVar: %A{untypedVar} = type: {typeof<'T>.FullName}"
             |> InvalidCastException
             |> raise
 

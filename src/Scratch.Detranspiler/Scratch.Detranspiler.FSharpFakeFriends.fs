@@ -16,12 +16,12 @@ module private InteralMemberInfos =
     let allowAccessToPrivateMember = B.Instance ||| B.Static ||| B.Public ||| B.NonPublic
     let (|Method|) name (t: Type) =
         match t.GetMethod(name, allowAccessToPrivateMember) with
-        | null -> failwithf "method not found: %s :: %s" t.FullName name
+        | null -> failwith $"method not found: {t.FullName} :: {name}"
         | x -> x
 
     let (|Property|) name (t: Type) =
         match t.GetProperty(name, allowAccessToPrivateMember) with
-        | null -> failwithf "property not found: %s :: %s" t.FullName name
+        | null -> failwith $"property not found: {t.FullName} :: {name}"
         | x -> x
 
     /// FSharp.Compiler.Service.dll

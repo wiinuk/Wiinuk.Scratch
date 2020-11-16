@@ -286,7 +286,7 @@ let opcodes filter =
         | _ -> None
     )
     |> Seq.filter filter
-    |> Seq.map (fun c -> sprintf "| C.%O" c.Code)
+    |> Seq.map (fun c -> $"| C.{c.Code}")
     |> String.concat "\n"
 
 let rec stackType (t: TypeReference) =

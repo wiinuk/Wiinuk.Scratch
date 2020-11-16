@@ -50,12 +50,12 @@ let printParsingException source (e: JsonParsingException) =
         |> Seq.mapi (fun i line -> struct(i + 1, line))
         |> Seq.filter (fun struct(l, _) -> p1.line - 1 <= l && l <= p2.line + 1)
         |> Seq.collect (fun struct(lineNumber, line) ->
-            let lineWithNum = sprintf "%4d | %s" lineNumber line
+            let lineWithNum = $"%4d{lineNumber} | {line}"
             if p1.line <= lineNumber && lineNumber <= p2.line then
                 let columnMin = if lineNumber = p1.line then p1.column + 1 else 1
                 let columnMax = if lineNumber = p2.line then p2.column else String.length line
                 let underLine = String.replicate (columnMin - 1) " " + String.replicate (columnMax - columnMin + 1) "^"
-                let messageLine = sprintf "     | %s" underLine
+                let messageLine = $"     | {underLine}"
                 [|
                     lineWithNum
                     messageLine
@@ -68,7 +68,7 @@ let printParsingException source (e: JsonParsingException) =
     let position = indexToPosition source offset
     let sourceLines = source.Split '\n'
     let sourceText = sourceLines |> buildSourceTextCore position { position with column = position.column + 1 }
-    printfn "(%d, %d): %s, offset: %d actualChar: %A" position.line position.column e.Message e.Offset e.ActualChar
+    printfn $"({position.line}, {position.column}): {e.Message}, offset: {e.Offset} actualChar: %A{e.ActualChar}"
     for line in sourceText do
         printfn "%s" line
 

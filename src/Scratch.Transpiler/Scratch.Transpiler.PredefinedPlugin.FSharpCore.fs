@@ -275,7 +275,7 @@ let fsharpCoreCallExpressions() = [
         match args with
         | None, _, [E.Coerce(E.NewObject(ctor, [E.String path; E.Int32 line; E.Int32 column]), _)] when ctor.DeclaringType = typeof<MatchFailureException> ->
             let s = SourceCode.ofExpr e
-            let m = Exp.string (SourceCode.tag s) <| sprintf "MatchFailureException(%A, %d, %d)" path line column
+            let m = Exp.string (SourceCode.tag s) $"MatchFailureException(%A{path}, {line}, {column})"
             let out = outString (localOutEnv senv true s s) s true m
             let! stop = stopAsAnyValue senv.e s e.Type
             return Exp.seq (SourceCode.tag s) out stop

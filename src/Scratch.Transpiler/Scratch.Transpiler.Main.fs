@@ -65,8 +65,8 @@ let defaultConfig =
         spriteName = fun t -> token t.Name
 
         typeName = typeName
-        unionCaseName = fun u -> sprintf "%s.%s" (typeName u.DeclaringType) (token u.Name)
-        unionCaseFieldName = fun (UnionCaseFieldInfo(fieldIndex = i)) -> sprintf "%d" i
+        unionCaseName = fun u -> $"{typeName u.DeclaringType}.{token u.Name}"
+        unionCaseFieldName = fun (UnionCaseFieldInfo(fieldIndex = i)) -> $"{i}"
         unionCaseTagName = "tag"
         unionCaseUnifiedFieldName = fun (n1, n2, ns) ->
             match List.distinct (n1::n2::ns) with

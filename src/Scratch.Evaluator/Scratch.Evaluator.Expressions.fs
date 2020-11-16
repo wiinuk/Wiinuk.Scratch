@@ -19,7 +19,7 @@ let letterOf (state: _ inref) location s n =
 
     if 1 <= n && n <= String.length s then SString(string s.[n - 1])
     elif state.blockState.config.useRangeCheck then
-        cfailwithf state location "out of range: letter:of: %s %d" s n
+        cfailwithf state location $"out of range: letter:of: {s} {n}"
     else
         sEmptyString
 
@@ -105,7 +105,7 @@ and evaluateComplexExpression (state: _ inref) (ComplexExpression(location, op, 
         match Map.tryFind name state.args with
         | ValueNone ->
             if state.blockState.config.useVariableDefinitionCheck then
-                cfailwithf state location "parameter '%s' not found" name
+                cfailwithf state location $"parameter '{name}' not found"
             else
                 // TODO:
                 sEmptyString
@@ -135,7 +135,7 @@ and evaluateComplexExpression (state: _ inref) (ComplexExpression(location, op, 
 
         if 1 <= n && n <= xs.Count then xs.[n - 1]
         elif state.blockState.config.useRangeCheck then
-            cfailwithf state location "out of range: %s '%s' '%A'" (Symbol.name op) name n
+            cfailwithf state location $"out of range: {Symbol.name op} '{name}' '{n}'"
         else
             sEmptyString
 
@@ -160,17 +160,17 @@ and evaluateComplexExpression (state: _ inref) (ComplexExpression(location, op, 
     | O.xpos, [] ->
        match state.self.sprite with
        | ValueSome sprite -> SNumber sprite.spriteDrawingData.x
-       | ValueNone -> cfailwithf state location "sprite only: %s" (Symbol.name op)
+       | ValueNone -> cfailwithf state location $"sprite only: {Symbol.name op}"
 
     | O.ypos, [] ->
         match state.self.sprite with
         | ValueSome sprite -> SNumber sprite.spriteDrawingData.y
-        | ValueNone -> cfailwithf state location "sprite only: %s" (Symbol.name op)
+        | ValueNone -> cfailwithf state location $"sprite only: {Symbol.name op}"
 
     | O.heading, _ ->
         match state.self.sprite with
         | ValueSome sprite -> SNumber sprite.spriteDrawingData.direction
-        | ValueNone -> cfailwithf state location "sprite only: %s" (Symbol.name op)
+        | ValueNone -> cfailwithf state location $"sprite only: {Symbol.name op}"
 
     | O.costumeIndex, _ ->
         SNumber(double (state.self.drawingData.currentCostumeIndex + 1))
@@ -253,7 +253,7 @@ and evaluateComplexExpression (state: _ inref) (ComplexExpression(location, op, 
         let target = evaluateExpression &state target
         match state.self.sprite with
         | ValueSome sprite -> SNumber(distanceTo &state sprite target)
-        | ValueNone -> cfailwithf state location "sprite only: %s" (Symbol.name op)
+        | ValueNone -> cfailwithf state location $"sprite only: {Symbol.name op}"
 
     | O.timestamp, [] ->
         let span = Scheduler.now state.blockState.scheduler - timeStampEpoch
@@ -310,4 +310,4 @@ and evaluateComplexExpression (state: _ inref) (ComplexExpression(location, op, 
         | SString "any" -> SBool(state.blockState.input.IsAnyKeyDown())
         | _ -> SBool(state.blockState.input.IsKeyDown(KeyCode.getKeyCode key))
 
-    | opxs -> cfailwithf state location "not implemented: %A" opxs
+    | opxs -> cfailwithf state location $"not implemented: %A{opxs}"
