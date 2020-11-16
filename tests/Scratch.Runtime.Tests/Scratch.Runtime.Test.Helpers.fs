@@ -142,6 +142,7 @@ let complexExpressionArb wrapSymbol (|UnwrapSymbol|) =
         | OperandType.ParameterName -> stringLiteralGen
         | OperandType.StringLiterals ss -> stringsGen ss
         | OperandType.ProcedureNameAndExpressions -> procedureNameAndValueExpressionsGen
+        | OperandType.ExtensionNameAndExpressions as t -> failwith $"invalid operand type: %A{t}"
 
     let g = gen {
         let! state = Arb.generate<_>
@@ -211,6 +212,7 @@ let complexExpressionArb wrapSymbol (|UnwrapSymbol|) =
             | OperandType.Block, _
             | OperandType.Variable, _
             | OperandType.ProcedureNameAndExpressions, _
+            | OperandType.ExtensionNameAndExpressions, _
             | OperandType.ParameterName, _
             | OperandType.StringLiterals _, _
             | OperandType.ListVariableExpression _, _
