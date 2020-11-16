@@ -186,7 +186,7 @@ let scratchCallExpressions() = [
         then
             transpileExpression senv e1
         else
-            InvelidImplicitConvertionType(t1, t2) |> raiseError s
+            InvelidImplicitConversionType(t1, t2) |> raiseError s
 
     single <@@ Scratch.MemoryModel.Operators.(.=) @@> binaryWithS <| fun senv e1 e2 s -> context {
         let! x1 = transpilePrimitiveExpression senv e1
