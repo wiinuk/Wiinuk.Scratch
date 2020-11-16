@@ -49,7 +49,7 @@ let jOMapWith keyMapping value =
             let! kvs =
                 OMap.toSeqOrdered map
                 |> Result.mapSeq (fun kv -> result {
-                    let! k = keyMapping.reverse kv.Key 
+                    let! k = keyMapping.reverse kv.Key
                     return KeyValuePair(k, kv.Value)
                 })
             return IArray.ofSeq kvs
@@ -142,7 +142,7 @@ let jSimpleBlock =
 let jInput = jSimpleBlock
 
 let field = isoFromRecord <@ fun r -> r.value^^r.name^^HUnit @>
-let jField = jArray (jSValue ** jNullable jString **? jEmptyArray) |>> field
+let jField = jArray (jSValue ** jString **? jEmptyArray) |>> field
 
 let mutation = isoFromRecord <@ fun r -> r.tagName^^r.children^^r.proccode^^r.argumentids^^r.argumentdefaults^^r.argumentnames^^r.warp^^r.hasnext^^HUnit @>
 let jMutation =
@@ -305,7 +305,7 @@ let jTarget =
         ("currentCostume", jNumber) @@
         ("costumes", jList jCostume) @@
         ("sounds", jList jSound) @@
-        
+
         ("volume", jNumber) @@?
         ("layerOrder", jNumber) @@?
         ("tempo", jNumber) @@?

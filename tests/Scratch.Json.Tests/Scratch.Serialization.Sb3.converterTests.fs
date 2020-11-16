@@ -161,7 +161,7 @@ module Helpers =
                     match variableType with
                     | ValueSome t ->
                         let renameId =
-                            let renameIdInField rename state x = x |> Option.map (Option.map (Id.create the<_> >> rename state >> Id.toString))
+                            let renameIdInField rename state x = x |> Option.map (Id.create the<_> >> rename state >> Id.toString)
                             match t with
                             | VariableType.BroadcastMessage -> renameIdInField renameBroadcastId
                             | VariableType.List -> renameIdInField renameListId
@@ -234,6 +234,12 @@ module Helpers =
 
             Assert.True(false, sprintf "diff:\n%s\nl:\n%s\nr:\n%s" diffText l r)
 
+    let assertProjectEq p p' =
+        match p.targets, p'.targets with
+        | { blocks = bs }::_, { blocks = bs' }::_ -> bs =? bs'
+        | _ -> ()
+        p =? p'
+
     let qcheckWith = Scratch.Json.Tests.qcheckWith
     let qcheck = Scratch.Json.Tests.qcheck
 
@@ -255,11 +261,62 @@ module CostumeData =
             baseLayerMD5 = "d41d8cd98f00b204e9800998ecf8427e.png"
         }
 
+module Target =
+    let defaultStage = {
+        isStage = true
+        name = "Stage"
+        variables = OMap.empty
+        lists = OMap.empty
+        broadcasts = OMap.empty
+        blocks = OMap.empty
+        comments = OMap.empty
+        currentCostume = 0.
+        costumes = []
+        sounds = []
+        volume = Some 100.
+        layerOrder = None
+        tempo = Some 60.
+        videoTransparency = Some 50.
+        videoState = Some VideoState.On
+        textToSpeechLanguage = Some None
+
+        visible = None
+        x = None
+        y = None
+        size = None
+        direction = None
+        draggable = None
+        rotationStyle = None
+    }
+
+[<AutoOpen>]
+module AstHelpers =
+    open Scratch.Ast
+
+    let addDummyCostumeIfEmpty stage =
+        let addToEntity = function
+            | { EntityData.costumes = [] } as x -> { x with costumes = [CostumeData.dummy] }
+            | x -> x
+
+        { stage with
+            ObjectDataExtension =
+                { stage.ObjectDataExtension with
+                    StageDataExtension.children =
+                        [ for c in stage.ObjectDataExtension.children do
+                            match c with
+                            | Choice2Of3 sprite -> addToEntity sprite |> Choice2Of3
+                            | _ -> c
+                        ]
+                }
+        }
+        |> addToEntity
+
 namespace Scratch.Serialization.Sb3.Converter
 open Scratch
 open Scratch.Ast
 open Scratch.Packaging
 open Scratch.Primitives
+open Scratch.Runtime.Test.Helpers
 open Scratch.Serialization.Sb3
 open Scratch.Serialization.Sb3.Ast
 open Scratch.Serialization.Sb3.Test.Helpers
@@ -286,7 +343,7 @@ module Tests =
             { StageData.defaultValue with
                 scripts = [{ x = 0.; y = 0.; script = Expression e }]
             }
-            |> Project.ofStage
+            |> Project.ofStage id
             |> normalizeProject
 
         sb3Project.targets.[0].blocks =? OMap.ofSeq [
@@ -317,33 +374,9 @@ type IpcTestFixture() =
 type IpcTests(fixture: IpcTestFixture) =
     let client = fixture.AdaptorJsClient
 
-    let assertProjectEq p p' =
-        match p.targets, p'.targets with
-        | { blocks = bs }::_, { blocks = bs' }::_ -> bs =? bs'
-        | _ -> ()
-        p =? p'
-
-    let addDummyCostumeIfEmpty stage =
-        let addToEntity = function
-            | { EntityData.costumes = [] } as x -> { x with costumes = [CostumeData.dummy] }
-            | x -> x
-
-        { stage with
-            ObjectDataExtension =
-                { stage.ObjectDataExtension with
-                    StageDataExtension.children =
-                        [ for c in stage.ObjectDataExtension.children do
-                            match c with
-                            | Choice2Of3 sprite -> addToEntity sprite |> Choice2Of3
-                            | _ -> c
-                        ]
-                }
-        }
-        |> addToEntity
-
     let sb3NormalizeStageProperty (stage: unit StageData) =
         let stage = addDummyCostumeIfEmpty stage
-        let sb3Project = Project.ofStage stage |> AdaptorJs.sb3ToSb3By client |> Async.RunSynchronously |> normalizeProject
+        let sb3Project = Project.ofStage id stage |> AdaptorJs.sb3ToSb3By client |> Async.RunSynchronously |> normalizeProject
         let sb3Project' = sb3Project |> AdaptorJs.sb3ToSb3By client |> Async.RunSynchronously |> normalizeProject
 
         assertProjectEq sb3Project sb3Project'
@@ -352,7 +385,7 @@ type IpcTests(fixture: IpcTestFixture) =
 
     let exportStageToSb3Property (stage: unit StageData) =
         let stage = addDummyCostumeIfEmpty stage
-        let sb3ProjectFromFs = Project.ofStage stage
+        let sb3ProjectFromFs = Project.ofStage id stage
         let sb3ProjectFromJs = AdaptorJs.sb2ToSb3By client stage |> Async.RunSynchronously
 
         assertProjectEq (normalizeProject sb3ProjectFromFs) (normalizeProject sb3ProjectFromJs)
@@ -734,3 +767,68 @@ type IpcTests(fixture: IpcTestFixture) =
             sounds = []
         }
         |> sb3BytesSaveAndLoadProperty
+
+type ExtensionTests(fixture: IpcTestFixture) =
+    let extension s id args = ComplexExpression(s, Symbol.Extension, Expression.eString s id::args)
+    let translate_getTranslate s words language = extension s "translate_getTranslate" [words; language]
+
+    let sb3ScriptRoundtripProperty script =
+        let stage = script |> scriptToStage 
+        let project = addDummyCostumeIfEmpty stage |> Project.ofStage id
+        let project' = project |> AdaptorJs.sb3ToSb3By fixture.AdaptorJsClient |> Async.RunSynchronously
+        assertProjectEq (normalizeProject project) (normalizeProject project')
+
+    interface IClassFixture<IpcTestFixture>
+
+    [<Fact>]
+    member _.getTranslateTest() =
+        let act =
+            translate_getTranslate ()
+                (Expression.eString () "Hello")
+                (Expression.eString () "sr")
+
+        let exp =
+            { Project.defaultValue with
+                targets = [
+                    { Target.defaultStage with
+                        blocks = OMap.ofList [
+                            Id "1", Complex {
+                                ComplexBlock.defaultValue with
+                                    opcode = Some "translate_getTranslate"
+                                    inputs = OMap.ofList [
+                                        Id "WORDS", SameBlockShadow(Text(SString "Hello"))
+                                        Id "LANGUAGE", SameBlockShadow(BlockReference(Id "2"))
+                                    ]
+                                    topLevel = true
+                                    x = Some 0.
+                                    y = Some 0.
+                            }
+                            Id "2", Complex {
+                                ComplexBlock.defaultValue with
+                                    opcode = Some "translate_menu_languages"
+                                    parent = Some(Some(Id "1"))
+                                    fields = OMap.ofList [
+                                        Id "languages", { value = SString "sr"; name = None }
+                                    ]
+                                    shadow = true
+                            }
+                        ]
+                    }
+                ]
+                extensions = [
+                    "translate"
+                ]
+            }
+
+        act
+        |> Expression
+        |> scriptToStage
+        |> Project.ofStage id
+        |> normalizeProject
+        |> fun act -> assertProjectEq act exp
+
+    [<Fact>]
+    member _.getTranslatePropertyTest() = qcheck <| fun (KnownValueComplexExpression word) (KnownValueComplexExpression language) ->
+        translate_getTranslate () (Expression.Complex word) (Expression.Complex language)
+        |> Expression
+        |> sb3ScriptRoundtripProperty

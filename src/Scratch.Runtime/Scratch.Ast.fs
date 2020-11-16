@@ -226,7 +226,9 @@ type Symbol =
     | whenKeyPressed = 142uy
     | whenSceneStarts = 143uy
 
-    | KNOWN_MAX = 143uy
+    | Extension = 144uy
+
+    | KNOWN_MAX = 144uy
 
 type O = Symbol
 
@@ -316,6 +318,7 @@ type OperandType<'t> =
     | ListVariableExpression of itemType: 't
     | ParameterName
     | ProcedureNameAndExpressions
+    | ExtensionNameAndExpressions
     | StringLiterals of string Set
     | Block
 

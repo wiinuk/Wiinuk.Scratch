@@ -49,8 +49,8 @@ module Mutation =
 module Meta =
     let defaultValue = {
         semver = "3.0.0"
-        vm = "0.2.0"
-        agent = "none"
+        vm = "0.0.0"
+        agent = ""
     }
 
 module VariableType =
@@ -140,6 +140,15 @@ module OpCodes =
     let [<Literal>] ``videoSensing.menu.SUBJECT`` = "videoSensing.menu.SUBJECT"
     let [<Literal>] ``videoSensing.menu.VIDEO_STATE`` = "videoSensing.menu.VIDEO_STATE"
 
+[<Struct>]
+type StageToProjectConfig = {
+    extensionSpec: struct {| id: string |} -> BlockInfo voption
+}
+module StageToProjectConfig =
+    let defaultValue = {
+        extensionSpec = fun x -> Map.tryFind x.id KnownExtensionSpecMap.knownBlockSpecs
+    }
+
 module Project =
     open Scratch.Ast
     open Scratch.AstDefinitions
@@ -175,9 +184,17 @@ module Project =
             inputCount <- inputCount + 1
         ]
 
-    let blockSpecFromOperator operator = Map.tryFind operator sb2ExpressionSpecs
-    let blockSpecFromExpression (ComplexExpression(operator = operator) as expression) =
-        blockSpecFromOperator operator
+    let blockSpecFromOperator config operator operands =
+        match operator with
+        | O.Extension ->
+            match operands with
+            | Literal(_, SString id)::_ -> config.extensionSpec {| id = id |}
+            | _ -> ValueNone
+
+        | _ -> Map.tryFind operator sb2ExpressionSpecs
+
+    let blockSpecFromExpression config (ComplexExpression(operator = operator; operands = operands) as expression) =
+        blockSpecFromOperator config operator operands
         |> VOption.map (fun spec ->
             match expression with
             | ComplexExpression(_, O.call, Literal(_, SString procedureName)::_) ->
@@ -186,32 +203,32 @@ module Project =
             | _ -> spec
         )
 
-    let foldConvertibleBlocks folder state e =
-        let rec ofComplexExpression folder state (ComplexExpression(operator = op; operands = ops) as e) =
-            match blockSpecFromOperator op with
+    let foldConvertibleBlocks config folder state e =
+        let rec ofComplexExpression ((folder, config) as env) state (ComplexExpression(operator = op; operands = ops) as e) =
+            match blockSpecFromOperator config op ops with
             | ValueNone -> state
             | ValueSome spec ->
 
             let state = folder struct(state, spec, e)
-            ofExpressions folder state ops
+            ofExpressions env state ops
 
         and ofExpression folder state = function
             | Literal _ -> state
             | Complex x -> ofComplexExpression folder state x
             | Block x -> ofBlock folder state x
 
-        and ofExpressions folder state es = List.fold (ofExpression folder) state es
-        and ofBlock folder state (BlockExpression(body = es)) = List.fold (ofComplexExpression folder) state es
+        and ofExpressions env state es = List.fold (ofExpression env) state es
+        and ofBlock env state (BlockExpression(body = es)) = List.fold (ofComplexExpression env) state es
 
-        let ofScript folder state = function
-            | Listener(ListenerDefinition(arguments = es; body = b)) -> ofBlock folder (ofExpressions folder state es) b
-            | Expression e -> ofComplexExpression folder state e
+        let ofScript env state = function
+            | Listener(ListenerDefinition(arguments = es; body = b)) -> ofBlock env (ofExpressions env state es) b
+            | Expression e -> ofComplexExpression env state e
             | Procedure(ProcedureDefinition(body = b))
-            | Statements b -> ofBlock folder state b
+            | Statements b -> ofBlock env state b
 
-        ofScript folder state e
+        ofScript (folder, config) state e
 
-    let collectBroadcastsAtEntity uniqueId map entity =
+    let collectBroadcastsAtEntity config uniqueId map entity =
         entity.scripts
         |> List.fold (fun map { script = script } ->
             let map =
@@ -221,7 +238,7 @@ module Project =
                 | _ -> map
 
             script
-            |> foldConvertibleBlocks (fun struct(map, _, e) ->
+            |> foldConvertibleBlocks config (fun struct(map, _, e) ->
                 match e with
                 | ComplexExpression(operator = O.``broadcast:`` | O.doBroadcastAndWait; operands = name::_) ->
                     let name =
@@ -234,15 +251,15 @@ module Project =
             ) map
         ) map
 
-    let collectAllBroadcasts emptyNameId stage children =
+    let collectAllBroadcasts config emptyNameId stage children =
         let map =
             children
             |> List.fold (fun map -> function
-                | Choice2Of3 s -> collectBroadcastsAtEntity emptyNameId map s
+                | Choice2Of3 s -> collectBroadcastsAtEntity config emptyNameId map s
                 | _ -> map
             ) OMap.empty
 
-        collectBroadcastsAtEntity emptyNameId map stage
+        collectBroadcastsAtEntity config emptyNameId map stage
 
     type InputSkeleton = {
         name: InputId
@@ -277,6 +294,7 @@ module Project =
         parentOperandSpec: ArgInfo voption
         broadcastIdForEmptyBroadcastName: BroadcastId
         broadcastNameForEmptyBroadcastName: SValue
+        config: StageToProjectConfig
 
         globalVariableNameToId: Map<struct(string * VariableType), VariableOrListId> ref
     }
@@ -336,7 +354,7 @@ module Project =
         let input = { input with block = Some block0.id }
         block, input
 
-    let createShadowField fieldName fieldValue shadowObscured = function
+    let createShadowField config fieldName fieldValue shadowObscured = function
         | Op.math_number
         | Op.math_whole_number
         | Op.math_positive_number
@@ -388,7 +406,12 @@ module Project =
         | Op.``videoSensing.menu.VIDEO_STATE`` ->
             fieldName, if shadowObscured then SString "on" else fieldValue
 
-        | _ ->
+        | inputOperator ->
+            let fieldName =
+                match config.extensionSpec {| id = inputOperator |} with
+                | ValueSome { argMap = FieldArg(fieldName, _)::_ } -> fieldName
+                | _ -> fieldName
+
             fieldName, if shadowObscured then SValue.sEmptyString else fieldValue
 
     let emptyBlock = {
@@ -423,7 +446,7 @@ module Project =
     let scalarValueListSyntax = Syntax.jList Serialization.Sb2.Syntax.sValue |> Syntax.box
 
     let rec complexExpressionAsBlock builder (ComplexExpression(operator = operator; operands = operands) as expression) =
-        let blockSpec = blockSpecFromExpression expression
+        let blockSpec = blockSpecFromExpression builder.config expression
         match blockSpec with
         | ValueNone -> ValueNone
         | ValueSome blockSpec ->
@@ -529,7 +552,7 @@ module Project =
             | _ -> SValue.sEmptyString
 
         let (Id fieldName) = inputName
-        let struct(fieldName, fieldValue) = createShadowField fieldName fieldValue shadowObscured inputOperator
+        let struct(fieldName, fieldValue) = createShadowField builder.config fieldName fieldValue shadowObscured inputOperator
         let field =
             match inputOperator with
             | OpCodes.event_broadcast_menu ->
@@ -783,7 +806,7 @@ module Project =
         fields
         |> OMap.map (fun _ field -> {
             value = field.value
-            name = field.id |> Option.map Some
+            name = field.id
         })
 
     let simplifyBlock block =
@@ -984,11 +1007,11 @@ module Project =
         "sensing"
         "sound"
     ]
-    let collectStageExtensionIds stage =
+    let collectStageExtensionIds config stage =
         stage.scripts
         |> List.fold (fun ids s ->
             s.script
-            |> foldConvertibleBlocks (fun struct(ids, spec, _) -> 
+            |> foldConvertibleBlocks config (fun struct(ids, spec, _) ->
                 let id = spec.category
                 if id = "" || Set.contains id defaultExtensionIds then ids else
                 OMap.add id () ids
@@ -1047,7 +1070,7 @@ module Project =
         |> Seq.map snd
         |> OMap.fromSeq
 
-    let collectAllBroadcastsAndEmptyId entity entityExtension =
+    let collectAllBroadcastsAndEmptyId config entity entityExtension =
 
         // "broadcastMsgId-<uniqueId>"
         let broadcastIdForEmptyName = Id.createBroadcastIdCore <| Id.newUniqueId()
@@ -1061,7 +1084,7 @@ module Project =
             match entityExtension with
             | Choice2Of2 _ -> OMap.empty
             | Choice1Of2 { StageDataExtension.children = children } ->
-                collectAllBroadcasts broadcastIdForEmptyName entity children
+                collectAllBroadcasts config broadcastIdForEmptyName entity children
 
         let broadcasts = reorderBroadcastsByEsPropertyKey broadcasts
 
@@ -1088,7 +1111,7 @@ module Project =
 
         broadcasts, broadcastIdForEmptyName, broadcastNameForEmptyName
 
-    let entityAsTarget globalVariableNameToId (entity, entityExtension) =
+    let entityAsTarget config globalVariableNameToId (entity, entityExtension) =
         let targetId = Id.newUniqueId()
 
         let isStage =
@@ -1097,9 +1120,10 @@ module Project =
             | Choice2Of2 _ -> false
 
         let broadcasts, broadcastIdForEmptyName, broadcastNameForEmptyName =
-            collectAllBroadcastsAndEmptyId entity entityExtension
+            collectAllBroadcastsAndEmptyId config entity entityExtension
 
         let builder = {
+            config = config
             currentTargetIsStage = isStage
             currentTargetId = targetId
             parentOperandSpec = ValueNone
@@ -1207,24 +1231,26 @@ module Project =
         }
         {| paneOrder = paneOrder; target = target |}
 
-    let stageAsTargets globalVariableNameToId stage = [
-        entityAsTarget globalVariableNameToId (stage, Choice1Of2 stage.ObjectDataExtension)
+    let stageAsTargets config globalVariableNameToId stage = [
+        entityAsTarget config globalVariableNameToId (stage, Choice1Of2 stage.ObjectDataExtension)
         for children in stage.ObjectDataExtension.children do
             match children with
-            | Choice2Of3 sprite -> entityAsTarget globalVariableNameToId (sprite, Choice2Of2 sprite.ObjectDataExtension)
+            | Choice2Of3 sprite -> entityAsTarget config globalVariableNameToId (sprite, Choice2Of2 sprite.ObjectDataExtension)
             | _ -> ()
     ]
-    let ofStage stage = {
+    let ofStage withConfig stage =
+        let config = withConfig StageToProjectConfig.defaultValue
+        {
         targets =
             let globalVariableNameToId = ref Map.empty
-            let targets = stageAsTargets globalVariableNameToId stage
+            let targets = stageAsTargets config globalVariableNameToId stage
 
             targets
             |> Seq.sortWith (fun l r -> int (l.paneOrder - r.paneOrder))
             |> Seq.map (fun x -> x.target)
             |> Seq.toList
 
-        extensions = collectStageExtensionIds stage |> OMap.toSeqOrdered |> Seq.map (fun kv -> kv.Key) |> Seq.toList
+        extensions = collectStageExtensionIds config stage |> OMap.toSeqOrdered |> Seq.map (fun kv -> kv.Key) |> Seq.toList
         monitors = []
         meta = Meta.defaultValue
-    }
+        }

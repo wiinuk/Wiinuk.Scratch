@@ -49,6 +49,7 @@ module private Privates =
         | OperandType.ListVariableExpression _
         | OperandType.ParameterName
         | OperandType.ProcedureNameAndExpressions
+        | OperandType.ExtensionNameAndExpressions
         | OperandType.StringLiterals _
         | OperandType.Block -> LiteralOperandTypeInfo.Any
 
