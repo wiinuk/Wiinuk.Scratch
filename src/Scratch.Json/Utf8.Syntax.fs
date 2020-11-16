@@ -75,7 +75,7 @@ let jNumberLiteral literal = {
         w.WriteDouble literal
         w.ToUtf8ByteArray()
 
-    errorMessage = $"expected: '%0.17g{literal}'"
+    errorMessage = sprintf "expected: '%0.17g'" literal
 }
 let jStringLiteral literal =
     let quoted =
@@ -86,7 +86,7 @@ let jStringLiteral literal =
         literal = literal
         raw = quoted.[1..quoted.Length-2]
         rawQuoted = quoted
-        errorMessage = $"expected: '{literal}'"
+        errorMessage = sprintf "expected: '%A'" literal
     }
 
 let (|>>) source mapping = { Syntaxes.Pipe.source = source; mapping = mapping }

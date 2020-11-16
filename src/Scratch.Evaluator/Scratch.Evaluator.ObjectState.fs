@@ -17,15 +17,15 @@ let ofEntityData makeSpriteState data =
             match v.isPersistent with
             | Persistent -> xs
             | NoPersistent ->
-                if Map.containsKey v.name xs then failwithf $"duplicated variable name '%s{v.name}'"
+                if Map.containsKey v.name xs then failwithf "duplicated variable name '%s" v.name
                 Map.add v.name (ref v.value) xs
         ) Map.empty
 
     let lists =
         data.lists
         |> List.fold (fun xs ({ contents' = contents' } & v) ->
-            match v.isPersistent with Persistent -> failwithf $"persistent list '%s{v.listName}'" | NoPersistent -> ()
-            if Map.containsKey v.listName values || Map.containsKey v.listName xs then failwithf $"duplicated list name '%s{v.listName}'"
+            match v.isPersistent with Persistent -> failwithf "persistent list '%s'" v.listName | NoPersistent -> ()
+            if Map.containsKey v.listName values || Map.containsKey v.listName xs then failwithf "duplicated list name '%s'" v.listName
             Map.add v.listName (IArray.toResizeArray contents') xs
         ) Map.empty
 
@@ -34,7 +34,7 @@ let ofEntityData makeSpriteState data =
         |> List.fold (fun xs s ->
             match s.script with
             | Procedure(ProcedureDefinition(name = name) as x) ->
-                if Map.containsKey name xs then failwithf $"duplicated procedure name '%s{name}'"
+                if Map.containsKey name xs then failwithf "duplicated procedure name '%s'" name
                 Map.add name x xs
             | _ -> xs
         ) Map.empty

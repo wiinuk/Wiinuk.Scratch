@@ -33,7 +33,7 @@ module TypedExpression =
     let internal verifyType<'T> t =
         if typeof<'T>.IsAssignableFrom t then ()
         elif typeof<'T> = typeof<unit> then ()
-        else failwithf $"expected type: {typeof<'T>.FullName}, actual type: {t.FullName}"
+        else failwithf "expected type: %A, actual type: %A" typeof<'T>.FullName t.FullName
 
 open TypedExpression
 

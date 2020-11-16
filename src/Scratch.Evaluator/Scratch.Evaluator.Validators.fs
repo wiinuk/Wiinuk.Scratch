@@ -107,7 +107,7 @@ let stageData diagnostics data =
 type ValidationException<'a>(diagnostics: Diagnostics<'a> list) =
     inherit Exception()
     member _.Diagnostics = diagnostics
-    override _.Message = $"ValidationException({diagnostics})"
+    override _.Message = sprintf "ValidationException(%A)" diagnostics
     override e.ToString() = e.Message
 
 [<Struct>]

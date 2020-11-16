@@ -52,7 +52,7 @@ let private createParsingException (r: JsonReader byref) expected =
         with _ -> actual
 
     JsonParsingException(
-        $"expected:'%s{expected}', actual:'%s{actual}', at offset:{pos}",
+        sprintf "expected:'%s', actual:'%s', at offset:%d" expected actual pos,
         bytes,
         pos,
         r.GetCurrentOffsetUnsafe(),

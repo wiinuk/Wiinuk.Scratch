@@ -292,7 +292,7 @@ module private Helpers =
         let typeInfo =
             match lookupSpec runtimeTypeStorageId senv.e with
             | ValueSome(VarSpec v) -> v
-            | _ -> failwithf $"internal error: type info variable not found: {runtimeTypeStorageId}"
+            | _ -> failwithf "internal error: type info variable not found: %A" runtimeTypeStorageId
 
         let memorySize = Exp.number a (double(List.length memoryLayout)) // tagValue
         let callNewRc = Exp.call a newRc.procedureVar [Exp.var a typeInfo.var; memorySize]

@@ -49,6 +49,6 @@ let findField field =
                 None
         )
     )
-    |> Option.defaultWith (fun () -> failwithf $"field not found: {field}")
+    |> Option.defaultWith (fun () -> failwithf "field not found: %A" field)
 
 let genericTypeGenericMethodDefinition m = genericTypeGenericMethodDefinition m

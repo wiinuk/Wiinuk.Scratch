@@ -87,15 +87,15 @@ let contextError location error =
     DetranspileError(location, error, t) |> Context.error
 
 // TODO:
-let buildError error = $"{error}"
+let buildError error = sprintf "%A" error
 let buildDetranspileExceptionMessage (DetranspileError(location, error, stack)) =
     let stack =
         match stack with
         | null -> ""
-        | st -> $"--->\r\n%O{st}\r\n<---\r\n"
+        | st -> sprintf "--->\r\n%O\r\n<---\r\n" st
 
     let locationText = location
-    $"%s{stack}%s{locationText}error: %s{buildError error}"
+    sprintf "%s%serror: %s" stack locationText (buildError error)
 
 exception DetranspileException of Location: string * Info: DetranspileErrorInfo * TraceOrNull: StackTrace
 with
@@ -206,7 +206,7 @@ let typeNames = memoizeFixEnv <| fun typeNames (t: Type) ->
                 Nel.singleton g
 
     | dt ->
-        if dt.IsGenericType then failwithf $"generic declaring type: {dt}, {t}" else
+        if dt.IsGenericType then failwithf "generic declaring type: %A, %A" dt t else
         typeNames dt |> Nel.map (fun n -> GlobalName.child n t.Name)
 
 [<Struct>]
@@ -264,7 +264,7 @@ let rec typeCompiledName (t: Type) =
         ns, n
 
     | dt ->
-        if dt.IsGenericType then failwithf $"generic declaring type: {dt}, {t}" else
+        if dt.IsGenericType then failwithf "generic declaring type: %A, %A" dt t else
         let dns, dn = typeCompiledName dt
         dns @ [dn], t.Name
 

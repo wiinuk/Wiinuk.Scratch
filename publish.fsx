@@ -47,7 +47,7 @@ let args =
         key = SensitiveString.ofString <| find "--key" args
         projectUrl = find "--project-url" args
     |}
-printfn $"args: {args}"
+printfn "args: %A" args
 
 start "dotnet tool restore"
 start "dotnet paket restore"
@@ -58,7 +58,7 @@ start "dotnet paket pack --template src/Scratch/paket.template --version %s --pr
 let package = Directory.EnumerateFiles(parent, "*.nupkg") |> Seq.exactlyOne
 if args.test
 then
-    printfn $"[test mode] dotnet nuget push %s{package} --api-key {args.key} --source https://api.nuget.org/v3/index.json"
+    printfn "[test mode] dotnet nuget push %s --api-key %A --source https://api.nuget.org/v3/index.json" package args.key
 else
     start "dotnet nuget push %s --api-key %s --source https://api.nuget.org/v3/index.json"
         package (SensitiveString.toString args.key)
