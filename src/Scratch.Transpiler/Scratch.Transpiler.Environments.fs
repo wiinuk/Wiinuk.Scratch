@@ -136,7 +136,7 @@ module Error =
 
         | RequireAtomicity of Atomicity
 
-        | InvelidImplicitConvertionType of fromType: Type * toType: Type
+        | InvelidImplicitConversionType of fromType: Type * toType: Type
         | MethodCallWithoutReflectedDefinition of MethodInfo
 
         | InvalidGeneratorExpressionForm
