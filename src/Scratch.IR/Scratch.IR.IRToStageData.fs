@@ -1215,6 +1215,7 @@ module private Emitters =
         | OperandType.Block _ -> failwithf ""
 
         | OperandType.ProcedureNameAndExpressions
+        | OperandType.ExtensionNameAndExpressions
         | OperandType.Expression _
         | OperandType.ListVariableExpression _
         | OperandType.StringLiterals _
@@ -1254,7 +1255,8 @@ module private Emitters =
         | OperandType.ListVariableExpression _
         | OperandType.Variable
         | OperandType.ParameterName
-        | OperandType.ProcedureNameAndExpressions ->
+        | OperandType.ProcedureNameAndExpressions
+        | OperandType.ExtensionNameAndExpressions ->
             match operand with
             | Choice1Of2 e -> convertPrimitiveExp b e
             | Choice2Of2 listVar ->
