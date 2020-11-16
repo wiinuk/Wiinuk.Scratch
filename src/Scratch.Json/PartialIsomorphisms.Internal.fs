@@ -55,7 +55,7 @@ let compileToIso (ExprIso(e1, e2)) =
     { OfFunc.f1 = compile e1; f2 = compile e2 }
 
 
-let isoFromUnionError<'U,'T1> caseName (x: 'U): Result<'T1, IsoError> = Error(IsoError.ofMessage($"isoFromUnion(%s{caseName}) {x}"))
+let isoFromUnionError<'U,'T1> caseName (x: 'U): Result<'T1, IsoError> = Error <| IsoError.ofMessage $"isoFromUnion({caseName}) %A{x}"
 
 let expressionFromUnion0 e =
     let case = U.create0 e
@@ -234,13 +234,13 @@ let expressionFromRecord (recordToHList: Expr<'R -> 'T> when 'T :> HList): ExprI
             | E.NewUnionCase(case, _) when case.DeclaringType = typeof<HUnit> ->
                 match fields with
                 | [] -> ()
-                | fields -> failwithf $"unused fields: {fields}"
+                | fields -> failwith $"unused fields: %A{fields}"
 
             // <@ r.f::%rest @>
             | ConsOpCall(_, _, [E.PropertyGet(Some(E.Var r), p, _); rest]) when r = recordV.Raw ->
                 match fields with
                 | (f: PropertyInfo)::fields when p.Name = f.Name -> checkMakeTuple fields rest
-                | _ -> failwithf $"invalid field order. expected: {fields}"
+                | _ -> failwith $"invalid field order. expected: %A{fields}"
 
             | _ -> error()
 
@@ -291,7 +291,7 @@ let tagMember union (case: #ITypedUnionCaseInfo<'Union>) =
     // <@ UnionType.GetTag(union) @>
     | :? MethodInfo as m -> T.fromRawUnchecked<int>(E.Call(m, union))
 
-    | m -> failwithf $"unknown UnionTagMember {m}"
+    | m -> failwith $"unknown UnionTagMember %A{m}"
 
 let tryGetCaseSubClass case =
     let unionType = C.declaringType case
@@ -427,8 +427,8 @@ let verifyFieldMultiSetEq actual expected =
     match not (Set.isEmpty duplicateds), not (Set.isEmpty unuseds) with
     | (true as hasDup), hasUnused
     | hasDup, (true as hasUnused) ->
-        let unuseds = if hasUnused then [sprintf "unused fields: %s" <| String.concat ", " unuseds] else []
-        let duplicateds = if hasDup then [sprintf "duplicated fields: %s" <| String.concat ", " duplicateds] else []
+        let unuseds = if hasUnused then [$"""unused fields: {String.concat ", " unuseds}"""] else []
+        let duplicateds = if hasDup then [$"""duplicated fields: {String.concat ", " duplicateds}"""] else []
         failwith (String.concat ", " (unuseds @ duplicateds))
 
     | _ -> ()

@@ -86,7 +86,7 @@ let jStringLiteral literal =
         literal = literal
         raw = quoted.[1..quoted.Length-2]
         rawQuoted = quoted
-        errorMessage = $"expected: '{literal}'"
+        errorMessage = $"expected: '%A{literal}'"
     }
 
 let (|>>) source mapping = { Syntaxes.Pipe.source = source; mapping = mapping }

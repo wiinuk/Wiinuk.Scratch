@@ -349,7 +349,7 @@ and emitComplexExpression env (ComplexExpression(location, operator, operands)) 
             emitExpression env key
             emit b Code.KeyPressed
 
-    | opxs -> failwithf "not implemented: %A" opxs
+    | opxs -> failwith $"not implemented: %A{opxs}"
 
 let rec emitStatement env (ComplexExpression(location, operator, operands)) =
     let b = withLocation location env
@@ -859,7 +859,7 @@ let rec emitStatement env (ComplexExpression(location, operator, operands)) =
 
     | O.deleteClone, _ -> emit b Code.DeleteClone
 
-    | opxs -> failwithf $"not implemented {opxs}"
+    | opxs -> failwith $"not implemented %A{opxs}"
 
 and emitBlock env (BlockExpression(_, list)) =
     for e in list do emitStatement env e
@@ -1016,7 +1016,7 @@ let entityToImage env =
         | O.whenClicked, [] -> whenClickeds.Add procedureIndex
         | _ ->
             // TODO:
-            failwithf $"unregistered listener: {l}"
+            failwith $"unregistered listener: %A{l}"
 
     for script in env.entity.scripts do
         match script.script with

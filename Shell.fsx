@@ -13,7 +13,7 @@ exception ProcessException of ExitCode: int * ErrorLines: string seq * FileName:
     override e.Message =
         let nl = Environment.NewLine
         let message = String.concat nl e.ErrorLines
-        $"Process terminated with exit code {e.ExitCode}. `%s{e.FileName} %s{e.Arguments}`%s{nl}message:%s{message}%s{nl}"
+        $"Process terminated with exit code {e.ExitCode}. `{e.FileName} {e.Arguments}`{nl}message:{message}{nl}"
 
 type StartConfig = {
     priorityClass: ProcessPriorityClass
@@ -150,7 +150,7 @@ let treeWith withConfig directories =
     let config = withConfig TreeConfig.defaultValue
     let rec tree depth indent namePrefix brunchPrefix current =
         let name = if depth = 0 then current else Path.GetFileName(current + "")
-        printfn "%s%s%s" indent namePrefix name
+        printfn $"{indent}{namePrefix}{name}"
 
         if Directory.Exists current then
             let indent = indent + brunchPrefix
@@ -158,13 +158,13 @@ let treeWith withConfig directories =
                 let es =
                     try Directory.EnumerateFileSystemEntries(current, "*")
                     with e ->
-                        printfn "%s└─× %O" indent e
+                        printfn $"{indent}└─× %O{e}"
                         Seq.empty
 
                 for child, last in withIsLast es do
                     tree (depth + 1) indent (if last then "└─" else "├─") (if last then "  " else "│ ") child
             else
-                printfn "%s└─…" indent
+                printfn $"{indent}└─…"
 
     let ds = if List.isEmpty directories then [Environment.CurrentDirectory] else directories
     for d in ds do tree 0 "" "" "" d

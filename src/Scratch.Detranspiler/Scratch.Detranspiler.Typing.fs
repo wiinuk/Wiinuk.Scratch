@@ -87,7 +87,7 @@ let rec generalizeType typeMap tvars = function
         | ValueNone ->
             match List.tryFindIndex (fun (_, vt) -> vt = var) tvars with
             | Some i -> T.GVar i
-            | None -> failwithf $"freevar {t}"
+            | None -> failwith $"freevar %A{t}"
 
 let generalize typeMap t =
     let tvars = freeVarsType typeMap [] t |> List.rev

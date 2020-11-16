@@ -29,7 +29,7 @@ let runScheduler state =
     with
         | StopException(StopAll, message) ->
             eprintfn "stack trace:"
-            eprintfn "%s" message
+            eprintfn $"{message}"
 
 let runWhenGreenFlags state =
     registerWhenGreenFlags state
@@ -54,11 +54,11 @@ let evaluateStageProcedure procedureName args ({ EvaluateState.stage = stage } a
     let state = { blockState = state; self = stage; args = Map.empty; isAtomic = isAtomic; callStack = [] }
     let args = checkArgs &state location proc args
     try
-        let name = $"%s{stage.shared.objectName}.%s{procedureName}{args}"
+        let name = $"{stage.shared.objectName}.{procedureName}%A{args}"
         let action = evaluateProcedureCall state location proc args :> ThreadTask<_>
         Scheduler.registerFiberWithSelf stage name DateTime.MinValue &action state.blockState.scheduler |> ignore
         Scheduler.run state.blockState.scheduler
     with
     | StopException(StopAll, message) ->
         eprintfn "stack trace:"
-        eprintfn "%s" message
+        eprintfn $"{message}"

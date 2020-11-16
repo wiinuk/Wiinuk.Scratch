@@ -18,5 +18,5 @@ module SourceCode =
     let location s = if s.isEmpty then None else Expr.getLocation s.expr
     let tag e: Loc = Tagged.empty (location e)
 
-    let buildText s = if s.isEmpty then "" else $"{s.expr}"
-    let buildErrorText s = if s.isEmpty then "" else $"{s.expr}"
+    let buildText s = if s.isEmpty then "" else $"%A{s.expr}"
+    let buildErrorText s = if s.isEmpty then "" else $"%A{s.expr}"

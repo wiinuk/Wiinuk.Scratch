@@ -16,14 +16,14 @@ let readSb2ResourceMD5 sb2Path resourceType resourceId = async {
         | Image -> imageExtensions
         | Sound -> soundExtensions
         |> Seq.tryPick (fun ext ->
-            $"{resourceId}%s{ext}"
+            $"%d{resourceId}{ext}"
             |> zip.GetEntry
             |> Option.ofObj
             |> Option.map (fun part -> part, ext)
         )
 
     match part with
-    | None -> return failwithf $"EntryNotFound({resourceType}, {resourceId})"
+    | None -> return failwith $"EntryNotFound(%A{resourceType}, {resourceId})"
     | Some(part, ext) ->
 
     use binary = part.Open()

@@ -15,19 +15,19 @@ let screenWidth = 480.
 let screenHeight = 360.
 
 let listenerName config self (ListenerDefinition(state = location; name = listenerName; arguments = listenerArgs)) =
-    $"%s{config.showState location}%s{self.shared.objectName}.%s{Symbol.name listenerName}{listenerArgs}"
+    $"{config.showState location}{self.shared.objectName}.{Symbol.name listenerName}%A{listenerArgs}"
 
 let checkArgs (state: _ inref) location (ProcedureDefinition(name = procName; parameters = ps)) args =
     let el = List.length ps
     let al = List.length args
     if el <> al then
-        cfailwithf state location $"call %s{procName}; diffarence parameter length; expected: {el}, actual: {al}"
+        cfailwithf state location $"call {procName}; diffarence parameter length; expected: {el}, actual: {al}"
 
     let state = state
     List.zip ps args
     |> List.fold (fun xs (ParameterDefinition(name = n), v) ->
         if Map.containsKey n xs then
-            cfailwithf state location $"duplicate parameter name '%s{n}'"
+            cfailwithf state location $"duplicate parameter name '{n}'"
         Map.add n v xs
     ) Map.empty
 
@@ -48,7 +48,7 @@ let setFilter state location name value =
         filters.ghost <- clamp (0., 100.) value
 
     | _ when state.blockState.config.useFilterNameCheck ->
-            cfailwithf state location $"unknown filter name: {name}"
+            cfailwithf state location $"unknown filter name: %A{name}"
     | _ ->
         let v = clamp (0., 100.) value
         filters.others <- Map.add name v filters.others
@@ -65,7 +65,7 @@ let changeFilter state location name addValue =
         | "color" -> filters.color
         | "ghost" -> filters.ghost
         | _ when state.blockState.config.useFilterNameCheck ->
-            cfailwithf state location $"unknown filter name: {name}"
+            cfailwithf state location $"unknown filter name: %A{name}"
         | _ ->
             Map.tryFind name filters.others
             |> VOption.defaultValue 0.
@@ -178,7 +178,7 @@ let clampList state location listName (list: _ ResizeArray) =
     if maxLength < list.Count then
         list.RemoveAt(list.Count - 1)
         if state.blockState.config.useLengthCheck then
-            cfailwithf state location $"list overflow: '%s{listName}', max length: {maxLength}"
+            cfailwithf state location $"list overflow: '{listName}', max length: {maxLength}"
 
 let insertInList state location listName (list: _ ResizeArray) index value =
     match listIndex state.blockState index (list.Count + 1) with
@@ -188,7 +188,7 @@ let insertInList state location listName (list: _ ResizeArray) index value =
     | _ ->
 
     if state.blockState.config.useRangeCheck then
-        cfailwithf state location $"out of range: insert:at:ofList:, '%s{listName}' '{index}'"
+        cfailwithf state location $"out of range: insert:at:ofList:, '{listName}' '%A{index}'"
 
 let onSubmit stage value =
     let Version version as promptVersion = stage.currentAskVersion
@@ -297,7 +297,7 @@ let deleteLintAtNth state location name nth (xs: _ ResizeArray) =
         xs.RemoveAt i
     else
         if state.blockState.config.useRangeCheck then
-            cfailwithf state location $"out of range: deleteLine:ofList:, '%s{name}' '{nth}'"
+            cfailwithf state location $"out of range: deleteLine:ofList:, '{name}' '%A{nth}'"
 
 let deleteLine state location name nth =
     let xs = getListOrRaise state location name
@@ -707,7 +707,7 @@ and evaluateStatement state (ComplexExpression(location, op, args)) = fiberPoly 
         | _ ->
 
         if state.blockState.config.useRangeCheck then
-            cfailwithf state location $"out of range: setLine:ofList:to:, '%s{name}' '{nth}'"
+            cfailwithf state location $"out of range: setLine:ofList:to:, '{name}' '%A{nth}'"
 
     | O.``showVariable:``, [Literal(_, SString name)], _
     | O.``showList:``, [Literal(_, SString name)], _ ->
@@ -771,7 +771,7 @@ and evaluateStatement state (ComplexExpression(location, op, args)) = fiberPoly 
     | O.stopScripts, [Literal(_, SString kind)], _ -> do! stopScripts state location kind
     | O.deleteClone, _, _ -> do! deleteClone state
 
-    | opxs -> cfailwithf state location $"not implemented {opxs}"
+    | opxs -> cfailwithf state location $"not implemented %A{opxs}"
     }
 
 and private broadcastObject location (state: _ inref) name self =

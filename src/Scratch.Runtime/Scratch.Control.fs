@@ -81,7 +81,7 @@ module CloneCompiler =
     type private E = System.Linq.Expressions.Expression
 
     let private buildCloneLambda (selfT: Type) =
-        if selfT.BaseType <> typeof<Sprite> then failwithf $"require: type %s{selfT.Name}(...) = inherit Sprite(...) ..."
+        if selfT.BaseType <> typeof<Sprite> then failwith $"require: type {selfT.Name}(...) = inherit Sprite(...) ..."
 
         // Func<_,_,_>(fun (original: Sprite) (options: EntityInitializeOptions) ->
         //     let clone = new 'Self(options)

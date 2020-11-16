@@ -25,5 +25,5 @@ let serializeKey s (w: _ byref) n =
 let makeKeySerializer key = {
     propertyName = JsonWriter.GetEncodedPropertyName key
     propertyNameWithPrefixValueSeparator = JsonWriter.GetEncodedPropertyNameWithPrefixValueSeparator key
-    errorMessage = IsoError.ofMessage <| $"property: {key}"
+    errorMessage = IsoError.ofMessage $"property: %A{key}"
 }

@@ -36,7 +36,7 @@ module internal InternalZip =
         use zip = ZipFile.OpenRead zipPath
         match zip.GetEntry fullName with
         | null ->
-            let fileName = $"%s{zipPath}%c{Path.DirectorySeparatorChar}%s{fullName}"
+            let fileName = $"{zipPath}{Path.DirectorySeparatorChar}{fullName}"
             return raise <| FileNotFoundException("zip entry not found.", fileName)
 
         | entry ->
