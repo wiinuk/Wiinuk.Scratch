@@ -417,7 +417,7 @@ module TypeSpec =
 
     let internal sizeRaw = function
         | UnderlyingType t -> List.length t
-        | t -> failwith $"size is undefined: %A{t}"
+        | t -> failwithf $"size is undefined: {t}"
 
     [<AbstractClass; Sealed>]
     type private SizeHolder<'T> private () =
@@ -533,7 +533,7 @@ module Field =
                 | _ -> None
             )
             |> Option.defaultWith (fun _ ->
-                failwith $"invalid record field expr: %A{e}"
+                failwithf $"invalid record field expr: {e}"
             )
         recordFieldRaw f |> Field
 

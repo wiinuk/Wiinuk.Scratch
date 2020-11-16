@@ -46,4 +46,4 @@ type PackageErrorInfo =
     | InvlidHashWithExtensionFormat of name: string * value: string
 
 exception PackageException of error: PackageErrorInfo with
-    override e.Message = $"%A{e.error}"
+    override e.Message = $"{e.error}"

@@ -65,7 +65,7 @@ let defaultConfig =
         spriteName = fun t -> token t.Name
 
         typeName = typeName
-        unionCaseName = fun u -> $"{typeName u.DeclaringType}.{token u.Name}"
+        unionCaseName = fun u -> $"%s{typeName u.DeclaringType}.%s{token u.Name}"
         unionCaseFieldName = fun (UnionCaseFieldInfo(fieldIndex = i)) -> $"{i}"
         unionCaseTagName = "tag"
         unionCaseUnifiedFieldName = fun (n1, n2, ns) ->

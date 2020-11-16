@@ -81,18 +81,18 @@ module CodeBuilder =
         b.definedLabels.Clear()
 
     let nameWithVersion (NameWithVersion(name, v)) =
-        if v = 0 then name else $"{name}#{v}"
+        if v = 0 then name else $"%s{name}#{v}"
 
     let checkParent b label =
         let info = label.declaringBuilder.definedLabels.Get(label.labelIndex)
         if label.declaringBuilder <> b then
-            failwith $"labels defined with a different builder can not be emitted: %A{nameWithVersion info.name}"
+            failwithf $"labels defined with a different builder can not be emitted: {nameWithVersion info.name}"
         info
 
     let markLabel b label =
         let info = checkParent b label
         match info.markedIndex with
-        | ValueSome _ -> failwith $"Duplicate labels: %A{nameWithVersion info.name}"
+        | ValueSome _ -> failwithf $"Duplicate labels: {nameWithVersion info.name}"
         | _ ->
             let buffer = b.buffer
             let markIndex = buffer.NextIndex()
@@ -111,7 +111,7 @@ module CodeBuilder =
     let checkMarked b =
         for l in b.definedLabels do
             match l.markedIndex with
-            | ValueNone -> failwith $"label %A{nameWithVersion l.name} is not marked"
+            | ValueNone -> failwithf $"label {nameWithVersion l.name} is not marked"
             | _ -> ()
 
     let defineLocal ({ definedLocals = locals } as b) =

@@ -411,10 +411,10 @@ module private BuilderHelpers =
 
     module private Errors =
         let resolvedSpecIsNotParameter var spec =
-            invalidOp $"var %A{Var.name var} to spec ( %A{spec} ) referenced, but it is not parameter"
+            invalidOp $"var {Var.name var} to spec ( {spec} ) referenced, but it is not parameter"
 
         let varUndefined var (specs: Dictionary<_,_>) =
-            invalidOp $"var %A{Var.name var} ( %A{Var.varType var} ) referenced, but it is not defined, defined vars is %A{specs.Keys |> Seq.map Var.name |> Seq.toList}"
+            invalidOp $"var {Var.name var} ( {Var.varType var} ) referenced, but it is not defined, defined vars is {specs.Keys |> Seq.map Var.name |> Seq.toList}"
 
     let resolveParameter (ProcState p) var =
         let mutable r = Unchecked.defaultof<_>

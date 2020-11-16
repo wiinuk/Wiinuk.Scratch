@@ -78,7 +78,7 @@ module TypedUnionCaseInfo =
             |> tryPick (function E.NewUnionCase(c, _) | E.UnionCaseTest(_, c) -> Some c | _ -> None)
             |> function
                 | Some c when c.GetFields().Length = arity -> c, c.GetFields()
-                | _ -> failwith $"e.g. <@ AnyUnionCase @> when fieldCount = {arity}"
+                | _ -> failwithf $"e.g. <@ AnyUnionCase @> when fieldCount = {arity}"
 
         [<Struct>]
         type ExprLub<'T1,'T2> = | ExprLub

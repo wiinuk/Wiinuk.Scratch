@@ -46,7 +46,7 @@ module private CoreExpHelpers =
         if operatorResultTypeMap.TryGetValue(op, &t) then
             t
         else
-            failwith $"Unknown operator '{Symbol.name op}'"
+            failwithf $"Unknown operator '%s{Symbol.name op}'"
 
     type IFuncO<'T1,'R> = IFuncR<'T1,'R>
     type IFuncI<'T1,'R> = IFuncR<'T1,'R>
@@ -398,7 +398,7 @@ module Exp =
 
 [<AutoOpen>]
 module private ExpStartConstructorHelpers =
-    let showVar v = $"'{Var.name v}' (id = {let (VarId id) = Keyed.key v in id})"
+    let showVar v = $"'%s{Var.name v}' (id = {let (VarId id) = Keyed.key v in id})"
 
     let showSType = function SType.N -> "n" | SType.S -> "s" | SType.B -> "b"
     let showVType = function Any -> "any" | Typed t -> showSType t
@@ -407,7 +407,7 @@ module private ExpStartConstructorHelpers =
         match MemberType.memberName t with
         | null
         | "" -> showVType u
-        | n -> $"{n}: {showVType u}"
+        | n -> $"%s{n}: %s{showVType u}"
 
     let showType = function
         | UnboxedType t ->
@@ -419,7 +419,7 @@ module private ExpStartConstructorHelpers =
 
     let showOperandType operand =
         match operand.operandType with
-        | OperandType.ListVariableExpression t -> $"list {showType <| ofTsType t}"
+        | OperandType.ListVariableExpression t -> $"list %s{showType <| ofTsType t}"
         | OperandType.Block -> showType Types.empty
         | OperandType.Expression t -> showType <| ofTsType t
         | OperandType.StringLiterals _
@@ -466,35 +466,35 @@ module private ExpStartConstructorHelpers =
     module TestPair =
         let inline map f x = { expected = f x.expected; actual = f x.actual }
 
-    let locationFootter (source: _ inref) = $"source: ( {Location.pretty &source} ), location: ( %A{Location.source &source} )"
+    let locationFootter (source: _ inref) = $"source: ( %s{Location.pretty &source} ), location: ( {Location.source &source} )"
 
     let raiseTypeMismatch (source: _ inref) { expected = expected; actual = actual } =
-        invalidOp $"Type mismatch, expected: {expected}, actual: {actual}, {locationFootter &source}"
+        invalidOp <| $"Type mismatch, expected: %s{expected}, actual: %s{actual}, %s{locationFootter &source}"
 
     let raiseNotMutable (source: _ inref) v =
-        invalidOp $"Var {showVar v} is not mutable, {locationFootter &source}"
+        invalidOp <| $"Var %s{showVar v} is not mutable, %s{locationFootter &source}"
 
     let raiseUnknownOperator (source: _ inref) operator =
-        invalidOp $"Unknown operator, '{Symbol.name operator}', {locationFootter &source}"
+        invalidOp <| $"Unknown operator, '%s{Symbol.name operator}', %s{locationFootter &source}"
 
     let raiseNotAllowedOperator (source: _ inref) operator =
-        invalidOp $"Operator '{Symbol.name operator}' is not allowed, Please use a alternative format, {locationFootter &source}"
+        invalidOp <| $"Operator '%s{Symbol.name operator}' is not allowed, Please use a alternative format, %s{locationFootter &source}"
 
     let raiseTupleIndexOutOfRange (source: _ inref) t i =
-        invalidOp $"Tuple index is out of range, type {showType t}, index {i}, {locationFootter &source}"
+        invalidOp <| $"Tuple index is out of range, type %s{showType t}, index {i}, %s{locationFootter &source}"
 
     let raiseTypeMismatchAnd (source: _ inref) t1 t2 =
-        invalidOp $"Type mismatch, {t1} and {t2}, {locationFootter &source}"
+        invalidOp <| $"Type mismatch, %s{t1} and %s{t2}, %s{locationFootter &source}"
 
     let raiseTypeMismatchList (source: _ inref) operand =
-        invalidOp $"Type mismatch, expected: list, actual: {showType <| Exp.varType operand}, {locationFootter &source}"
+        invalidOp <| $"Type mismatch, expected: list, actual: %s{showType <| Exp.varType operand}, %s{locationFootter &source}"
 
     let raiseArityMismatch (source: _ inref) allTypes allOperands =
         let expectedTypes = allTypes |> String.concat " " |> sprintf "'%s'"
-        invalidOp $"Arity mismatch, expected: {expectedTypes}, actual: {allOperands}, {locationFootter &source}"
+        invalidOp <| $"Arity mismatch, expected: %s{expectedTypes}, actual: %s{allOperands}, %s{locationFootter &source}"
 
     let raiseCoerceNotPossible (source: _ inref) t newType =
-        invalidOp $"{showType t} to {showType newType} coerce is not possible, The size of the type is different, {locationFootter &source}"
+        invalidOp <| $"%s{showType t} to %s{showType newType} coerce is not possible, The size of the type is different, %s{locationFootter &source}"
 
     let checkAssignType (source: _ inref) test =
         if not <| ExpType.isAssignable test.expected test.actual then

@@ -168,7 +168,7 @@ with
             if s.mapping.Reverse(&x, &x') then
                 s.source.Serialize(&w, x')
             else
-                failwith $"pipe %A{x}"
+                failwithf $"pipe {x}"
 
 [<Struct; NoEquality; NoComparison>]
 type Or<'T,'TSource1,'TSource2>

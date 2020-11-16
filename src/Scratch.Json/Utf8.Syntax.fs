@@ -75,7 +75,7 @@ let jNumberLiteral literal = {
         w.WriteDouble literal
         w.ToUtf8ByteArray()
 
-    errorMessage = $"expected: '%.17G{literal}'"
+    errorMessage = $"expected: '%0.17g{literal}'"
 }
 let jStringLiteral literal =
     let quoted =

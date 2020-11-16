@@ -55,7 +55,7 @@ let compileToIso (ExprIso(e1, e2)) =
     { OfFunc.f1 = compile e1; f2 = compile e2 }
 
 
-let isoFromUnionError<'U,'T1> caseName (x: 'U): Result<'T1, IsoError> = Error <| IsoError.ofMessage $"isoFromUnion({caseName}) %A{x}"
+let isoFromUnionError<'U,'T1> caseName (x: 'U): Result<'T1, IsoError> = Error(IsoError.ofMessage($"isoFromUnion(%s{caseName}) {x}"))
 
 let expressionFromUnion0 e =
     let case = U.create0 e
@@ -234,13 +234,13 @@ let expressionFromRecord (recordToHList: Expr<'R -> 'T> when 'T :> HList): ExprI
             | E.NewUnionCase(case, _) when case.DeclaringType = typeof<HUnit> ->
                 match fields with
                 | [] -> ()
-                | fields -> failwith $"unused fields: %A{fields}"
+                | fields -> failwithf $"unused fields: {fields}"
 
             // <@ r.f::%rest @>
             | ConsOpCall(_, _, [E.PropertyGet(Some(E.Var r), p, _); rest]) when r = recordV.Raw ->
                 match fields with
                 | (f: PropertyInfo)::fields when p.Name = f.Name -> checkMakeTuple fields rest
-                | _ -> failwith $"invalid field order. expected: %A{fields}"
+                | _ -> failwithf $"invalid field order. expected: {fields}"
 
             | _ -> error()
 
@@ -291,7 +291,7 @@ let tagMember union (case: #ITypedUnionCaseInfo<'Union>) =
     // <@ UnionType.GetTag(union) @>
     | :? MethodInfo as m -> T.fromRawUnchecked<int>(E.Call(m, union))
 
-    | m -> failwith $"unknown UnionTagMember %A{m}"
+    | m -> failwithf $"unknown UnionTagMember {m}"
 
 let tryGetCaseSubClass case =
     let unionType = C.declaringType case
