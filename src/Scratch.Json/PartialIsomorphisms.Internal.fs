@@ -55,7 +55,7 @@ let compileToIso (ExprIso(e1, e2)) =
     { OfFunc.f1 = compile e1; f2 = compile e2 }
 
 
-let isoFromUnionError<'U,'T1> caseName (x: 'U): Result<'T1, IsoError> = Error(IsoError.ofMessage($"isoFromUnion({caseName}) %A{x}"))
+let isoFromUnionError<'U,'T1> caseName (x: 'U): Result<'T1, IsoError> = Error <| IsoError.ofMessage $"isoFromUnion({caseName}) %A{x}"
 
 let expressionFromUnion0 e =
     let case = U.create0 e
@@ -427,8 +427,8 @@ let verifyFieldMultiSetEq actual expected =
     match not (Set.isEmpty duplicateds), not (Set.isEmpty unuseds) with
     | (true as hasDup), hasUnused
     | hasDup, (true as hasUnused) ->
-        let unuseds = if hasUnused then [sprintf "unused fields: %s" <| String.concat ", " unuseds] else []
-        let duplicateds = if hasDup then [sprintf "duplicated fields: %s" <| String.concat ", " duplicateds] else []
+        let unuseds = if hasUnused then [$"""unused fields: {String.concat ", " unuseds}"""] else []
+        let duplicateds = if hasDup then [$"""duplicated fields: {String.concat ", " duplicateds}"""] else []
         failwith (String.concat ", " (unuseds @ duplicateds))
 
     | _ -> ()

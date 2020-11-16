@@ -349,7 +349,7 @@ and emitComplexExpression env (ComplexExpression(location, operator, operands)) 
             emitExpression env key
             emit b Code.KeyPressed
 
-    | opxs -> failwithf "not implemented: %A" opxs
+    | opxs -> failwith $"not implemented: %A{opxs}"
 
 let rec emitStatement env (ComplexExpression(location, operator, operands)) =
     let b = withLocation location env

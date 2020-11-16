@@ -106,7 +106,7 @@ module Id =
 
     let createBroadcastIdCore (name: string) =
         let name = name.ToLowerInvariant()
-        escape name |> sprintf "broadcastMsgId-%s" |> create the<BroadcastPhantom>
+        $"broadcastMsgId-{escape name}" |> create the<BroadcastPhantom>
 
     let createBroadcastId = function
         | "" -> ValueNone

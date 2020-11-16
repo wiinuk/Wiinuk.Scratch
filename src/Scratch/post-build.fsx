@@ -67,9 +67,9 @@ try
 
 with
 | :? ArguParseException as e ->
-    eprintfn "%s" e.Message
+    eprintfn $"{e.Message}"
     exit <| int e.ErrorCode
 
 | e ->
-    eprintfn "%s" e.Message
+    eprintfn $"{e.Message}"
     System.Environment.ExitCode <- -1

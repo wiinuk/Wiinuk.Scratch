@@ -139,7 +139,7 @@ module private Var =
 let localName env varName =
     let config = get FConfig env
     let name = (get FBlockEnvironment env).proc.procedureVar |> Var.name
-    sprintf "%s%s%s" name config.namespaceSeparator varName
+    $"{name}{config.namespaceSeparator}{varName}"
 
 let rec isConstantLike = function
     | E.DefaultValue _ -> true
@@ -733,7 +733,7 @@ let private printProcedure spec source =
     let varName = $"%A{spec.procedureVar} -> "
     let paramNames = spec.parameters |> Seq.map (fun { parameterIRVar = v } -> $"%A{v}") |> String.concat " "
     let location = SourceCode.location source |> locationText |> Option.defaultValue ""
-    printfn "%s %s %s" varName paramNames location
+    printfn $"{varName} {paramNames} {location}"
 
 // `let v = (fun x1 x2 ... xn -> ...) in ...`
 let transpileProcedure senv spec body =
@@ -786,7 +786,7 @@ let private defineVariableOfQVar senv source export (var: QVar) init =
 
 let private printVariableInit source varName =
     let location = SourceCode.location source |> locationText |> Option.defaultValue ""
-    printfn "%s -> %s" varName location
+    printfn $"{varName} -> {location}"
 
 let transpileWhenGreenFlagVariableInit senv varName init =
     if OutputLevel.Debug <= (get FConfig senv.e).outputLevel then printVariableInit (SourceCode.ofExpr init) varName
@@ -1353,7 +1353,7 @@ module private TranspileExternalItemSpecs =
 
     let transpileExternalSpriteSpecs(senv, c, source) stack =
         let config = get FConfig senv.e
-        if OutputLevel.Debug <= config.outputLevel then debugPrintMember senv.e source c <| fun a b c _ -> printfn "%s%s.%s" a b c
+        if OutputLevel.Debug <= config.outputLevel then debugPrintMember senv.e source c <| fun a b c _ -> printfn $"{a}{b}.{c}"
 
         match c with
         | Class.ClassWithReflectedDefinition r ->

@@ -70,5 +70,4 @@ let printParsingException source (e: JsonParsingException) =
     let sourceText = sourceLines |> buildSourceTextCore position { position with column = position.column + 1 }
     printfn $"({position.line}, {position.column}): {e.Message}, offset: {e.Offset} actualChar: %A{e.ActualChar}"
     for line in sourceText do
-        printfn "%s" line
-
+        printfn $"{line}"

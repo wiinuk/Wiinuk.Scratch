@@ -29,7 +29,7 @@ let runScheduler state =
     with
         | StopException(StopAll, message) ->
             eprintfn "stack trace:"
-            eprintfn "%s" message
+            eprintfn $"{message}"
 
 let runWhenGreenFlags state =
     registerWhenGreenFlags state
@@ -61,4 +61,4 @@ let evaluateStageProcedure procedureName args ({ EvaluateState.stage = stage } a
     with
     | StopException(StopAll, message) ->
         eprintfn "stack trace:"
-        eprintfn "%s" message
+        eprintfn $"{message}"

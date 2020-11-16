@@ -222,7 +222,7 @@ module Error =
             | None -> ""
             | Some source -> source |> String.concat "\r\n" |> sprintf "\r\n%s"
 
-        sprintf "%s%serror SC%04d: %s%s%s" stack locationText errorNumber (buildError error) sourceText exprText
+        $"{stack}{locationText}error SC%04d{errorNumber}: {buildError error}{sourceText}{exprText}"
 
     exception TranspileException of TranspileError
     with

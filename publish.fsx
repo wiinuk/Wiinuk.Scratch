@@ -40,7 +40,7 @@ let args =
         xs
         |> Seq.pairwise
         |> Seq.tryPick (fun (k, v) -> if k = key then Some v else None)
-        |> Option.defaultWith (fun _ -> failwithf "ERROR: missing parameter: '%s'" key)
+        |> Option.defaultWith (fun _ -> failwith $"ERROR: missing parameter: '{key}'")
     {|
         test = List.contains "--test" args
         version = find "--version" args
@@ -53,12 +53,11 @@ start "dotnet tool restore"
 start "dotnet paket restore"
 start "dotnet build --configuration Release src/Scratch"
 let parent = "src/Scratch/bin/Release"
-start "dotnet paket pack --template src/Scratch/paket.template --version %s --project-url %s %s" args.version args.projectUrl parent
+start $"dotnet paket pack --template src/Scratch/paket.template --version {args.version} --project-url {args.projectUrl} {parent}"
 
 let package = Directory.EnumerateFiles(parent, "*.nupkg") |> Seq.exactlyOne
 if args.test
 then
     printfn $"[test mode] dotnet nuget push {package} --api-key {args.key} --source https://api.nuget.org/v3/index.json"
 else
-    start "dotnet nuget push %s --api-key %s --source https://api.nuget.org/v3/index.json"
-        package (SensitiveString.toString args.key)
+    start $"dotnet nuget push {package} --api-key {SensitiveString.toString args.key} --source https://api.nuget.org/v3/index.json"
