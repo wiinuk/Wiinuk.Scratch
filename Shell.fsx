@@ -13,7 +13,7 @@ exception ProcessException of ExitCode: int * ErrorLines: string seq * FileName:
     override e.Message =
         let nl = Environment.NewLine
         let message = String.concat nl e.ErrorLines
-        $"Process terminated with exit code {e.ExitCode}. `%s{e.FileName} %s{e.Arguments}`%s{nl}message:%s{message}%s{nl}"
+        $"Process terminated with exit code {e.ExitCode}. `{e.FileName} {e.Arguments}`{nl}message:{message}{nl}"
 
 type StartConfig = {
     priorityClass: ProcessPriorityClass
