@@ -1,8 +1,9 @@
-module Scratch.Transpiler.Extensions.Tests
+﻿module Scratch.Transpiler.Extensions.Tests
 open Scratch
 open Scratch.Ast
 open Scratch.Transpiler
 open Xunit
+open Scratch.Test.AssertionWithDiff.Operators
 
 
 module Translate =

@@ -1,5 +1,4 @@
-module Scratch.IR.Transformers.Tests
-open DiffMatchPatch
+﻿module Scratch.IR.Transformers.Tests
 open Scratch
 open Scratch.IR
 open Scratch.IR.Transformers
@@ -132,20 +131,7 @@ module private Helpers =
         if not (l = r) then
             let l = Pretty.pretty l
             let r = Pretty.pretty r
-            let d = DiffMatchPatch.Default
-            let es = d.DiffMain(l, r)
-            d.DiffCleanupSemantic es
-            let diffText =
-                es
-                |> Seq.map (fun e ->
-                    match e.Operation with
-                    | Delete -> "[- " + e.Text + " -]"
-                    | Insert -> "[+ " + e.Text + " +]"
-                    | Equal -> e.Text
-                )
-                |> String.concat ""
-
-            Assert.True(false, sprintf "diff:\n%s\nl:\n%s\nr:\n%s" diffText l r)
+            Assert.True(false, Scratch.Test.AssertionWithDiff.buildDiffText l r)
 
     let scriptData s = { x = 0.; y = 0.; script = s }
     let def n = VariableDecl.make () n NoPersistent
