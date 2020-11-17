@@ -228,7 +228,8 @@ module private CoreExpHelpers =
 
                 | Call(_, es)
                 | NewTuple es
-                | Op(_, es) ->
+                | Op(_, es)
+                | ExtOp(_, es) ->
                     let mutable f = { FoldFlame.InitOperands.es = es }
                     SmallStack.pushInit &d.stack &f
 
@@ -286,6 +287,7 @@ module private CoreExpHelpers =
 
         | Call(_, es)
         | Op(_, es)
+        | ExtOp(_, es)
         | NewTuple es -> freeVarsList env vars es
         | ListOp(_, xs) -> freeVarsListOps env vars xs
 
@@ -322,6 +324,7 @@ module private CoreExpHelpers =
             | Call(proc = proc) -> Var.trivia(proc).resultType
             | Op(operator = op)
             | ListOp(operator = op) -> operatorResultType op
+            | ExtOp(spec = s) -> s.resultType
 
             | NewTuple es -> typeNewTuple es
             | TupleGet(e, i) -> typeTupleGet e i
@@ -682,7 +685,7 @@ module private ExpStartConstructorHelpers =
         | Op(operator, operands) ->
             match operator with
             | O.call
-            
+
             | O.doIf
             | O.doIfElse
 
@@ -700,6 +703,9 @@ module private ExpStartConstructorHelpers =
 
             | KnownOperatorInfo(ValueSome info) ->
                 checkOperands &source operands info.operands
+
+        | ExtOp(sign, operands) ->
+            checkOperands &source operands sign.operands
 
     let validateShallow e = checkShallow e; e
 
@@ -762,7 +768,7 @@ module ExpSmartConstructorExtensions =
         static member Value = value
     [<GeneralizableValue>]
     let private zero<'a> = ZeroHolder<'a>.Value
-    
+
     [<Sealed; AbstractClass>]
     type private OneHolder<'a> private () =
         static let value = Exp'<'a>.Lit(SNumber 1.)

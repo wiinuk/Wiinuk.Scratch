@@ -26,6 +26,16 @@ type WithInfinity<'T> = Finite of 'T | Infinity with
 
 [<AutoOpen>]
 module private Helpers =
+    let controlToYieldaility = function
+        | Control.ForceYield -> ForceYield
+        | Control.NormalYield -> NormalYield
+        | Control.Next
+        | Control.Unknown
+        | Control.Return
+        | Control.Stop
+        | Control.Call
+        | Control.DeleteClone -> NeverYield
+
     let operatorYieldability = function
         | Atom _
         | Call _
@@ -40,22 +50,14 @@ module private Helpers =
         | Var _
         | VarSet _ -> NeverYield
 
+        | ExtOp(spec = spec) -> controlToYieldaility spec.control
+
         | Op(operator = operator)
         | ListOp(operator = operator) ->
 
         match operator with
         | KnownOperatorInfo ValueNone -> failwith "unknownOperator"
-        | KnownOperatorInfo(ValueSome info) ->
-
-        match info.control with
-        | Control.ForceYield -> ForceYield
-        | Control.NormalYield -> NormalYield
-        | Control.Next
-        | Control.Unknown
-        | Control.Return
-        | Control.Stop
-        | Control.Call
-        | Control.DeleteClone -> NeverYield
+        | KnownOperatorInfo(ValueSome info) -> controlToYieldaility info.control
 
     let yieldabilityAtAtomicity yieldability atomicity =
         match yieldability, atomicity with
@@ -75,6 +77,7 @@ module private Helpers =
             | Atom e -> aux env' state e
             | Call(_, es)
             | NewTuple es
+            | ExtOp(_, es)
             | Op(_, es) -> List.fold (aux env') state es
 
             | Coerce(_, e, _)

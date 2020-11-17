@@ -1,4 +1,4 @@
-﻿module Scratch.IR.Transformers.Tests
+module Scratch.IR.Transformers.Tests
 open DiffMatchPatch
 open Scratch
 open Scratch.IR
@@ -85,6 +85,7 @@ module private Helpers =
                     | TupleSet(v, i, e1) -> TupleSet(v, i, map e1)
 
                     | Op(op, es) -> Op(op, List.map map es)
+                    | ExtOp(spec, es) -> ExtOp(spec, List.map map es)
                     | ListOp(op, xs) -> ListOp(op, List.map (function Choice1Of2 e -> Choice1Of2(map e) | Choice2Of2 x -> Choice2Of2(Source.map f id x)) xs)
 
                     | Call(p, es) -> Call(p, List.map map es)

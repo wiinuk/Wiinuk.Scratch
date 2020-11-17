@@ -317,6 +317,8 @@ let name = function
     | O.whenKeyPressed -> "whenKeyPressed"
     | O.whenSceneStarts -> "whenSceneStarts"
 
+    | O.Extension -> "Extension"
+
     | x ->
         lock gate <| fun () ->
         if isNull symbolToName then

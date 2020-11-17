@@ -163,6 +163,7 @@ module private Printers =
 
         | Op(op, ops) -> prettyOp s (op, ops)
         | ListOp(op, ops) -> prettyListOp s (op, ops)
+        | ExtOp(spec, ops) -> prettyExtOp s (spec, ops)
 
         | NewTuple xs -> prettyNewTuple s xs
         | TupleGet(value, index) -> prettyTupleGet s (value, index)
@@ -257,6 +258,10 @@ module private Printers =
         | O.``>`` -> prettyBinaryOp s (P.Rel, P.Rel, Precedence.sub P.Rel 1) (op, ops)
         | O.``=`` -> prettyBinaryOp s (P.Eq, P.Eq, Precedence.sub P.Eq 1) (op, ops)
         | _ -> prettyNormalOp s (op, ops)
+
+    and prettyExtOp s (spec, ops) =
+        let op = prettyName spec.extensionId
+        op + nest (ns + prettyOperands s ops), P.Apply
 
     and prettyNormalOp s (op, ops) =
         let struct(op, _) = prettyOperator s op

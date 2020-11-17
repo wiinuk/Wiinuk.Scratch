@@ -237,6 +237,15 @@ type CoerceKind =
     | Reinterpret
     | Convert
 
+type ExtensionSpec = {
+    extensionId: string
+    resultType: ExpType
+    operands: AstDefinitions.OperandInfo list
+    control: AstDefinitions.Control
+    kind: AstDefinitions.Kind
+    cost: Scratch.Reflection.Cost
+}
+
 type Exp'<'a> =
     | Lit of SValue
     | Let of Var * value: 'a Exp * scope: 'a Exp
@@ -253,6 +262,7 @@ type Exp'<'a> =
 
     | Op of operator: Symbol * operands: 'a Exp list
     | ListOp of operator: Symbol * operands: Choice<'a Exp, 'a ListVar> list
+    | ExtOp of spec: ExtensionSpec * operands: 'a Exp list
 
     /// `divmod(10, 20)`
     | Call of proc: ProcedureVar * args: 'a Exp list
