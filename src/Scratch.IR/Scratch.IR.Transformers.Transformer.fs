@@ -351,6 +351,7 @@ module private Helpers =
         | Call(p, es) -> exps (fun es -> Call(p, es)) es
         | NewTuple es -> exps NewTuple es
         | Op(op, es) -> exps (fun es -> Op(op, es)) es
+        | ExtOp(spec, es) -> exps (fun es -> ExtOp(spec, es)) es
 
         | ListOp(op, xs) -> listOps (fun xs -> ListOp(op, xs)) xs
 

@@ -912,6 +912,7 @@ module private Emitters =
         | If(test, ifTrue, ifFalse) -> convertIf b x.source (test, ifTrue, ifFalse)
         | Seq(first, last) -> convertSeq b (first, last)
         | Op(operator, operands) -> convertOp b x.source (operator, operands)
+        | ExtOp(spec, operands) -> convertExtOp b x.source (spec, operands)
         | ListOp(op, ops) -> convertListOp b x.source (op, ops)
         | NewTuple xs -> List.collect (convertExp b) xs
         | TupleGet(x, index) -> convertTupleGet b (x, index)
@@ -1022,6 +1023,14 @@ module private Emitters =
         | Kind.Statement ->
             convertStatementOp b state info (operator, operands)
             []
+
+    and convertExtOp b state (spec, operands) =
+        let operands = List.map2 (fun operand spec -> convertOperand b (operand, spec.operandType)) operands spec.operands
+        let id = Expression.eString state spec.extensionId
+        let expression = ComplexExpression(state, O.Extension, id::operands)
+        match spec.kind with
+        | Kind.Expression -> [Complex expression]
+        | Kind.Statement -> Builder.accumulateStatement b expression; []
 
     and convertStatementOp b state info (operator, operands) =
         match operator with

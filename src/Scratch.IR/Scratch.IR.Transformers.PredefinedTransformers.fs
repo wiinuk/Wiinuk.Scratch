@@ -1,4 +1,4 @@
-module Scratch.IR.Transformers.PredefinedTransformers
+﻿module Scratch.IR.Transformers.PredefinedTransformers
 open Scratch
 open Scratch.Primitives
 open Scratch.Reflection
@@ -56,6 +56,7 @@ module private CostHelpers =
         | NewTuple es -> collectMax LiteralLike Cost.max maxCost es
         | Op(op, es) -> collectMax (operatorCost op) Cost.max maxCost es
         | ListOp(op, es) -> collectMax (operatorCost op) Cost.max (function Choice1Of2 e -> maxCost e | Choice2Of2 _ -> HasSideEffect) es
+        | ExtOp(sign, es) -> collectMax sign.cost Cost.max maxCost es
 
     [<Sealed; AbstractClass>]
     type private MaxCostCached<'a> private () =
@@ -197,6 +198,7 @@ module private Exp =
             | NewTuple es -> repList NewTuple es
             | Call(p, es) -> repList (fun es -> Call(p, es)) es
             | Op(op, es) -> repList (fun es -> Op(op, es)) es
+            | ExtOp(spec, es) -> repList (fun es -> ExtOp(spec, es)) es
 
             | ListOp(op, xs) -> repListOpList (fun xs -> ListOp(op, xs)) xs
 
@@ -293,7 +295,8 @@ module private StatHelpers =
 
                 | Call(_, es)
                 | NewTuple es
-                | Op(_, es) -> list exp es
+                | Op(_, es)
+                | ExtOp(_, es) -> list exp es
 
                 | ListOp(_, xs) -> list (function Choice1Of2 e -> exp e | Choice2Of2 _ -> ValueNone) xs
             exp e
@@ -614,6 +617,7 @@ let eliminateDeadLetExpression<'a> = { new ExpTransformer<'a>() with
 }
 let eliminateDeadSeqExpression e _ =
     let isPure e = maxCost e <= Pure
+    let (|OpCost|) = operatorCost
 
     match e.value with
     | Seq(first, last) when isPure first -> last |> R.modified
@@ -652,15 +656,17 @@ let eliminateDeadSeqExpression e _ =
         | TupleSet _ -> e |> R.noModify
 
         // `op e1 … en; last` ( op は純粋, e1… のうち純粋でない式を x1… とする ) => `x1; x2; …; xn; last`
-        | Op(op, es) when operatorCost op <= Pure ->
+        | Op(OpCost cost, es)
+        | ExtOp({ cost = cost }, es) when cost <= Pure ->
             List.foldBack (fun e' last ->
                 if isPure e' then last
                 else Exp.seq e.source e' last
             ) es last
             |> R.modified
-        | Op _ -> e |> R.noModify
+        | Op _
+        | ExtOp _ -> e |> R.noModify
 
-        | ListOp(op, es) when operatorCost op <= Pure ->
+        | ListOp(OpCost cost, es) when cost <= Pure ->
             List.foldBack (fun x last ->
                 match x with
                 | Choice1Of2 e' when not <| isPure e' -> Exp.seq e.source e' last
