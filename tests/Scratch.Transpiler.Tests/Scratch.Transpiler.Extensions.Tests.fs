@@ -63,7 +63,6 @@ let getTranslateTest() =
     =? {
         StageData.defaultValue with
             lists = [
-                ListData.make () "output" []
                 { ListData.make () "output" [] with width = 0.; height = 0. }
             ]
             scripts = [
@@ -71,7 +70,7 @@ let getTranslateTest() =
                     ComplexExpression(s, Symbol.Extension, [E.eString s "translate_getTranslate"; word; language])
 
                 E.whenGreenFlag () [
-                    //E.``deleteLine:ofList:`` () "output" (E.eString () "all")
+                    E.``deleteLine:ofList:`` () "output" (E.eString () "all")
                     translate_getTranslate () (E.eString () "Hello") (E.eString () "sr")
                     |> Complex
                     |> E.``append:toList:`` () "output"
