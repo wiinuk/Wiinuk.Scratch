@@ -1,6 +1,5 @@
 ﻿module Scratch.Ast.Transformers.Tests
 open FsCheck
-open DiffMatchPatch
 open Scratch
 open Scratch.Ast
 open Scratch.Ast.Transformers
@@ -23,20 +22,7 @@ module private Helpers =
         if not (l = r) then
             let l = Pretty.pretty l
             let r = Pretty.pretty r
-            let d = DiffMatchPatch.Default
-            let es = d.DiffMain(l, r)
-            d.DiffCleanupSemantic es
-            let diffText =
-                es
-                |> Seq.map (fun e ->
-                    match e.Operation with
-                    | Delete -> "[- " + e.Text + " -]"
-                    | Insert -> "[+ " + e.Text + " +]"
-                    | Equal -> e.Text
-                )
-                |> String.concat ""
-
-            Assert.True(false, sprintf "diff:\n%s\nl:\n%s\nr:\n%s" diffText l r)
+            Assert.True(false, Scratch.Test.AssertionWithDiff.buildDiffText l r)
 
     let def n v = VariableData.make () n v
     let atomicProc n ps body = ScriptData.procedure () n ps Atomic body

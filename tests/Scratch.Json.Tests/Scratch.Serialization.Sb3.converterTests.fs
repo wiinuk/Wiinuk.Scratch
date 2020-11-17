@@ -5,6 +5,7 @@ open Scratch.Serialization.Sb3.Ast
 open Scratch.Primitives
 open System.Collections.Generic
 open Xunit
+open Scratch.Test.AssertionWithDiff.Operators
 
 
 module ComplexBlock =
@@ -216,24 +217,6 @@ module Helpers =
         }
     let scriptToStage (script: unit Ast.Script) = { Ast.StageData.defaultValue with scripts = [{ x = 0.; y = 0.; script = script }] }
 
-    let (=?) l r =
-        if not <| LanguagePrimitives.GenericEqualityER l r then
-            let l, r = sprintf "%0A" l, sprintf "%0A" r
-            let d = DiffMatchPatch.DiffMatchPatch.Default
-            let es = d.DiffMain(l, r)
-            d.DiffCleanupSemantic es
-            let diffText =
-                es
-                |> Seq.map (fun e ->
-                    match e.Operation with
-                    | DiffMatchPatch.Delete -> "[- " + e.Text + " -]"
-                    | DiffMatchPatch.Insert -> "[+ " + e.Text + " +]"
-                    | DiffMatchPatch.Equal -> e.Text
-                )
-                |> String.concat ""
-
-            Assert.True(false, sprintf "diff:\n%s\nl:\n%s\nr:\n%s" diffText l r)
-
     let assertProjectEq p p' =
         match p.targets, p'.targets with
         | { blocks = bs }::_, { blocks = bs' }::_ -> bs =? bs'
@@ -325,6 +308,7 @@ open System
 open System.IO
 open System.IO.Compression
 open Xunit
+open Scratch.Test.AssertionWithDiff.Operators
 
 
 module Tests =
