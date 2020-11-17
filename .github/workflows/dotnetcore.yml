@@ -2,10 +2,10 @@
 
 on:
   push:
-    branches: [ master ]
+    branches: [ main ]
     tags: [ v* ]
   pull_request:
-    branches: [ master ]
+    branches: [ main ]
 
 env:
   DOTNET_CLI_TELEMETRY_OPTOUT: "true"
@@ -50,16 +50,9 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
-      - uses: actions/cache@v1
-        with:
-          path: ${{ env.NUGET_PACKAGES }}
-          key: ${{ runner.os }}-nuget-${{ hashFiles('**/packages.lock.json') }}
-          restore-keys: |
-            ${{ runner.os }}-nuget-
-
       - uses: actions/setup-dotnet@v1
         with:
-          dotnet-version: 3.1.201
+          dotnet-version: 5.0.100
 
       - name: Run publish script
         run: 'dotnet fsi ./publish.fsx --version ${GITHUB_REF##*/v} --project-url ${{ github.event.repository.html_url }} --key ${{ secrets.NUGET_OLG_API_KEY }}'
