@@ -8,75 +8,6 @@ type 'a ReadonlyArray = 'a list
 type 'a nullable = 'a option
 type 'a optional = 'a option
 
-// interface Case0<K extends string> {
-//     readonly type: K
-//     readonly item1?: undefined
-//     readonly item2?: undefined
-//     readonly item3?: undefined
-//     readonly item4?: undefined
-// }
-// interface Case1<K extends string, T1> {
-//     readonly type: K
-//     readonly item1: T1
-//     readonly item2?: undefined
-//     readonly item3?: undefined
-//     readonly item4?: undefined
-// }
-// interface Case2<K extends string, T1, T2> {
-//     readonly type: K
-//     readonly item1: T1
-//     readonly item2: T2
-//     readonly item3?: undefined
-//     readonly item4?: undefined
-// }
-// interface Case3<K extends string, T1, T2, T3> {
-//     readonly type: K
-//     readonly item1: T1
-//     readonly item2: T2
-//     readonly item3: T3
-//     readonly item4?: undefined
-// }
-// interface Case4<K extends string, T1, T2, T3, T4> {
-//     readonly type: K
-//     readonly item1: T1
-//     readonly item2: T2
-//     readonly item3: T3
-//     readonly item4: T4
-// }
-
-// type InternalVariable =
-//     | "sulf.time"
-//     | "sulf.version"
-//     | "sulf.resolutionX"
-//     | "self.canvas.width"
-//     | "sulf.resolutionY"
-//     | "self.canvas.height"
-//     | "sulf.hasTouchEvents"
-
-// type KnownProcedureHeader<S, B> =
-//     | Case4<"procDef", S, ReadonlyArray<S>, ReadonlyArray<ScratchValue>, B>
-
-// // type ControlStatement = KnownControlStatement<string, boolean>
-
-
-// interface NumberExpression { e: KnownNumberExpression<Expression> }
-// interface BooleanExpression { e: KnownBooleanExpression<Expression> }
-
-// type ConstantExpression =
-//     | number
-//     | boolean
-//     | string
-
-// type Variable =
-//     | InternalVariable
-//     | string
-
-// interface CallExpression { e: KnownCallExpression<Expression, Variable> }
-// type ComplexExpression =
-//     | CallExpression
-//     | NumberExpression
-//     | BooleanExpression
-
 type Symbol =
     /// ""
     | Empty = 0uy
@@ -232,9 +163,6 @@ type Symbol =
 
 type O = Symbol
 
-// type Expression =
-//     | ConstantExpression
-//     | ComplexExpression
 type Expression<'a> =
     | Literal of state: 'a * value: SValue
     | Complex of 'a ComplexExpression
@@ -243,29 +171,9 @@ type Expression<'a> =
 and [<Struct>] ComplexExpression<'a> = ComplexExpression of state: 'a * operator: Symbol * operands: 'a Expression list
 and [<Struct>] BlockExpression<'a> = BlockExpression of state: 'a * body: 'a ComplexExpression list
 
-// type Statement =
-//     | KnownStatement<Expression, Block | null, string>
-//     | KnownCallStatement<Expression>
-
-// type FooterStatement = KnownFotterStatement<Block | null>
-
-// interface Block {
-//     readonly body: ReadonlyArray<Statement>
-//     readonly footer: FooterStatement | null
-// }
-
-// type ListenerHeader = KnownListenerHeader<string, boolean>
-// interface ListenerDefinition extends Block {
-//     readonly header: ListenerHeader
-// }
-
 type ListenerDefinition<'a> = ListenerDefinition of state: 'a * name: Symbol * arguments: 'a Expression list * body: 'a BlockExpression
 type ParameterDefinition<'a> = ParameterDefinition of state: 'a * name: string * defaultValue: SValue
 
-// type ProcedureHeader = KnownProcedureHeader<string, boolean>
-// interface Procedure extends Block {
-//     readonly header: ProcedureHeader
-// }
 [<Struct>]
 type Atomicity =
     | Atomic
@@ -279,11 +187,6 @@ type ProcedureDefinition<'a> =
         isAtomic: Atomicity *
         body: 'a BlockExpression
 
-// type Script =
-//     | Block
-//     | ListenerDefinition
-//     | Procedure
-//     | ComplexExpression
 type Script<'a> =
     | Listener of 'a ListenerDefinition
     | Procedure of 'a ProcedureDefinition
@@ -307,10 +210,6 @@ type TsType =
 [<NoComparison; NoEquality>]
 type TypeScheme = TypeScheme of vars: TypeVar list * t: TsType
 
-// type Rotation =
-//     | "left-right"
-//     | "don't rotate"
-//     | "normal"
 [<RequireQualifiedAccess>]
 type OperandType<'t> =
     | Expression of 't
@@ -333,13 +232,6 @@ type ListenerHeaderType =
     | Null
     | Bool
 
-// interface ScriptData {
-//     /** x */
-//     readonly 0: number
-//     /** y */
-//     readonly 1: number
-//     readonly 2: MultipleStatement
-// }
 [<Struct>]
 type ScriptData<'S,'a> = {
     x: number
@@ -361,17 +253,6 @@ module PartialData =
         bitmapResolution: double option
     }
 
-// interface CostumeData {
-//     readonly baseLayerMD5: string
-//     readonly baseLayerID: number
-//     readonly textLayerMD5?: string
-//     readonly textLayerID?: number
-
-//     readonly bitmapResolution?: number
-//     readonly costumeName: string
-//     readonly rotationCenterX: number
-//     readonly rotationCenterY: number
-// }
 type CostumeData = {
     baseLayerMD5: string
     baseLayerID: number
@@ -384,14 +265,6 @@ type CostumeData = {
     rotationCenterY: number
 }
 
-// interface SoundData {
-//     readonly md5: string
-//     readonly soundID: number
-//     readonly soundName: string
-//     readonly sampleCount?: number
-//     readonly rate?: 11025 | 22050 | 48000
-//     readonly format?: "" | "adpcm"
-// }
 [<Struct>]
 type SoundRate = R11025 | R22050 | R48000
 module SoundRate =
@@ -430,11 +303,7 @@ type Persistence =
 type Visibility =
     | Visible
     | Hidden
-// interface ListVariableData extends EntityData {
-//     readonly isPersistent?: boolean
-//     readonly listName: string
-//     readonly contents: ReadonlyArray<ScratchValue>
-// }
+
 [<Struct>]
 type ListVariableData<'a> = {
     state: 'a
@@ -448,11 +317,7 @@ type ListVariableData<'a> = {
     height: double
     visible: Visibility
 }
-// interface VariableData {
-//     readonly isPersistent?: boolean
-//     readonly name: string
-//     readonly value: ScratchValue
-// }
+
 type VariableData<'a> = {
     state: 'a
     isPersistent: Persistence
@@ -460,10 +325,6 @@ type VariableData<'a> = {
     value: SValue
 }
 
-// type RotationStyle =
-//     | "none"
-//     | "normal"
-//     | "leftRight"
 [<Struct; RequireQualifiedAccess>]
 type RotationStyle =
     /// "none"
@@ -536,29 +397,7 @@ type WatcherData = {
     x: number nullable optional
     y: number nullable optional
 }
-// interface ObjectData extends EntityData {
-//     readonly objName: string
-//     readonly children?: ReadonlyArray<WatcherData | SpriteData>
-//     readonly scripts?: ReadonlyArray<ScriptData>
-//     readonly costumes?: ReadonlyArray<CostumeData>
-//     readonly sounds?: ReadonlyArray<SoundData>
-//     readonly variables?: ReadonlyArray<VariableData>
-//     readonly lists?: ReadonlyArray<ListVariableData>
-//     readonly currentCostumeIndex?: number
-// }
-// interface SpriteData extends ObjectData {
-//     readonly cmd?: undefined
 
-//     readonly direction: number
-//     readonly indexInLibrary: number
-//     readonly isDraggable: boolean
-//     readonly rotationStyle: RotationStyle
-//     readonly scale: number
-//     readonly scratchX: number
-//     readonly scratchY: number
-//     readonly spriteInfo: {}
-//     readonly visible: boolean
-// }
 type EntityData<'Extension,'Script,'Variable,'List,'a> = {
     objName: string
     scripts: ReadonlyArray<ScriptData<'Script,'a>>
