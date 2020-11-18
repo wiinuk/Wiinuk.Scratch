@@ -4,7 +4,6 @@ open Scratch.Serialization.Sb3
 open Scratch.Serialization.Sb3.Ast
 open Scratch.Primitives
 open System.Collections.Generic
-open Xunit
 open Scratch.Test.AssertionWithDiff.Operators
 
 
