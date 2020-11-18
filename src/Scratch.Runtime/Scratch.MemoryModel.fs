@@ -548,6 +548,7 @@ type Address = Address of IWord Pointer with
         | Nil -> Address(NonNil(Reference n))
         | NonNil(Reference x) -> Address(NonNil(Reference(x + n)))
 
+    [<Block(Symbol.``-``)>]
     static member (-) (Address a1, Address a2) = int (SValue.toNumber (toV a1) - SValue.toNumber (toV a2))
 module Address =
     let ofNumber n = Address(NonNil(Reference n))
@@ -625,6 +626,7 @@ module Memory =
 
 module Operators =
     open Scratch.Operators
+    open Scratch.Ast
 
     /// alias of `Field.reference p f`
     let inline (->*) p f = Field.reference p f
@@ -637,8 +639,11 @@ module Operators =
     /// alias of `Memory.write p (%v)`
     let inline (<-%) p v = p <-* %v
 
+    [<Block(Symbol.``<``)>]
     let (.<) (x1: 'a when 'a :> IWord) (x2: 'a) = SValue.compareSValue (toV x1) (toV x2) < 0
+    [<Block(Symbol.``>``)>]
     let (.>) (x1: 'a when 'a :> IWord) (x2: 'a) = SValue.compareSValue (toV x1) (toV x2) > 0
+    [<Block(Symbol.``=``)>]
     let (.=) (x1: 'a when 'a :> IWord) (x2: 'a) = SValue.compareSValue (toV x1) (toV x2) = 0
 
 module Word =

@@ -62,6 +62,7 @@ module SList =
 [<AutoOpen>]
 module PrimitiveOperations =
     open AtomicGeneratorFull
+    open Scratch.Ast
 
     let repeat count action =
         for _ in 1 .. count do action()
@@ -96,10 +97,14 @@ module PrimitiveOperations =
         return (failwith "": 'a)
     }
 
+    [<Block(Symbol.``stringLength:``)>]
     let length s = String.length s
+    [<Block(Symbol.``letter:of:``)>]
     let getChar s n = let i = n - 1 in (s: string).[i..i]
+    [<Block(Symbol.``concatenate:with:``)>]
     let combine (x: string) y = x + y
-    
+
+    [<Block(Symbol.timer)>]
     let timer<'a> =
         let scheduler = Runtime.globalRuntime.scheduler
         let d = Scheduler.now scheduler - scheduler.timerStart
@@ -124,18 +129,26 @@ module PenOperations =
 
 [<AutoOpen>]
 module SensingOperations =
+    open Scratch.Ast
+
     // TODO:
+    [<Block(Symbol.``keyPressed:``)>]
     let keyPressed (_: int) = false
     // TODO:
+    [<Block(Symbol.``keyPressed:``)>]
     let keyPressedFrom (_: string) = false
     // TODO:
+    [<Block(Symbol.mousePressed)>]
     let mousePressed<'a> = false
     // TODO:
+    [<Block(Symbol.mouseX)>]
     let mouseX<'a> = 0.
     // TODO:
+    [<Block(Symbol.mouseY)>]
     let mouseY<'a> = 0.
 
     // TODO:
+    [<Block(Symbol.answer)>]
     let answer<'a> = ""
     // TODO:
     let doAsk (_: string) = fiber { ThreadYieldForce }
