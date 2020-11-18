@@ -183,7 +183,7 @@ and evaluateComplexExpression (state: _ inref) (ComplexExpression(location, op, 
         | ValueSome sprite -> SNumber(sprite.spriteDrawingData.scale * 100.)
         | ValueNone _ -> SNumber 100.
 
-    | O.volume, _ -> SNumber state.self.drawingData.volume
+    | O.volume, _ -> SNumber(state.self.drawingData.volume * 100.)
 
     | O.``lineCountOfList:``, [Literal(_, SString name)] ->
         let xs = getListOrRaise &state location name
