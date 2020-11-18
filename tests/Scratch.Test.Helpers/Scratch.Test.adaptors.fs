@@ -1,4 +1,4 @@
-﻿module Scratch.Serialization.Sb3.Test.Helpers
+﻿namespace Scratch.Test
 open Scratch.Primitives
 open System
 open System.Buffers

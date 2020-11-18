@@ -4,7 +4,6 @@ open Scratch.Serialization.Sb3
 open Scratch.Serialization.Sb3.Ast
 open Scratch.Primitives
 open System.Collections.Generic
-open Xunit
 open Scratch.Test.AssertionWithDiff.Operators
 
 
@@ -302,7 +301,7 @@ open Scratch.Primitives
 open Scratch.Runtime.Test.Helpers
 open Scratch.Serialization.Sb3
 open Scratch.Serialization.Sb3.Ast
-open Scratch.Serialization.Sb3.Test.Helpers
+open Scratch.Test
 open Scratch.Serialization.Sb3.Converter.Test
 open System
 open System.IO
