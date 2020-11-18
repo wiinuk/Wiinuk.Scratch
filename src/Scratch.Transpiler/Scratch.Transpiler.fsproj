@@ -14,6 +14,7 @@
     <Compile Include="Scratch.Transpiler.TypeSpec.fs" />
     <Compile Include="Scratch.Transpiler.Core.fs" />
     <Compile Include="Scratch.Transpiler.PredefinedPlugin.Helpers.fs" />
+    <Compile Include="Scratch.Transpiler.PredefinedPlugin.AnnotatedMethods.fs" />
     <Compile Include="Scratch.Transpiler.PredefinedPlugin.FSharpCore.fs" />
     <Compile Include="Scratch.Transpiler.PredefinedPlugin.ScratchRuntime.fs" />
     <Compile Include="Scratch.Transpiler.PredefinedPlugin.AsyncPlugin.fs" />

@@ -45,6 +45,7 @@ module private Helpers =
 
     let notM, _ = findMethod <@ Operators.not @>
     let callExpressionPlugin' senv = function
+        | AnnotatedMethods.CallMethodWithBlockAttribute senv x -> x
         | CallMap CallExpressionMapHolder.Value senv x -> x
 
         | E.WhileLoop(test, body) as e -> ScratchRuntime.transpileRepeatUntil senv (E.Call(notM, [test])@+getLocation test) body (SourceCode.ofExpr e)

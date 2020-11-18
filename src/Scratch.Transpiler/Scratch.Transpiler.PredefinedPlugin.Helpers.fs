@@ -16,7 +16,6 @@ open Scratch.Transpiler.Environments
 open Scratch.Transpiler.Core
 open Scratch.IR
 open System.Runtime.CompilerServices
-open System.Text.RegularExpressions
 
 module A = Scratch.Ast.Expression
 module A = Scratch.Ast.Expressions
@@ -24,10 +23,6 @@ module E = FSharp.Quotations.Patterns
 module Exp = Exp.Op
 type private QVar = Quotations.Var
 
-//let getPrimitiveStorage source spec =
-//    match getStorage (SourceCode.location source) spec with
-//    | [e] -> Ok e
-//    | es -> TypeSizeMismatch(actual = List.length es, expected = 1) |> raiseError source
 
 let inline transpilePrimitiveBinaryCallExpression senv x1 x2 call make =
     let e1 = transpilePrimitiveExpression senv x1
@@ -84,17 +79,6 @@ let registerLocalLambdaProcedure senv atomicity = context {
     let name = baseName + config.namespaceSeparator + config.localName
     return! registerLambdaProcedure senv (Some name) atomicity
 }
-//let transpileAndAcc senv transpiler e = context {
-//    let Get FExpressionState { acc = acc } & state = senv.s.contents
-//    senv.s := state |> wiz FExpressionState { acc = [] }
-//    let! e = transpiler senv e
-//    let Get FExpressionState { acc = eAcc } & state = senv.s.contents
-//    senv.s := state |> wiz FExpressionState { acc = acc }
-//    return eAcc, e
-//}
-//let transpileExpressionAndAcc senv e = transpileAndAcc senv transpileExpression e
-//let transpilePrimitiveExpressionAndAcc senv e = transpileAndAcc senv transpilePrimitiveExpression e
-
 let registerAndTranspileLocalLambda senv e = context {
     let! lambda = registerLocalLambdaProcedure senv Atomic
     let! stats, _ = transpileBlock senv lambda e
