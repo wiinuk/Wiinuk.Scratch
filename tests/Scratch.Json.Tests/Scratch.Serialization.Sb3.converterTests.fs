@@ -302,7 +302,7 @@ open Scratch.Primitives
 open Scratch.Runtime.Test.Helpers
 open Scratch.Serialization.Sb3
 open Scratch.Serialization.Sb3.Ast
-open Scratch.Serialization.Sb3.Test.Helpers
+open Scratch.Test
 open Scratch.Serialization.Sb3.Converter.Test
 open System
 open System.IO
