@@ -1,5 +1,6 @@
 ﻿namespace Scratch.MemoryModel
 open Scratch
+open Scratch.Ast
 
 
 type IWord =
@@ -16,6 +17,7 @@ type S = S of string with
         override x.Value = let (S x) = x in SString x
     static member op_Implicit x = S x
     static member op_Implicit(S x) = x
+    [<Block(Symbol.``concatenate:with:``)>]
     static member (+) (S x, S y) = S(x + y)
 
 type N = NWithUnit<1>
@@ -28,9 +30,13 @@ and [<Struct>] NWithUnit<[<Measure>]'u> = N of float<'u> with
     static member op_Implicit< >(N x: N<'u>) = x
     static member op_Implicit< >(N x: N<'u>) = LanguagePrimitives.Int32WithMeasure<'u>(Checked.int<float<'u>> x)
 
+    [<Block(Symbol.``+``)>]
     static member (+) (N x, N y) = N(x + y)
+    [<Block(Symbol.``-``)>]
     static member (-) (N x, N y) = N(x - y)
+    [<Block(Symbol.``*``)>]
     static member (*) (N x, N y) = N(x * y)
+    [<Block(Symbol.``/``)>]
     static member (/) (N x, N y) = N(x / y)
     static member (~-) (N x) = N -x
     static member Floor (N x) = N (LanguagePrimitives.FloatWithMeasure<'u0>(floor(double<float<'u0>> x)))
