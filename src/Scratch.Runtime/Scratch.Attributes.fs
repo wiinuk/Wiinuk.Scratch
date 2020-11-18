@@ -2,6 +2,7 @@
 open System
 open Scratch.Ast
 open Scratch.Ast.PartialData
+open System.Runtime.InteropServices
 #nowarn "0049" // no warning for uppercase variable names
 
 
@@ -160,3 +161,9 @@ type ExportAttribute() = inherit Attribute()
 [<AutoOpen>]
 module PseudoAttributes =
     let attributes (_attributes: Attribute list Lazy) x = x
+
+[<AttributeUsage(AttributeTargets.Method)>]
+type BlockAttribute private (_arg) =
+    inherit Attribute()
+    new (Operator: Symbol) = BlockAttribute(Choice1Of2 Operator)
+    new (ExtensionId: string, [<Optional; DefaultParameterValue(null: string)>] OpCode: string) = BlockAttribute(Choice2Of2(ExtensionId, Option.ofObj OpCode))
