@@ -144,12 +144,6 @@ let scratchExpressionPlugin() = { new ExpressionPluginProcess() with member _.In
 let scratchPointerExpressionPlugin() = { new ExpressionPluginProcess() with member _.Invoke senv e = scratchPointerExpressionPlugin' senv e }
 
 let scratchCallExpressions() = [
-    single <@@ S.(+) @@> binaryPrimitive Exp.``concatenate:with:``
-    single <@@ N.(+) @@> binaryPrimitive Exp.``+``
-    single <@@ N.(-) @@> binaryPrimitive Exp.``-``
-    single <@@ N.(*) @@> binaryPrimitive Exp.``*``
-    single <@@ N.(/) @@> binaryPrimitive Exp.``/``
-
     // <@ -($e1) @> => <@ -1 * $e1 @>
     single <@@ N.(~-) @@> unaryWithS <| fun senv e1 s -> context {
         let! e1 = transpilePrimitiveExpression senv e1
@@ -187,22 +181,6 @@ let scratchCallExpressions() = [
             transpileExpression senv e1
         else
             InvelidImplicitConversionType(t1, t2) |> raiseError s
-
-    single <@@ Scratch.MemoryModel.Operators.(.=) @@> binaryWithS <| fun senv e1 e2 s -> context {
-        let! x1 = transpilePrimitiveExpression senv e1
-        let! x2 = transpilePrimitiveExpression senv e2
-        return Exp.``=`` (SourceCode.tag s) x1 x2
-    }
-    single <@@ Scratch.MemoryModel.Operators.(.<) @@> binaryWithS <| fun senv e1 e2 s -> context {
-        let! x1 = transpilePrimitiveExpression senv e1
-        let! x2 = transpilePrimitiveExpression senv e2
-        return Exp.``<`` (SourceCode.tag s) x1 x2
-    }
-    single <@@ Scratch.MemoryModel.Operators.(.>) @@> binaryWithS <| fun senv e1 e2 s -> context {
-        let! x1 = transpilePrimitiveExpression senv e1
-        let! x2 = transpilePrimitiveExpression senv e2
-        return Exp.``>`` (SourceCode.tag s) x1 x2
-    }
 
     // <@ Memory.memoryEnd() @> => `SList.length(MemoryOperations.memory) + 1`
     single <@@ Memory.memoryEnd @@> nullaryWithS <| fun senv source -> context {
@@ -347,18 +325,6 @@ let scratchCallExpressions() = [
         let l = SourceCode.tag s
         return Exp.``+`` l p (Exp.``*`` l index size)
     }
-
-    single <@@ PrimitiveOperations.length @@> unary <| fun senv e1 -> context {
-        let! x1 = transpilePrimitiveExpression senv e1
-        return Exp.``stringLength:`` (getLoc e1) x1
-    }
-    single <@@ PrimitiveOperations.getChar @@> binaryWithS <| fun senv target nth s -> context {
-        let! target = transpilePrimitiveExpression senv target
-        let! nth = transpilePrimitiveExpression senv nth
-        return Exp.``letter:of:`` (SourceCode.tag s) nth target
-    }
-    single <@@ PrimitiveOperations.combine @@> binaryPrimitive Exp.``concatenate:with:``
-
     // TODO: register nil variable
     single <@@ PointerOperations.nil @@> nullaryWithS <| fun _ s -> context {
         return Exp.number (SourceCode.tag s) 0.
@@ -376,12 +342,7 @@ let scratchCallExpressions() = [
             let! x2 = transpilePrimitiveExpression senv e2
             return Exp.``+`` (SourceCode.tag e) x1 x2
     }
-    single <@@ Address.(-) @@> binaryPrimitive Exp.``-``
     single <@@ N.WithMeasure @@> unary transpileExpression
-
-    single <@@ PrimitiveOperations.timer @@> nullaryWithS <| fun _ e -> context {
-        return Exp.timer (SourceCode.tag e)
-    }
 
     single <@@ PrimitiveOperations.showVariable @@> unaryWithS <| fun senv e1 s -> context {
         let a = SourceCode.tag s
@@ -394,26 +355,6 @@ let scratchCallExpressions() = [
         match! entityNames senv e1 with
         | Choice1Of2 list -> return Exp.``hideList:`` a (Exp.list (getLoc e1) list)
         | Choice2Of2 var -> return Exp.``hideVariable:`` a var
-    }
-    single <@@ SensingOperations.keyPressed @@> unaryWithS <| fun senv e1 s -> context {
-        let! x1 = transpilePrimitiveExpression senv e1
-        return Exp.``keyPressed:`` (SourceCode.tag s) x1
-    }
-    single <@@ SensingOperations.keyPressedFrom @@> unaryWithS <| fun senv e1 s -> context {
-        let! x1 = transpilePrimitiveExpression senv e1
-        return Exp.``keyPressed:`` (SourceCode.tag s) x1
-    }
-    single <@@ SensingOperations.mousePressed @@> nullaryWithS <| fun _ s -> context {
-        return Exp.mousePressed (SourceCode.tag s)
-    }
-    single <@@ SensingOperations.mouseX @@> nullaryWithS <| fun _ s -> context {
-        return Exp.mouseX (SourceCode.tag s)
-    }
-    single <@@ SensingOperations.mouseY @@> nullaryWithS <| fun _ s -> context {
-        return Exp.mouseY (SourceCode.tag s)
-    }
-    single <@@ SensingOperations.answer @@> nullaryWithS <| fun _ s -> context {
-        return Exp.answer (SourceCode.tag s)
     }
 ]
 
