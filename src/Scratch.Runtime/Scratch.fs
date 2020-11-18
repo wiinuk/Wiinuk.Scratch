@@ -100,7 +100,9 @@ module PrimitiveOperations =
     [<Block(Symbol.``stringLength:``)>]
     let length s = String.length s
     [<Block(Symbol.``letter:of:``)>]
-    let getChar s n = let i = n - 1 in (s: string).[i..i]
+    let private letterOf n s = let i = n - 1 in (s: string).[i..i]
+    [<ReflectedDefinition>]
+    let getChar s n = letterOf n s
     [<Block(Symbol.``concatenate:with:``)>]
     let combine (x: string) y = x + y
 
