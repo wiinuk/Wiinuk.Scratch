@@ -956,7 +956,7 @@ let execute (task: _ byref) (threadInfo: _ inref) =
             let scale = max 0. (size * 0.01)
             state.self.spriteDrawingData.scale <- scale
 
-        | Code.Volume -> Stack.push &data (Value.Number(state.self.drawingData.volume))
+        | Code.Volume -> Stack.push &data (Value.Number(state.self.drawingData.volume * 100.))
         | Code.SetVolume ->
             let value = Stack.pop &data |> Value.toNumber
             state.self.drawingData.volume <- min 1. (max 0. (value * 0.01))
