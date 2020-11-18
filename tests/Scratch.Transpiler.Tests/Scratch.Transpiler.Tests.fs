@@ -2192,3 +2192,31 @@ let customSizeTest() =
     @>
     |> startAsStdSprite
     =? ["1"; "2"; ""]
+
+[<Block(Symbol.``+``)>]
+let add (_: int) (_: int): int = raise <| System.PlatformNotSupportedException()
+
+[<Fact>]
+let addDeclarationTest() =
+    <@
+    add 10 20 |> string |> outLine
+    @>
+    |> startAsStdSprite
+    =? ["30"; ""]
+
+[<Block(Symbol.``setVolumeTo:``)>]
+let setVolumeTo (_: float): unit = raise <| System.PlatformNotSupportedException()
+
+[<Block(Symbol.volume)>]
+let volume<'a> : float = raise <| System.PlatformNotSupportedException()
+
+[<Fact>]
+let volumeBlocksDeclarationTest() =
+    <@
+    setVolumeTo 12.
+    volume |> string |> outLine
+    setVolumeTo 34.
+    volume |> string |> outLine
+    @>
+    |> startAsStdSprite
+    =? ["12"; "34"; ""]

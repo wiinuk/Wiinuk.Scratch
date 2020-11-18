@@ -7,48 +7,8 @@ open Scratch.Test.AssertionWithDiff.Operators
 
 
 module Translate =
-    open Scratch.IR
-    open Scratch.IR.Source.Operators
-    open Scratch.AstDefinitions
-    open Scratch.Reflection
-    open FSharp.Quotations.DerivedPatterns
-
-    let getTranslate (_word: string) (_language: string) = _word
-
-    let private getTranslateSign = {
-        extensionId = "translate_getTranslate"
-        kind = Kind.Expression
-        resultType = ExpType.ofVType <| Typed SType.S
-        operands = [
-            {
-                operandType = OperandType.Expression TsType.gString
-                literalOperandType = LiteralOperandTypeInfo.ForceInherit
-            }
-            {
-                operandType = OperandType.Expression TsType.gString
-                literalOperandType = LiteralOperandTypeInfo.ForceInherit // TODO:
-            }
-        ]
-        control = Control.Unknown
-        cost = HasSideEffect
-    }
-    let private transpilerPlugin =
-        { Plugin.empty with
-            expression = { new ExpressionPluginProcess() with
-                override _.Invoke tranapiler e =
-                    match e with
-                    | SpecificCall <@ getTranslate @> (_, [], [word; language]) ->
-                        let word = transpileExpression tranapiler word
-                        let language = transpileExpression tranapiler language
-
-                        let source = SourceCode.ofExpr e |> SourceCode.tag
-                        Ok <| ExtOp(getTranslateSign, [word; language]) @+ source
-
-                    | _ -> Error None
-            }
-        }
-
-    let withTranspilerConfig c = { c with plugin = Plugin.merge c.plugin transpilerPlugin }
+    [<Block(ExtensionId = "translate")>]
+    let getTranslate (_WORDS: string) (_LANGUAGE: string) = _WORDS
 
 module E = Ast.Expression
 module E = Ast.Expressions
@@ -59,7 +19,7 @@ let getTranslateTest() =
     let output = defineList []
     SList.push output (Translate.getTranslate "Hello" "sr")
     @>
-    |> transpileStageWith Translate.withTranspilerConfig
+    |> transpileStageWith id
     |> StageData.map ignore
     =? {
         StageData.defaultValue with
