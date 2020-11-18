@@ -50,7 +50,6 @@ let args =
 printfn $"args: %A{args}"
 
 start "dotnet tool restore"
-start "dotnet paket restore"
 start "dotnet build --configuration Release src/Scratch"
 let parent = "src/Scratch/bin/Release"
 start $"dotnet paket pack --template src/Scratch/paket.template --version {args.version} --project-url {args.projectUrl} {parent}"
