@@ -3,20 +3,37 @@ open FSharp.Quotations
 open Scratch.Reflection
 open Scratch.Transformers
 open System.Runtime.InteropServices
+open System.Reflection
 
 
 type Loc = Location option Tagged
 
 [<Struct; StructLayout(LayoutKind.Auto)>]
 type SourceCode = private {
-    expr: Expr
-    isEmpty: bool
+    exprOrMethodOrNull: obj
 }
 module SourceCode =
-    let empty = { expr = Unchecked.defaultof<_>; isEmpty = true }
-    let ofExpr e = { expr = e; isEmpty = false }
-    let location s = if s.isEmpty then None else Expr.getLocation s.expr
+    let empty = { exprOrMethodOrNull = null }
+    let isEmpty s = isNull s.exprOrMethodOrNull
+    let ofExpr e = { exprOrMethodOrNull = (e: Expr) }
+    let ofMethod m = { exprOrMethodOrNull = (m: MethodBase) }
+    let location s =
+        match s.exprOrMethodOrNull with
+        | :? Expr as e -> Expr.getLocation e
+        | :? MethodBase as m ->
+            Some {
+                path = $"{m}|{m.ReflectedType}"
+                position1 = { line = 0; column = 0 }
+                position2 = { line = 0; column = 0 }
+            }
+        | _ -> None
+
     let tag e: Loc = Tagged.empty (location e)
 
-    let buildText s = if s.isEmpty then "" else $"%A{s.expr}"
-    let buildErrorText s = if s.isEmpty then "" else $"%A{s.expr}"
+    let buildText s =
+        match s.exprOrMethodOrNull with
+        | :? Expr as e -> $"%A{e}"
+        | :? MethodBase as m -> $"{m}"
+        | _ -> ""
+
+    let buildErrorText s = buildText s
