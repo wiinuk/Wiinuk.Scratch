@@ -167,7 +167,7 @@ module Expressions =
         let nth = Stack.pop &state.data
         match listIndex &random nth list.Count with
         | ValueNone -> ()
-        | ValueSome index -> list.[index] <- value
+        | ValueSome index -> list[index] <- value
 
     let executeSetSpriteListLine (random: _ byref) (state: _ byref) (i: _ inref) =
         executeSetListLine &random &state (selfList &state &i)
@@ -589,7 +589,7 @@ let execute (task: _ byref) (threadInfo: _ inref) =
     // ..., arguments...,       locals...,      stack...
     //      <- parameterCount -><- localCount -><- maxStack                       ->
     //
-    //                          flames.[0].localsOrigin                     currentFlame.localsOrigin
+    //                          flames[0].localsOrigin                      currentFlame.localsOrigin
     //                          |                                           |
     //                          *                                           *
     // ..., arguments...,       locals...,      stack...arguments...,       locals...,       stack...

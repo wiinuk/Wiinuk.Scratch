@@ -133,7 +133,7 @@ module private CoreExpHelpers =
                         if isNull s.items then alloc &s
                         elif s.items.Length <= size - fixedSize then ensure &s
                         else ()
-                        &s.items.[size - fixedSize]
+                        &s.items[size - fixedSize]
 
                 HUnit.toUnit(init.Invoke &r)
                 s.size <- size + 1
@@ -143,12 +143,12 @@ module private CoreExpHelpers =
                 let size = s.size
                 let r =
                     match size with
-                    | 0 -> failwith "empty stack"; &s.items.[-1]
+                    | 0 -> failwith "empty stack"; &s.items[-1]
                     | 1 -> &s.item0
                     | 2 -> &s.item1
                     | 3 -> &s.item2
                     | 4 -> &s.item3
-                    | size -> &s.items.[size - fixedSize - 1]
+                    | size -> &s.items[size - fixedSize - 1]
 
                 s.size <- size - 1
                 using.Invoke &r
@@ -548,7 +548,7 @@ module private ExpStartConstructorHelpers =
         | UnboxedType _, (UnboxedType([] | _::_::_) as valueType) -> raiseTypeMismatch &source { expected = showType varType; actual = showType valueType }
 
         // (v: [..]).N <- (v: [_])
-        | UnboxedType varType, UnboxedType [t] -> checkAssignMemberType &source { expected = varType.[index]; actual = t }
+        | UnboxedType varType, UnboxedType [t] -> checkAssignMemberType &source { expected = varType[index]; actual = t }
 
     let checkOperand (source: _ inref) operand = function
         | OperandType.Block ->

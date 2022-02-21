@@ -330,7 +330,7 @@ module Tests =
             |> Project.ofStage id
             |> normalizeProject
 
-        sb3Project.targets.[0].blocks =? OMap.ofSeq [
+        sb3Project.targets[0].blocks =? OMap.ofSeq [
             blockId "1", Complex {
                 ComplexBlock.defaultValue with
                     opcode = Some "operator_mod"

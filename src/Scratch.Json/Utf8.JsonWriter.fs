@@ -51,8 +51,8 @@ let private writeEscape (w: _ byref) c =
         w.offset <- w.offset + StringEncoding.UTF8.GetBytes(w.text, w.lastWrite, w.i - w.lastWrite, w.buffer, w.offset)
         w.lastWrite <- w.i + 1
 
-        w.buffer.[pincr &w.offset] <- '\\'B
-        w.buffer.[pincr &w.offset] <- c1
+        w.buffer[pincr &w.offset] <- '\\'B
+        w.buffer[pincr &w.offset] <- c1
     else
         w.minWriteLength <- w.minWriteLength + 6
         BinaryUtil.EnsureCapacity(&w.buffer, w.start, w.minWriteLength)
@@ -60,12 +60,12 @@ let private writeEscape (w: _ byref) c =
         w.offset <- w.offset + StringEncoding.UTF8.GetBytes(w.text, w.lastWrite, w.i - w.lastWrite, w.buffer, w.offset)
         w.lastWrite <- w.i + 1
 
-        w.buffer.[pincr &w.offset] <- '\\'B
-        w.buffer.[pincr &w.offset] <- 'u'B
-        w.buffer.[pincr &w.offset] <- '0'B
-        w.buffer.[pincr &w.offset] <- '0'B
-        w.buffer.[pincr &w.offset] <- c1
-        w.buffer.[pincr &w.offset] <- c2
+        w.buffer[pincr &w.offset] <- '\\'B
+        w.buffer[pincr &w.offset] <- 'u'B
+        w.buffer[pincr &w.offset] <- '0'B
+        w.buffer[pincr &w.offset] <- '0'B
+        w.buffer[pincr &w.offset] <- c1
+        w.buffer[pincr &w.offset] <- c2
 
 let writeString (w: JsonWriter byref) = function
     | null -> w.WriteNull()
@@ -83,12 +83,12 @@ let writeString (w: JsonWriter byref) = function
     }
     BinaryUtil.EnsureCapacity(&state.buffer, state.offset, state.minWriteLength)
 
-    state.buffer.[pincr &state.offset] <- '\"'B
+    state.buffer[pincr &state.offset] <- '\"'B
 
     while
         begin
             if state.i < String.length state.text then
-                match state.text.[state.i] with
+                match state.text[state.i] with
                 | '\\'
                 | '"' as c -> writeEscape &state c
                 | c when c <= '\x1F' -> writeEscape &state c
@@ -102,7 +102,7 @@ let writeString (w: JsonWriter byref) = function
     if state.lastWrite <> state.text.Length then
         state.offset <- state.offset + StringEncoding.UTF8.GetBytes(state.text, state.lastWrite, state.text.Length - state.lastWrite, state.buffer, state.offset)
 
-    state.buffer.[pincr &state.offset] <- '\"'B
+    state.buffer[pincr &state.offset] <- '\"'B
 
     w <- JsonWriter state.buffer
     w.AdvanceOffset state.offset 

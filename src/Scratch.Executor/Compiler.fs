@@ -681,11 +681,11 @@ let rec emitStatement env (ComplexExpression(location, operator, operands)) =
         emit' DString b Code.ShowVariable name
 
     | O.``broadcast:``, [Literal(_, SString name)] ->
-        let index = env.broadcastNameToIndex.Value.[LowerName.ofString name]
+        let index = env.broadcastNameToIndex.Value[LowerName.ofString name]
         emit' DBroadcast b Code.Broadcast index
 
     | O.doBroadcastAndWait, [Literal(_, SString name)] ->
-        let index = env.broadcastNameToIndex.Value.[LowerName.ofString name]
+        let index = env.broadcastNameToIndex.Value[LowerName.ofString name]
         emit' DBroadcast b Code.BroadcastAndWait index
 
 //     | Case2<"doForeverIf", E, M>
@@ -995,7 +995,7 @@ let entityToImage env =
 
     let registerBroadcastListener broadcastName procedureIndex =
         let broadcastName = LowerName.ofString broadcastName
-        let broadcastIndex = env.broadcastNameToIndex.Value.[broadcastName]
+        let broadcastIndex = env.broadcastNameToIndex.Value[broadcastName]
         match Map.tryFind broadcastIndex broadcastListeners with
         | ValueNone ->
             let listeners = ResizeArray()

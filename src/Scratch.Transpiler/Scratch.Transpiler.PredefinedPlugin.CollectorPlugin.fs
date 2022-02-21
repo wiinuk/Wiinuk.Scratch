@@ -266,7 +266,7 @@ module private Helpers =
         let! this = transpilePrimitiveExpression senv this
         let a = SourceCode.location source |> Tagged.empty
 
-        // memory.[this + offset]
+        // memory[this + offset]
         return
             thisT
             |> List.mapi (fun index fieldType ->
@@ -277,9 +277,9 @@ module private Helpers =
 
     }
     // let temp = newRc $someCaseVar $memorySize
-    // memory.[temp + 0] <- %(tag)
-    // memory.[temp + %offsetOf(f1)] <- %field1
-    // memory.[temp + %offsetOf(f2)] <- %field2
+    // memory[temp + 0] <- %(tag)
+    // memory[temp + %offsetOf(f1)] <- %field1
+    // memory[temp + %offsetOf(f2)] <- %field2
     // ...
     // temp
     let memoryNew senv runtimeTypeStorageId tagValue fields source memoryLayout = context {
@@ -387,7 +387,7 @@ module private Helpers =
         | E.PropertyGet(Some this, DeclaringType thisT & p, []) ->
             // { x = x }
             if newable thisT && T.IsRecord(thisT, allowAccessToPrivateRepresentation = true) then
-                // memory.[this + %offsetOf(p)] :> 'fieldType
+                // memory[this + %offsetOf(p)] :> 'fieldType
 
                 let! fieldValueLayout = underlyingMemberType senv.e source p.PropertyType
                 let l = getLoc e
@@ -438,7 +438,7 @@ module private Helpers =
 
         // let thisTemp = $this
         // let valueTemp = $value
-        // memory.[thisTemp + %offsetOf(p)] <- valueTemp
+        // memory[thisTemp + %offsetOf(p)] <- valueTemp
         | E.PropertySet(Some this, DeclaringType thisT & p, [], value) ->
             if not (newable thisT && T.IsRecord thisT) then return! raiseError source <| InvalidPropertyType p else
 
@@ -492,7 +492,7 @@ module private Helpers =
                     if c.Name = noneCase.Name then Exp.``=`` l this (Exp.number l 0.)
                     else Exp.not l (Exp.``=`` l this (Exp.number l 0.))
 
-            // `memory.[%this + tag] :> s = $(c.Name)`
+            // `memory[%this + tag] :> s = $(c.Name)`
             | ComplexUnion _ ->
                 let! memory = lookupOrRaiseMemory senv source
                 return Exp.``=`` l (Exp.reinterpret l (Exp.``getLine:ofList:`` l this (Exp.list l memory.listVar)) ExpTypes.string) (Exp.string l c.Name)
@@ -514,8 +514,8 @@ module private Helpers =
         let spec = declareVariable NoExport NoPersistent false (varName()) typeType
 
         // let offsets = mallocVectorExtend Word.size %(pointers.Length)
-        // Vector.set offsets 0 %(pointers.[0])
-        // Vector.set offsets 1 %(pointers.[1])
+        // Vector.set offsets 0 %(pointers[0])
+        // Vector.set offsets 1 %(pointers[1])
         // ...
         // offsets
         let init =

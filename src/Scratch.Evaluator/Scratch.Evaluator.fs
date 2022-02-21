@@ -49,7 +49,7 @@ let evaluateSprite withConfig data =
     state
 
 let evaluateStageProcedure procedureName args ({ EvaluateState.stage = stage } as state) =
-    let ProcedureDefinition(state = location; isAtomic = isAtomic) as proc = stage.shared.procs.[procedureName]
+    let ProcedureDefinition(state = location; isAtomic = isAtomic) as proc = stage.shared.procs[procedureName]
     let isAtomic = match isAtomic with Atomic -> true | NoAtomic -> false
     let state = { blockState = state; self = stage; args = Map.empty; isAtomic = isAtomic; callStack = [] }
     let args = checkArgs &state location proc args

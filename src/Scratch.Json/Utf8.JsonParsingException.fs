@@ -15,7 +15,7 @@ let makeParsingException (reader: JsonReader) message inner =
         match bytes with
         | null -> "[eos]"
         | _ when offset < 0 || bytes.Length <= offset -> "[EOS]"
-        | _ -> string (char bytes.[offset])
+        | _ -> string (char bytes[offset])
 
     JsonParsingExceptionWithInner(message, bytes, offset, offset, actual, inner)
 
@@ -38,7 +38,7 @@ let printParsingException source (e: JsonParsingException) =
     let indexToPosition (source: string) index =
         let rec aux l c i =
             if i < String.length source && i < index then
-                if source.[i] = '\n' then
+                if source[i] = '\n' then
                     aux (l + 1) 1 (i + 1)
                 else
                     aux l (c + 1) (i + 1)

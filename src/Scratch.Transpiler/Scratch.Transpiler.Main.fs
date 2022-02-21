@@ -23,7 +23,7 @@ let defaultConfig =
         | -1 -> name
         | i ->
             let mutable r = 0
-            if Int32.TryParse(name.[(i+1)..(name.Length-1)], &r) && r = arity then name.[0..(i-1)]
+            if Int32.TryParse(name[(i+1)..(name.Length-1)], &r) && r = arity then name[0..(i-1)]
             else name
 
     let typeName = Fun.memoizeFix <| fun typeName -> function

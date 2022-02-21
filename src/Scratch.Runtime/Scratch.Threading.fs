@@ -88,15 +88,15 @@ module Colony =
 
     let clear (Colony xs) = xs.Clear()
     let count (Colony xs) = xs.Count
-    let tryItem i (Colony xs) = xs.[i]
-    let ignoreAt i (Colony xs) = xs.[i] <- ValueNone
+    let tryItem i (Colony xs) = xs[i]
+    let ignoreAt i (Colony xs) = xs[i] <- ValueNone
 
     [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
     let ignoreWith predicate (Colony xs) =
         let mutable i = 0
         while i < xs.Count do
-            match xs.[i] with
-            | ValueSome x when predicate x -> xs.[i] <- ValueNone
+            match xs[i] with
+            | ValueSome x when predicate x -> xs[i] <- ValueNone
             | _ -> ()
             i <- i + 1
 
@@ -107,7 +107,7 @@ module Colony =
         while
             begin
                 if i < xs.Count then
-                    match xs.[i] with
+                    match xs[i] with
                     | ValueSome x when predicate x ->
                         result <- true
                         false
@@ -121,19 +121,19 @@ module Colony =
     let iter action (Colony xs) =
         let mutable i = 0
         while i < xs.Count do
-            match xs.[i] with
+            match xs[i] with
             | ValueSome x -> action x
             | _ -> ()
             i <- i + 1
 
     let rec private shrinkAux i skipCount (Colony xs) =
         if i < xs.Count then
-            match xs.[i] with
+            match xs[i] with
             | ValueNone -> shrinkAux (i + 1) (skipCount + 1) (Colony xs)
             | x ->
                 if skipCount <> 0 then
-                    xs.[i] <- ValueNone
-                    xs.[i - skipCount] <- x
+                    xs[i] <- ValueNone
+                    xs[i - skipCount] <- x
                 shrinkAux (i + 1) skipCount (Colony xs)
         else
              xs.RemoveRange(xs.Count - skipCount, skipCount)

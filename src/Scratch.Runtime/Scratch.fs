@@ -41,16 +41,16 @@ module SList =
     let removeRandom xs = remove xs (MathOperators.random.Next(1, length xs + 1))
     let removeLast xs = remove xs (length xs)
     let push (SList xs) x = xs.Add x
-    let set (SList xs) nth x = xs.[nth - 1] <- x
+    let set (SList xs) nth x = xs[nth - 1] <- x
     let setRandom xs = set xs (MathOperators.random.Next(1, length xs + 1))
     let setLast xs = set xs (length xs)
-    let get (SList xs) nth = xs.[nth - 1]
+    let get (SList xs) nth = xs[nth - 1]
     let getRandom xs = get xs (MathOperators.random.Next(1, length xs + 1))
     let getLast xs = get xs (length xs)
     let join (SList xs as list) =
         let rec isSingle (SList xs as list) i =
             if xs.Count <= i then true else
-            if String.length xs.[i] <> 1 then false else
+            if String.length xs[i] <> 1 then false else
             isSingle list (i + 1)
 
         if isSingle list 0
@@ -100,7 +100,7 @@ module PrimitiveOperations =
     [<Block(Symbol.``stringLength:``)>]
     let length s = String.length s
     [<Block(Symbol.``letter:of:``)>]
-    let private letterOf n s = let i = n - 1 in (s: string).[i..i]
+    let private letterOf n s = let i = n - 1 in (s: string)[i..i]
     [<ReflectedDefinition>]
     let getChar s n = letterOf n s
     [<Block(Symbol.``concatenate:with:``)>]

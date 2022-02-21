@@ -738,7 +738,7 @@ let parseOperatorName = function
             if m.Success then
                 seq {
                     "("
-                    for c in m.Groups.[1].Captures do
+                    for c in m.Groups[1].Captures do
                         Map.find c.Value operatorPartialNameMap
                     ")"
                 }

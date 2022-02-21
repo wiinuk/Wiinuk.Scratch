@@ -24,7 +24,7 @@ module Buffer =
     let isEmpty (b: _ inref) = count &b = 0
 
     [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
-    let item i (b: _ inref) = if b.size <= i then raiseOutOfRangeError() else b.items.[i]
+    let item i (b: _ inref) = if b.size <= i then raiseOutOfRangeError() else b.items[i]
 
     let clear (b: 'T Buffer byref) =
         if not (RuntimeHelpers.IsReferenceOrContainsReferences<'T>()) then b.size <- 0 else
@@ -46,7 +46,7 @@ module Buffer =
         b.items <- newBuffer
 
         b.size <- size + 1
-        b.items.[size] <- x
+        b.items[size] <- x
 
     [<MethodImpl(MethodImplOptions.AggressiveInlining)>]
     let add (b: _ byref) x =
@@ -54,7 +54,7 @@ module Buffer =
         let size = b.size
         if not (isNull array) && uint32 size < uint32 array.Length then
             b.size <- size + 1
-            array.[size] <- x
+            array[size] <- x
         else
             addRare &b x
 
@@ -83,7 +83,7 @@ module Buffer =
 
         // b の状態が folder によって変更される場合があるので、ループの度にチェックする必要がある
         while i < b.size do
-            state <- Func.invoke &folder struct(state, b.items.[i])
+            state <- Func.invoke &folder struct(state, b.items[i])
             i <- i + 1
         state
 
@@ -94,7 +94,7 @@ module Buffer =
         // b の状態が folder によって変更される場合があるので、ループの度にチェックする必要がある
         while
             if i < b.size then
-                match Func.invoke &chooser b.items.[i] with
+                match Func.invoke &chooser b.items[i] with
                 | ValueNone -> true
                 | ValueSome _ as r -> result <- r; false
             else
@@ -105,6 +105,6 @@ module Buffer =
         let mutable state = initialState
         let mutable i = index
         while 0 <= i do
-            state <- Func.invoke &folder struct(b.items.[i], state)
+            state <- Func.invoke &folder struct(b.items[i], state)
             i <- i - 1
         state

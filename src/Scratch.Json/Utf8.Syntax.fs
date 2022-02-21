@@ -84,7 +84,7 @@ let jStringLiteral literal =
         w.ToUtf8ByteArray()
     {
         literal = literal
-        raw = quoted.[1..quoted.Length-2]
+        raw = quoted[1..quoted.Length-2]
         rawQuoted = quoted
         errorMessage = $"expected: '%A{literal}'"
     }

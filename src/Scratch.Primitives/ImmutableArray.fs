@@ -16,14 +16,14 @@ type index<'T> = 'T Index
 [<Extension; AbstractClass; Sealed>]
 type ArrayExtensions =
     [<Extension>]
-    static member Address(xs: 'T array, i: 'T index) = &xs.[i.index]
+    static member Address(xs: 'T array, i: 'T index) = &xs[i.index]
 
 [<Extension; AbstractClass; Sealed>]
 type ListExtensions =
     [<Extension>]
-    static member Get(xs: 'T ResizeArray, i: 'T index) = xs.[i.index]
+    static member Get(xs: 'T ResizeArray, i: 'T index) = xs[i.index]
     [<Extension>]
-    static member Set(xs: 'T ResizeArray, i: 'T index, value) = xs.[i.index] <- value
+    static member Set(xs: 'T ResizeArray, i: 'T index, value) = xs[i.index] <- value
     [<Extension>]
     static member NextIndex(xs: 'T ResizeArray): 'T index = { index = xs.Count }
 
@@ -39,7 +39,7 @@ type iarray_seq_enumerator<'T> = private { array: 'T[]; mutable i: int } with
         x.i <- x.i + 1
         uint32 x.i < uint32 x.array.Length
 
-    member x.Current: 'T inref = &x.array.[x.i]
+    member x.Current: 'T inref = &x.array[x.i]
     interface 'T IEnumerator with
         member x.MoveNext() = x.MoveNext()
         member x.Current: 'T = x.Current
@@ -63,7 +63,7 @@ type iarray_seq<'T> = private { source: 'T[] } with
 
     interface IStrongReadonlyArray<'T,'T iarray_seq_enumerator> with
         member x.Length = x.source.Length
-        member x.Address i: _ inref = &x.source.[i]
+        member x.Address i: _ inref = &x.source[i]
         member x.GetEnumerator() = x.GetEnumerator()
         member x.UncheckedInternalArray = x.source
 
@@ -73,15 +73,15 @@ type iarray_enumerator<'T> = private { array: 'T[]; mutable i: int } with
         x.i <- x.i + 1
         uint32 x.i < uint32 x.array.Length
 
-    member x.Current: _ inref = &x.array.[x.i]
+    member x.Current: _ inref = &x.array[x.i]
 
 [<Struct>]
 type ImmutableArray<'T> = private { items: 'T[] } with
-    member x.Address(i: 'T index): 'T inref = &x.items.[i.index]
+    member x.Address(i: 'T index): 'T inref = &x.items[i.index]
     member x.GetInEnumerator() = { iarray_enumerator.array = x.items; iarray_enumerator.i = -1 }
     interface IStrongReadonlyArray<'T,'T iarray_enumerator> with
         member x.Length = x.items.Length
-        member x.Address i: _ inref = &x.items.[i]
+        member x.Address i: _ inref = &x.items[i]
         member x.GetEnumerator() = x.GetInEnumerator()
         member x.UncheckedInternalArray = x.items
 
@@ -119,7 +119,7 @@ module IArray =
     let inline mapToArray mapping xs =
         let result = Array.zeroCreate (length xs)
         for i = 0 to length xs - 1 do
-            result.[i] <- mapping (xs.Address i)
+            result[i] <- mapping (xs.Address i)
         result
 
     let toSeqCopiable xs = { iarray_seq.source = Unchecked.unwrapArray xs }
@@ -139,7 +139,7 @@ module IArray =
         let items = Unchecked.unwrapArray xs
         let items2 = Array.zeroCreate items.Length
         for i = 0 to items.Length do
-            items2.[i] <- mapping items.[i]
+            items2[i] <- mapping items[i]
         Unchecked.wrapArray items2
         
     let inline fold folder state (xs: 'A when 'A :> #IStrongReadonlyArray<_,'e> and 'A : struct and 'e :> IEnumerator<_>) =
@@ -189,7 +189,7 @@ module IndexMap =
         while
             if low <= high then
                 let i = low + (high - low >>> 1)
-                let kv = &array.[i]
+                let kv = &array[i]
                 let key' = kv.key
                 if key.index = key'.index then
                     result <- kv.value

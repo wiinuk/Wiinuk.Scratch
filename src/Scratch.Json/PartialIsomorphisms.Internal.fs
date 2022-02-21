@@ -300,7 +300,7 @@ let tryGetCaseSubClass case =
     | [||] -> None
     | fs ->
 
-    let caseType = fs.[0].DeclaringType
+    let caseType = fs[0].DeclaringType
     if unionType.IsClass && caseType.BaseType = unionType then
         Some caseType
     else
@@ -447,7 +447,7 @@ let rec mvlistTypes (GenericTypeDefinition td as t) =
     if t = typeof<hunit> then []
     elif td = typedefof<mvcons<_,_>> then
         let ts = t.GetGenericArguments()
-        ts.[0]::mvlistTypes ts.[1]
+        ts[0]::mvlistTypes ts[1]
     else [t]
 
 let fields e =

@@ -299,7 +299,7 @@ type Sprite(options) as self =
 
     member _.LookLikeFrom costume =
         for i in 0..costumes.Count-1 do
-            if costumes.[i].costumeName = costume then
+            if costumes[i].costumeName = costume then
                 base.InternalEntityDrawingData.currentCostumeIndex <- i
 
         // TODO:

@@ -25,22 +25,22 @@ module private SNumber =
         let tryGetCons x (head: _ outref) (tail: _ outref) =
             if length x = 0 then false else
 
-            head <- x.Source.[x.Current]
+            head <- x.Source[x.Current]
             tail <- { x with Current = x.Current + 1 }
             true
 
         let tryGetCons2 x (head1: _ outref) (head2: _ outref) (tail: _ outref) =
             if length x <= 1 then false else
 
-            head1 <- x.Source.[x.Current]
-            head2 <- x.Source.[x.Current + 1]
+            head1 <- x.Source[x.Current]
+            head2 <- x.Source[x.Current + 1]
             tail <- { x with Current = x.Current + 2 }
             true
 
         let tryGetHead x (head: _ outref) =
             if length x <= 0 then false else
 
-            head <- x.Source.[x.Current]
+            head <- x.Source[x.Current]
             true
 
         let ofString source = { Source = source; Current = 0; End = source.Length }
@@ -53,7 +53,7 @@ module private SNumber =
 
             let rec aux i =
                 if i = l1 then true else
-                if s1.Source.[i1 + i] <> s2.Source.[i2 + i] then false
+                if s1.Source[i1 + i] <> s2.Source[i2 + i] then false
                 else aux (i + 1)
 
             aux 0
@@ -64,12 +64,12 @@ module private SNumber =
             let source = cs.Source
             let mutable current = cs.Current
             let end' = cs.End
-            while current <> end' && Char.IsWhiteSpace source.[current] do
+            while current <> end' && Char.IsWhiteSpace source[current] do
                 current <- current + 1
 
             let current = current
             let mutable end' = end'
-            while current <> end' && Char.IsWhiteSpace source.[end' - 1] do
+            while current <> end' && Char.IsWhiteSpace source[end' - 1] do
                 end' <- end' - 1
 
             { cs with Current = current; End = end' }
@@ -242,11 +242,11 @@ module SValue =
     let tryParseSBool x =
         match String.length x with
         | 4 ->
-            match x.[0], x.[1], x.[2], x.[3] with
+            match x[0], x[1], x[2], x[3] with
             | ('T' | 't'), ('R' | 'r'), ('U' | 'u'), ('E' | 'e') -> ValueSome true
             | _ -> ValueNone
         | 5 ->
-            match x.[0], x.[1], x.[2], x.[3], x.[4] with
+            match x[0], x[1], x[2], x[3], x[4] with
             | ('F' | 'f'), ('A' | 'a'), ('L' | 'l'), ('S' | 's'), ('E' | 'e') -> ValueSome false
             | _ -> ValueNone
         | _ ->

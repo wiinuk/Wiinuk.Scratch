@@ -33,7 +33,7 @@ module Diff =
                 line <- text.JavaSubstring(lineStart, lineEnd + 1)
 
                 if lineHash.ContainsKey line then
-                    chars.Append(char lineHash.[line]) |> ignore
+                    chars.Append(char lineHash[line]) |> ignore
                 else
                     if lineArray.Count = maxLines then
                         line <- text.Substring lineStart

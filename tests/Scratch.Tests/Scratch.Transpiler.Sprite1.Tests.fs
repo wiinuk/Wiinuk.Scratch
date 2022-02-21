@@ -11,7 +11,7 @@ let evaluateTest() =
     async {
         let! sprite = "./Sprite1.sprite2" |> readSprite2Project
         let state = evaluateSprite id sprite
-        state.objects.[0].lists.["stdout"] |> Seq.map SValue.toString |> Seq.toList =? ["test";"success"]
+        state.objects[0].lists["stdout"] |> Seq.map SValue.toString |> Seq.toList =? ["test";"success"]
 
         let state =
             let s = StageData.defaultValue

@@ -29,7 +29,7 @@ type 'T ListOps = | ListOps with
 
             let mutable list = []
             for i = xs.Count-1 downto 0 do
-                list <- xs.[i]::list
+                list <- xs[i]::list
             list
 
         member _.Iterator xs = xs

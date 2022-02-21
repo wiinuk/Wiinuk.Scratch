@@ -16,4 +16,4 @@ module EntityState =
         entity.entityImage.listVariables
         |> IArray.toSeqCopiable
         |> Seq.tryFindIndex (fun v -> listName = v.listName)
-        |> Option.map (fun index -> entity.listVariables.[index] |> Seq.map Value.toSValue |> List.ofSeq)
+        |> Option.map (fun index -> entity.listVariables[index] |> Seq.map Value.toSValue |> List.ofSeq)

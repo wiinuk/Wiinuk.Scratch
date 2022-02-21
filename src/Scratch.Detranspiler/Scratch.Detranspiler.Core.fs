@@ -143,7 +143,7 @@ let prettyKnownGlobalAttributeName name = context {
         let (LongName(ns, n)) = id
         let attributeS = "Attribute"
         if n.EndsWith attributeS then
-            let shortName = LongName(ns, n.[0..n.Length-1-attributeS.Length])
+            let shortName = LongName(ns, n[0..n.Length-1-attributeS.Length])
             if Map.containsKey shortName env.specs.fsNamespace then id
             else shortName
         else id

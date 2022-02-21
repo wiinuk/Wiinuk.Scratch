@@ -212,8 +212,8 @@ let rec measureTupleSpan e offset t = function
     | i::is ->
 
     let ts = T.GetTupleElements t
-    let offset' = Array.sumBy (underlyingScratchTypeSizeOrRaise e) ts.[0..i-1]
-    measureTupleSpan e (offset + offset') ts.[i] is
+    let offset' = Array.sumBy (underlyingScratchTypeSizeOrRaise e) ts[0..i-1]
+    measureTupleSpan e (offset + offset') ts[i] is
 
 let measureFieldIndexes e = function
     | [] -> []

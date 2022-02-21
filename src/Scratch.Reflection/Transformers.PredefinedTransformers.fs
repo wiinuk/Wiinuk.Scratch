@@ -104,7 +104,7 @@ let transformUnionCasePropertyGetCorece = function
         let fields = case.GetFields()
         if fields.Length = 0 then None else
 
-        let caseType = fields.[0].DeclaringType
+        let caseType = fields[0].DeclaringType
         if caseType.BaseType <> case.DeclaringType then None else
 
         let caseField =

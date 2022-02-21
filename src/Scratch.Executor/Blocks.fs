@@ -94,14 +94,14 @@ let getLine (random: _ byref) nth (list: _ ResizeArray) =
         if Double.IsNaN n || Double.IsInfinity n then 0
         else int n
 
-    if 1 <= n && n <= list.Count then list.[n - 1]
+    if 1 <= n && n <= list.Count then list[n - 1]
     else Value.EmptyString
 
 let isSingle = Predicate(fun x -> Value.isString x && x.StringOrDefault.Length = 1)
 let contentsOfList (list: _ ResizeArray) =
     match list.Count with
     | 0 -> ""
-    | 1 -> Value.toString list.[0]
+    | 1 -> Value.toString list[0]
     | _ ->
 
     let isSingle = list.TrueForAll isSingle
@@ -129,7 +129,7 @@ let letterOfSb2 s n =
         elif Double.IsNaN n then 0
         else int n
 
-    if 1 <= n && n <= String.length s then string s.[n - 1] else
+    if 1 <= n && n <= String.length s then string s[n - 1] else
     ""
 
 let letterOfSb3 s n =
@@ -137,7 +137,7 @@ let letterOfSb3 s n =
         if Double.IsNaN n then 0
         else int n
 
-    if 1 <= n && n <= String.length s then string s.[n - 1] else
+    if 1 <= n && n <= String.length s then string s[n - 1] else
     ""
 
 let moveTo sprite (x, y) =
@@ -197,7 +197,7 @@ let getKeyCode v =
     | "" -> KeyCode.None
     | key ->
 
-    match key.[0] with
+    match key[0] with
     | ' ' -> KeyCode.Space
     | key -> enum (int (Char.ToUpperInvariant key))
 

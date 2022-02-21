@@ -48,7 +48,7 @@ let private startProcessAsync config (command: string) = async {
     let fileName, arguments =
         let i = command.IndexOf ' '
         if i < 0 then command, ""
-        else command.[0..i-1], command.[i+1..]
+        else command[0..i-1], command[i+1..]
 
     let i =
         ProcessStartInfo(

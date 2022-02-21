@@ -29,7 +29,7 @@ type GenericIArrayConverterContractResolver() =
     override _.CreateContract t =
         let contract = base.CreateContract t
         if t.IsGenericType && t.GetGenericTypeDefinition() = typedefof<_ iarray> then
-            let e = t.GetGenericArguments().[0]
+            let e = t.GetGenericArguments()[0]
             let iarrayConverter =
                 typedefof<IArrayConverter<_>>.MakeGenericType(e).GetProperty("Instance").GetValue(null)
                 :?> JsonConverter

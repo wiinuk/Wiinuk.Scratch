@@ -57,8 +57,8 @@ let startSpriteInStage whenGreenFlagBody =
         stage
         |> Compiler.compileToImage
         |> Executor.runImage
-    let spriteName = match stage.ObjectDataExtension.children.[0] with Choice2Of3 x -> x.objName | _ -> failwith ""
-    state.mainStage.originalSpriteMap.[spriteName]
+    let spriteName = match stage.ObjectDataExtension.children[0] with Choice2Of3 x -> x.objName | _ -> failwith ""
+    state.mainStage.originalSpriteMap[spriteName]
 
 let ``changeGraphicEffect:by:`` name value =
     ComplexExpression((), O.``changeGraphicEffect:by:``, [name; A.eNumber () value])
@@ -134,7 +134,7 @@ let filterTest() =
     data.mosaic =? 25.
     data.color =? 30.
     data.ghost =? 35.
-    data.others.["UNKNOWN"] =? 40.
+    data.others["UNKNOWN"] =? 40.
 
 let makeStage location whenGreenFlagBody =
     let stage = StageData.defaultValue

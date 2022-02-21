@@ -302,7 +302,7 @@ module ClassTests =
             <@@ ClassFieldInit @@>
             <@@ Class @@>
         ]
-        |> Seq.map (fun e -> e.Type.GetGenericArguments().[1].Name, e)
+        |> Seq.map (fun e -> (e.Type.GetGenericArguments()[1]).Name, e)
         |> Map.ofSeq
 
 [<Fact>]
@@ -443,7 +443,7 @@ let startAsStdSpriteWith' withTranspileConfig withEvaluateConfig withExecuteConf
         |> function
             | None -> []
             | Some index ->
-                stage.listVariables.[index]
+                stage.listVariables[index]
                 |> Seq.map Value.toString
                 |> Seq.toList
 
@@ -798,7 +798,7 @@ let externalPropertySetTest() =
     @>
     |> transpileStageWith (fun c -> { c with plugin = { c.plugin with postTransform = Plugins.empty } })
     |> evaluate (fun c -> { c with showState = showLoc })
-    |> fun s -> s.stage.values.["externalMutableX"].contents
+    |> fun s -> s.stage.values["externalMutableX"].contents
     =? SNumber 20.
 
 [<Fact>]

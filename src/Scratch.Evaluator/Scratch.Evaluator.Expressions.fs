@@ -17,7 +17,7 @@ let letterOf (state: _ inref) location s n =
         if Double.IsNaN n then 0
         else int n
 
-    if 1 <= n && n <= String.length s then SString(string s.[n - 1])
+    if 1 <= n && n <= String.length s then SString(string s[n - 1])
     elif state.blockState.config.useRangeCheck then
         cfailwithf state location $"out of range: letter:of: {s} {n}"
     else
@@ -133,7 +133,7 @@ and evaluateComplexExpression (state: _ inref) (ComplexExpression(location, op, 
             if Double.IsNaN n || Double.IsInfinity n then 0
             else int n
 
-        if 1 <= n && n <= xs.Count then xs.[n - 1]
+        if 1 <= n && n <= xs.Count then xs[n - 1]
         elif state.blockState.config.useRangeCheck then
             cfailwithf state location $"out of range: {Symbol.name op} '{name}' '{n}'"
         else

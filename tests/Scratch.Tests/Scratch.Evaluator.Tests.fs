@@ -13,20 +13,20 @@ type private K = Scratch.KeyCode
 let keyCodeTest() =
     let k = SNumber >> Scratch.KeyCode.getKeyCode
 
-    k nan =? K.N // "NaN".[0]
+    k nan =? K.N // "NaN"[0]
 
-    k -infinity =? K.Minus // "-Infinity".[0]
-    k -999e100 =? K.Minus // "-9.99e+102".[0]
-    k -1. =? K.Minus // "-1".[0]
+    k -infinity =? K.Minus // "-Infinity"[0]
+    k -999e100 =? K.Minus // "-9.99e+102"[0]
+    k -1. =? K.Minus // "-1"[0]
 
-    k 0. =? K.Key0 // "0".[0]
-    k 5.12334567 =? K.Key5 // "5.12334567".[0]
-    k 9. =? K.Key9 // "9".[0]
-    k 10. =? K.Key1 // "10".[0]
+    k 0. =? K.Key0 // "0"[0]
+    k 5.12334567 =? K.Key5 // "5.12334567"[0]
+    k 9. =? K.Key9 // "9"[0]
+    k 10. =? K.Key1 // "10"[0]
 
 
     k 32. =? K.Space
-    k 32.5 =? K.Key3 // "32.5".[0]
+    k 32.5 =? K.Key3 // "32.5"[0]
     k 37. =? K.Left // '%'
     k 38. =? K.Up // '&'
     k 39. =? K.Right // '\''
@@ -48,10 +48,10 @@ let keyCodeTest() =
     k 89.9 =? K.Y
     k 90. =? K.Z
 
-    k 90.1 =? K.Key9 // "90.1".[0]
+    k 90.1 =? K.Key9 // "90.1"[0]
 
-    k 999999.123456e123 =? K.Key9 // "9.999991235e+128".[0]
-    k infinity =? K.I // 'Infinity'.[0]
+    k 999999.123456e123 =? K.Key9 // "9.999991235e+128"[0]
+    k infinity =? K.I // 'Infinity'[0]
 
     let k = SString >> KeyCode.getKeyCode
     k "" =? K.None
@@ -77,8 +77,8 @@ let keyCodeTest() =
     k "文" =? enum (int '文')
 
     let k = SBool >> KeyCode.getKeyCode
-    k true =? K.T // "true".[0]
-    k false =? K.F // "false".[0]
+    k true =? K.T // "true"[0]
+    k false =? K.F // "false"[0]
 
 module A = Expression
 module A = Expressions
@@ -143,7 +143,7 @@ let emptyListSetLastTest() =
             ]
     }
     let state = evaluateStage id stage
-    state.stage.lists.["output"].Count =? 0
+    state.stage.lists["output"].Count =? 0
 
     throws <| lazy evaluateStage (fun c -> { c with useRangeCheck = true }) stage
 
@@ -173,7 +173,7 @@ let plusParseStringTest() =
     }
     stage
     |> evaluateStage id
-    |> (fun s -> s.stage.lists.["output"] |> Seq.map SValue.toString |> Seq.toList)
+    |> (fun s -> s.stage.lists["output"] |> Seq.map SValue.toString |> Seq.toList)
     =? ["0"; "0"; "0"; "0"; "0"]
 
 [<Fact>]
@@ -259,7 +259,7 @@ let appendToListMaxLengthLimitTest() =
         stage
         |> evaluateStage (fun c -> { c with listMaxLength = Some 3 })
 
-    state.stage.lists.["list"] |> Seq.map SValue.toString |> Seq.toList
+    state.stage.lists["list"] |> Seq.map SValue.toString |> Seq.toList
     =? ["A"; "B"; "C"]
 
 [<Fact>]
@@ -282,7 +282,7 @@ let insertToListMaxLengthLimitTest() =
         stage
         |> evaluateStage (fun c -> { c with listMaxLength = Some 3 })
 
-    state.stage.lists.["list"] |> Seq.map SValue.toString |> Seq.toList
+    state.stage.lists["list"] |> Seq.map SValue.toString |> Seq.toList
     =? ["A"; "X"; "B"]
 
 [<Fact>]
@@ -375,5 +375,5 @@ let changeCloud() =
         stage
         |> evaluateStage (EvaluateConfig.withCloud incrementCloud)
 
-    state.stage.lists.["list"] |> Seq.map SValue.toString |> Seq.toList
+    state.stage.lists["list"] |> Seq.map SValue.toString |> Seq.toList
     =? ["0"; "1"; "2"]

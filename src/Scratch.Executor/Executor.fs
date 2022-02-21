@@ -79,7 +79,7 @@ let addInputListeners state =
         let env = env
         let self =
             match i with
-            | ValueSome index -> stage.instances.[index]
+            | ValueSome index -> stage.instances[index]
             | ValueNone -> stage.stageState
 
         scheduleProcedureThreads &env stage self self.entityImage.whenClicked

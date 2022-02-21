@@ -200,7 +200,7 @@ let typeNames = memoizeFixEnv <| fun typeNames (t: Type) ->
             let arity = t.GetGenericArguments().Length
             let suffix = "`" + string arity
             if n.EndsWith suffix then
-                let n' = n.[0 .. n.Length - 1 - suffix.Length]
+                let n' = n[0 .. n.Length - 1 - suffix.Length]
                 NonEmptyList(GlobalName(ns, n'), [g])
             else
                 Nel.singleton g
@@ -306,7 +306,7 @@ let tryGetCompilationSourceName (m: MemberInfo) =
     m.CustomAttributes
     |> Seq.tryPick (fun a ->
         if a.AttributeType = typeof<CompilationSourceNameAttribute> then
-            a.ConstructorArguments.[0].Value :?> string |> Some
+            a.ConstructorArguments[0].Value :?> string |> Some
         else None
     )
 
@@ -314,7 +314,7 @@ let tryGetCompiledName (m: MemberInfo) =
     m.CustomAttributes
     |> Seq.tryPick (fun a ->
         if a.AttributeType = typeof<CompiledNameAttribute> then
-            a.ConstructorArguments.[0].Value :?> string |> Some
+            a.ConstructorArguments[0].Value :?> string |> Some
         else None
     )
 
@@ -361,7 +361,7 @@ let nameOf<'T> env = typeName env.typeNameMemo typeof<'T>
 
 [<RequireQualifiedAccess>]
 type Precedence =
-    /// `10` | `()` | `System.DateTime.Now` | `List.empty.[0]`
+    /// `10` | `()` | `System.DateTime.Now` | `List.empty[0]`
     | Primitive
     /// `f x`
     | Application
@@ -498,7 +498,7 @@ let moduleNames env t = seq {
         // TODO:
         let moduleP = "Module"
         if n.EndsWith moduleP then
-            GlobalName(ns, n.[0..n.Length-1-moduleP.Length])
+            GlobalName(ns, n[0..n.Length-1-moduleP.Length])
         else
             name
 
@@ -514,7 +514,7 @@ let moduleNames env t = seq {
                 name
 
                 // let (|...|...|) = ...
-                if 2 < n.Length && n.[0] = '|' && n.[n.Length-1] = '|' then
+                if 2 < n.Length && n[0] = '|' && n[n.Length-1] = '|' then
                     for pn in n.Split '|' do
                         if pn <> "_" then
                             GlobalName(ns, pn)
@@ -710,8 +710,8 @@ let lookupSprite location spriteName =
     lookupCore (fun s -> s.spriteSpecs) SpriteNotFound location spriteName
 
 module Graph =
-    let get (xs: _ ResizeArray) i = xs.[i]
-    let set (xs: _ ResizeArray) i v = xs.[i] <- v
+    let get (xs: _ ResizeArray) i = xs[i]
+    let set (xs: _ ResizeArray) i v = xs[i] <- v
     let add (xs: _ ResizeArray) x = xs.Add x
     let count (xs: _ ResizeArray) = xs.Count
 
@@ -723,19 +723,19 @@ module Graph =
         set inS v true
         for e in get g v do
             let w = e
-            if num.[w] = 0 then
+            if num[w] = 0 then
                 visit g w scc S inS low num &time
-                low.[v] <- min low.[v] low.[w]
-            elif inS.[w] then
-                low.[v] <- min low.[v] num.[w]
+                low[v] <- min low[v] low[w]
+            elif inS[w] then
+                low[v] <- min low[v] num[w]
 
-        if low.[v] = num.[v] then
+        if low[v] = num[v] then
             add scc (ResizeArray())
             while
                 begin
                     let w = S.Pop()
-                    inS.[w] <- false
-                    scc.[scc.Count-1].Add(w)
+                    inS[w] <- false
+                    scc[scc.Count-1].Add(w)
                     v <> w
                 end
                 do ()
@@ -748,13 +748,13 @@ module Graph =
         let inS = ResizeArray(Seq.replicate n false)
         let mutable time = 0
         for u in 0..n-1 do
-            if num.[u] = 0 then
+            if num[u] = 0 then
                 visit g u scc S inS low num &time
 
     let stronglyConnectedComponents g =
         let keyToIndex = g |> Seq.mapi (fun i (k, _) -> k, i) |> Map.ofSeq
         let indexToEntry = g |> ResizeArray
-        let g' = g |> Seq.map (fun (_, (_, es)) -> es |> Seq.map (fun e -> keyToIndex.[e]) |> ResizeArray) |> ResizeArray
+        let g' = g |> Seq.map (fun (_, (_, es)) -> es |> Seq.map (fun e -> keyToIndex[e]) |> ResizeArray) |> ResizeArray
 
         let scc = ResizeArray()
         stronglyConnectedComponents' g' scc

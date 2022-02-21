@@ -164,7 +164,7 @@ module Document =
                 while
                     begin
                         if i < xs.Length then
-                            state <- build &e &state &xs.[i]
+                            state <- build &e &state &xs[i]
                             i <- i + 1
                             true
                         else
@@ -209,7 +209,7 @@ module Document =
     let private uncheckedOfResizeArray (xs: _ ResizeArray) =
         match xs.Count with
         | 0 -> empty
-        | 1 -> xs.[0]
+        | 1 -> xs[0]
         | _ ->
 
         let mutable w = 0
@@ -356,7 +356,7 @@ open Document.Constructors
 type Document with
     member d.StructuredFormatDisplay =
         let s = Document.renderWith { Document.Config.defaultConfig with newLine = "⏎"; indent = "•"; maxWidth = Int32.MaxValue } d
-        if 20 < s.Length then s.[0..19] + "…"
+        if 20 < s.Length then s[0..19] + "…"
         else s
 
     override d.ToString() = Document.render d

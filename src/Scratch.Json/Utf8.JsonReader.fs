@@ -36,7 +36,7 @@ module internal StringEncoding =
 let private createParsingException (r: JsonReader byref) expected =
     let pos = r.GetCurrentOffsetUnsafe()
     let bytes = r.GetBufferUnsafe()
-    let actual = bytes.[r.GetCurrentOffsetUnsafe()] |> char |> string
+    let actual = bytes[r.GetCurrentOffsetUnsafe()] |> char |> string
     let actual =
         try
             match r.GetCurrentJsonToken() with
@@ -62,7 +62,7 @@ let private createParsingException (r: JsonReader byref) expected =
 let private createParsingExceptionMessage (r: JsonReader inref) message =
     let bytes = r.GetBufferUnsafe()
     let offset = r.GetCurrentOffsetUnsafe()
-    let actual = bytes.[offset] |> char |> string
+    let actual = bytes[offset] |> char |> string
     let pos = offset
     JsonParsingException(message, bytes, pos, pos, actual)
 
@@ -70,7 +70,7 @@ let readStringSegmentRaw (r: JsonReader byref) =
     if r.ReadIsNull() then nullTokenSegment else
 
     let bytes = r.GetBufferUnsafe()
-    if bytes.[let x = r.GetCurrentOffsetUnsafe() in r.AdvanceOffset 1; x] <> '"'B then
+    if bytes[let x = r.GetCurrentOffsetUnsafe() in r.AdvanceOffset 1; x] <> '"'B then
         raise <| createParsingException &r "\""
 
     let from = r.GetCurrentOffsetUnsafe()
@@ -79,7 +79,7 @@ let readStringSegmentRaw (r: JsonReader byref) =
     while
         begin
             if i < bytes.Length then
-                match bytes.[i] with
+                match bytes[i] with
                 | '"'B ->
                     r.AdvanceOffset((i + 1) - from)
                     result <- ArraySegment(bytes, from, r.GetCurrentOffsetUnsafe() - from - 1);

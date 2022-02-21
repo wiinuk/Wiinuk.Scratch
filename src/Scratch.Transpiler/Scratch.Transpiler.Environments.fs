@@ -929,7 +929,7 @@ let implMethod (thisType: Type) (virtualMethod: MethodInfo) =
         let map = thisType.GetInterfaceMap interfaceType
         map.InterfaceMethods
         |> Array.tryFindIndex (fun m -> m = virtualMethod)
-        |> Option.map (fun i -> map.TargetMethods.[i])
+        |> Option.map (fun i -> map.TargetMethods[i])
 
 let devirtualize thisType (m: MethodInfo) =
     if not m.IsVirtual then Some m else

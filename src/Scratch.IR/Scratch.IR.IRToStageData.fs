@@ -263,9 +263,9 @@ module private BuilderHelpers =
         vs.Clear()
         xs
 
-    let resolveRuntimeVariable (EntityState e) state var = Late.force e.runtimeVariables.[var] state
-    let resolveRuntimeList (EntityState e) state list = Late.force e.runtimeLists.[list] state
-    let resolveRuntimeProcedure (EntityState e) state proc = Late.force e.runtimeProcedures.[proc] state
+    let resolveRuntimeVariable (EntityState e) state var = Late.force e.runtimeVariables[var] state
+    let resolveRuntimeList (EntityState e) state list = Late.force e.runtimeLists[list] state
+    let resolveRuntimeProcedure (EntityState e) state proc = Late.force e.runtimeProcedures[proc] state
 
     let declareList (Config c & EntityState e) var =
         let name = Namespace.uniqueName c.naming.indexedName e.variableOrListNamespace (Var.name var) {| var = var; index = 0 |}
@@ -432,7 +432,7 @@ module private BuilderHelpers =
         (resolveParameter b var).underlyingParameters |> List.exactlyOne
 
     let resolveVariable (EntityState e) var =
-        match e.specs.[Var.simple var] with
+        match e.specs[Var.simple var] with
         | VariableSpec var -> var
         | StorageSpec _
         | ParameterSpec _
@@ -462,7 +462,7 @@ module private BuilderHelpers =
         match p.procedure.body.local with
         | VariableLocal -> defineVariableStorage b state name storageType
 
-        // <@ v.[v.length - N] <- ... @>, <@ v.[v.length - N] @>
+        // <@ v[v.length - N] <- ... @>, <@ v[v.length - N] @>
         | StaticStackLocal stackList -> StaticStackStorage(stackList, defineLocalIndexes b storageType)
         | ThreadStackLocal { stackMemory = memory; stackParameter = stack } ->
             let { parameterName = stackName } = resolvePrimitiveParameter b stack
@@ -489,11 +489,11 @@ module private BuilderHelpers =
     let setStoragePrimitive b state storage index primitiveValue =
         match storage with
         | VariableStorage x ->
-            A.``setVar:to:`` state (UniqueName.name x.underlyingVariables.[index].underlyingName) primitiveValue
+            A.``setVar:to:`` state (UniqueName.name x.underlyingVariables[index].underlyingName) primitiveValue
 
         // `procStack[procStack.count - index] <- value`
         | StaticStackStorage({ listUniqueName = stackName }, indexes) ->
-            let index = globalStackStorageIndex state stackName indexes.[index]
+            let index = globalStackStorageIndex state stackName indexes[index]
             A.``setLine:ofList:to:`` state (UniqueName.name stackName) index primitiveValue
 
         // type ThreadStack = { top: IWord Reference; items: IWord Sequence }
@@ -501,7 +501,7 @@ module private BuilderHelpers =
         // => `stack.top[index] <- value`
         // => `stackMemory[stackMemory[stack] + index] <- value`
         | ThreadStackStorage({ listUniqueName = stackMemoryName }, stackName, indexes) ->
-            let index = threadStackStorageIndex b state stackName indexes.[index]
+            let index = threadStackStorageIndex b state stackName indexes[index]
             A.``setLine:ofList:to:`` state (UniqueName.name stackMemoryName) index primitiveValue
 
     let setStorage b state storage value = List.mapi (setStoragePrimitive b state storage) value
@@ -675,7 +675,7 @@ module private BuilderHelpers =
     let newSpriteEntityState parent children entity =
         {
             entity = entity
-            entityStat = parent.childSprites.[entity.objName] |> snd
+            entityStat = parent.childSprites[entity.objName] |> snd
             parent = Some parent
             childSprites = Map.ofSeq <| seq { for c in children -> c.objName, (c, EntityStat.make c) }
 
@@ -712,15 +712,15 @@ module private Builder =
     let config (Config c) = c
     let localCount (ProcState p) = p.localCount
     let currentProcedure (ProcState p) = p.procedure
-    let resolveProcedure (EntityState e) p = e.procedureSpecs.[p]
+    let resolveProcedure (EntityState e) p = e.procedureSpecs[p]
     let resolveRuntimeProcedure b state p = resolveRuntimeProcedure b state p
     let resolveRuntimeList b state l = resolveRuntimeList b state l
     let resolveRuntimeVariable b state v = resolveRuntimeVariable b state v
-    let resolveLocalSpec (ProcState p) var = p.localSpecs.[Var.simple var]
+    let resolveLocalSpec (ProcState p) var = p.localSpecs[Var.simple var]
     let resolvePrimitiveParameter b var = resolvePrimitiveParameter b var
     let resolveVariable b var = resolveVariable b var
     let resolveList (EntityState e) var =
-        match e.specs.[var] with
+        match e.specs[var] with
         | ListSpec l -> l
         | ParameterSpec _
         | ProcedureSpec _
@@ -1247,7 +1247,7 @@ module private Emitters =
 
         | VariableSpec var ->
             let value = convertPrimitiveExp b value
-            let var = var.underlyingVariables.[index]
+            let var = var.underlyingVariables[index]
             A.``setVar:to:`` state (UniqueName.name var.underlyingName) value |> Builder.accumulateStatement b
             []
 

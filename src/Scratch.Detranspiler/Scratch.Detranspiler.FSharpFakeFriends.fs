@@ -77,7 +77,7 @@ module private InteralMemberInfos =
     let unpickleObjWithDanglingCcusOfPickledCcuInfoM = unpickleObjWithDanglingCcusM.MakeGenericMethod pickledCcuInfoT
 
     /// type RawFSharpAssemblyDataBackedByFileOnDisk = new (...) = ...
-    let rawFSharpAssemblyDataBackedByFileOnDiskC = compilerType("CompileOps+RawFSharpAssemblyDataBackedByFileOnDisk").GetConstructors().[0]
+    let rawFSharpAssemblyDataBackedByFileOnDiskC = compilerType("CompileOps+RawFSharpAssemblyDataBackedByFileOnDisk").GetConstructors()[0]
 
     /// type IRawFSharpAssemblyData =
     ///     abstract GetRawFSharpSignatureData: range * ilShortAssemName: string * fileName: string -> (string * (unit -> ReadOnlyByteMemory)) list
@@ -91,7 +91,7 @@ module private InteralMemberInfos =
 
     /// `ReaderState -> PickledCcuInfo`
     let unpickleCcuInfo =
-        let t1 = unpickleCcuInfoM.GetParameters().[0].ParameterType
+        let t1 = (unpickleCcuInfoM.GetParameters()[0]).ParameterType
         let t2 = unpickleCcuInfoM.ReturnType
         V.MakeFunction(T.MakeFunctionType(t1, t2), (fun st -> unpickleCcuInfoM.Invoke(null, [|st|])))
 

@@ -9,7 +9,7 @@ let private mergeArray (ts: _ array) e env =
     let mutable tag = ModifyTag.None
     let mutable i = 0
     while i < ts.Length do
-        let e' = (ts.[i]: OptimizedClosures.FSharpFunc<_,_,_>).Invoke(e, env)
+        let e' = (ts[i]: OptimizedClosures.FSharpFunc<_,_,_>).Invoke(e, env)
         tag <- tag ||| e'.tag
         e <- e'.value
         i <- i + 1

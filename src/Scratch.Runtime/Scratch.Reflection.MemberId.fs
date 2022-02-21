@@ -141,8 +141,8 @@ module MemberId =
 
     and resolveType = function
         | TypeId.Normal id -> resolveTypeWithoutGenericParameter id
-        | TypeId.GenericParameter(Choice1Of2 d, i) -> resolveType(d).GetGenericArguments().[i]
-        | TypeId.GenericParameter(Choice2Of2 d, i) -> resolveMethod(d).GetGenericArguments().[i]
+        | TypeId.GenericParameter(Choice1Of2 d, i) -> resolveType(d).GetGenericArguments()[i]
+        | TypeId.GenericParameter(Choice2Of2 d, i) -> resolveMethod(d).GetGenericArguments()[i]
 
     and resolveMethod { methodToken = t; genericMethodArguments = ts; declaringType = d }: MethodBase =
         let m = resolveTypeWithoutGenericParameter(d).Module.ResolveMethod(t)

@@ -100,7 +100,7 @@ module Id =
         let struct(builder, random) = uniqueIdState.Value
         for i in 0..builder.Length-1 do
             let j = int (random.NextDouble() * double uniqueIdChars.Length)
-            builder.[i] <- uniqueIdChars.[j]
+            builder[i] <- uniqueIdChars[j]
 
         String builder
 
@@ -458,7 +458,7 @@ module Project =
             }
         let block =
             blockSpec.argMap
-            |> Seq.mapi (fun i argMap -> operands.[i], argMap)
+            |> Seq.mapi (fun i argMap -> operands[i], argMap)
             |> Seq.fold (fun block (operand, operandSpec) ->
                 let builder = { builder with parentOperandSpec = ValueSome operandSpec }
                 match operandSpec with
@@ -754,7 +754,7 @@ module Project =
         )
 
     let private trySimplifyPrimitiveBlock block =
-        let findField block fieldName = block.fields.[Id.create the<_> fieldName]
+        let findField block fieldName = block.fields[Id.create the<_> fieldName]
         let findFieldValue block fieldName = (findField block fieldName).value
         let fieldNameAndId field =
             field.value |> SValue.toString,
@@ -936,7 +936,7 @@ module Project =
             let splitSuffix s =
                 if integralSuffixRegex.IsMatch s then
                     let s = integralSuffixRegex.Match s
-                    ValueSome struct(s.Groups.[1].Value, int s.Groups.[2].Value)
+                    ValueSome struct(s.Groups[1].Value, int s.Groups[2].Value)
                 else
                     ValueNone
 
@@ -964,7 +964,7 @@ module Project =
             | [|md5; ext|] when ext <> "" -> md5ext, md5, ext
             | parts ->
                 let ext = "png"
-                $"{md5ext}.{ext}", parts.[0], if md5ext = "." then "." + ext else ext
+                $"{md5ext}.{ext}", parts[0], if md5ext = "." then "." + ext else ext
 
         {
             name = uniqueName acc costume.costumeName
@@ -980,7 +980,7 @@ module Project =
         let md5ext = sound.md5
         let md5, ext =
             let parts = md5ext.Split(md5ExtDelimiter, count = 2)
-            parts.[0], parts.[1].ToLowerInvariant()
+            parts[0], parts[1].ToLowerInvariant()
         {
             name = sound.soundName
 
@@ -1161,7 +1161,7 @@ module Project =
             // Sb3 ではステージの名前は "Stage" のみ ( stage.objName は捨てられる )
             // TODO:
             // ステージを追跡するモニターの参照を変更する必要がある
-            // 具体的には `stage.children.[i].target = stage.objName` なら `stage.children.[i].target` を "Stage" に変更する
+            // 具体的には `stage.children[i].target = stage.objName` なら `stage.children[i].target` を "Stage" に変更する
             name = if isStage then "Stage" else entity.objName
 
             variables = variables

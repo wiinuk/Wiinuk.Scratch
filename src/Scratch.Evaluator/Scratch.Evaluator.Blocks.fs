@@ -703,7 +703,7 @@ and evaluateStatement state (ComplexExpression(location, op, args)) = fiberPoly 
         let nth = evaluateExpression state nth
         let value = evaluateExpression state value
         match listIndex state.blockState nth v.Count with
-        | ValueSome index -> v.[index] <- value
+        | ValueSome index -> v[index] <- value
         | _ ->
 
         if state.blockState.config.useRangeCheck then

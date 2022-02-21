@@ -101,17 +101,17 @@ module AssertionWithDiff =
             let line, newLine =
                 match lineAndNewLine with
                 | [|line; newLine|] -> line, newLine
-                | _ -> lineAndNewLine.[0], ""
+                | _ -> lineAndNewLine[0], ""
 
             let t = tokenizer.CreateLineTokenizer line
             let rec tokens acc lastColumn state =
                 match t.ScanToken state with
                 | Some token, state ->
-                    let t = line.[token.LeftColumn..token.RightColumn], Some token
+                    let t = line[token.LeftColumn..token.RightColumn], Some token
                     tokens (t::acc) token.RightColumn state
         
                 | _, state ->
-                    let last = if lastColumn+1 < line.Length then line.[lastColumn+1..] + newLine else newLine
+                    let last = if lastColumn+1 < line.Length then line[lastColumn+1..] + newLine else newLine
                     let acc = (last, None)::acc
                     List.rev acc, state
         

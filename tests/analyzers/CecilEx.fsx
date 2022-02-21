@@ -201,7 +201,7 @@ let sequencePointOrNull config =
         match config.operation with
         | null ->
             let ps = debug.SequencePoints
-            if ps.Count <> 0 then ps.[0]
+            if ps.Count <> 0 then ps[0]
             else null
 
         | i -> nearestSeqiencePoint debug i
@@ -346,12 +346,12 @@ module VietualEval =
 
     let pop0Push1 operation =
         let ldargN operation index =
-            try operation.env.data.parameters.[index]
+            try operation.env.data.parameters[index]
             with :? IndexOutOfRangeException ->
                 operationError operation "parameter out of range: %d" index
 
         let ldlocN operation index =
-            try operation.env.data.locals.[index]
+            try operation.env.data.locals[index]
             with :? IndexOutOfRangeException ->
                 operationError operation "local out of range: %d" index
 
@@ -663,7 +663,7 @@ module VietualEval =
 
             let stack = stack |> stackEval operation
 
-            types.[offset] <- ValueSome stack
+            types[offset] <- ValueSome stack
 
             match operation.instruction.OpCode.FlowControl with
             | FlowControl.Next
@@ -686,7 +686,7 @@ module VietualEval =
             | FlowControl.Phi
             | _ as x -> operationError operation "unknown flow control: %A" x
 
-        loop [] body.Instructions.[0]
+        loop [] body.Instructions[0]
         types
 
 type AssemblyDefinition with

@@ -426,16 +426,16 @@ let blockLikeCalls() = [
     // <@ swap<'T> r1 r2 @>
     // =>
     // ```
-    // t.1 <- memory.[r1]
-    // t.2 <- memory.[r1 + 1]
+    // t.1 <- memory[r1]
+    // t.2 <- memory[r1 + 1]
     // ...
     //
-    // memory.[r1] <- memory.[r2]
-    // memory.[r1 + 1] <- memory.[r2 + 1]
+    // memory[r1] <- memory[r2]
+    // memory[r1 + 1] <- memory[r2 + 1]
     // ...
     //
-    // memory.[r2] <- t.1
-    // memory.[r2+1] <- r.2
+    // memory[r2] <- t.1
+    // memory[r2+1] <- r.2
     // ...
     // ```
     [ <@@ Reference.swap @@> ], fun senv struct(args, e) -> context {

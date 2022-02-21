@@ -6,8 +6,8 @@ let readNaNTail (r: _ byref) (x: _ outref) =
     let bytes = getBufferUnsafe &r
     let offset = r.GetCurrentOffsetUnsafe()
     if offset + 2 < bytes.Length then
-        if bytes.[offset + 1] <> 'a'B then false else
-        if bytes.[offset + 2] <> 'N'B then false else
+        if bytes[offset + 1] <> 'a'B then false else
+        if bytes[offset + 2] <> 'N'B then false else
         r.AdvanceOffset 3
         x <- nan
         true
@@ -20,13 +20,13 @@ let readInfinityTail (r: _ byref) (x: _ outref) sign =
     let bytes = getBufferUnsafe &r
     let offset = r.GetCurrentOffsetUnsafe()
     if offset + 7 < bytes.Length then
-        if bytes.[offset + 1] <> 'n'B then false else
-        if bytes.[offset + 2] <> 'f'B then false else
-        if bytes.[offset + 3] <> 'i'B then false else
-        if bytes.[offset + 4] <> 'n'B then false else
-        if bytes.[offset + 5] <> 'i'B then false else
-        if bytes.[offset + 6] <> 't'B then false else
-        if bytes.[offset + 7] <> 'y'B then false else
+        if bytes[offset + 1] <> 'n'B then false else
+        if bytes[offset + 2] <> 'f'B then false else
+        if bytes[offset + 3] <> 'i'B then false else
+        if bytes[offset + 4] <> 'n'B then false else
+        if bytes[offset + 5] <> 'i'B then false else
+        if bytes[offset + 6] <> 't'B then false else
+        if bytes[offset + 7] <> 'y'B then false else
         r.AdvanceOffset 8
         x <- sign * infinity
         true
@@ -38,11 +38,11 @@ let tryReadDouble (r: _ byref) (result: _ outref) =
     let bytes = r.GetBufferUnsafe()
     let offset = r.GetCurrentOffsetUnsafe()
     if offset < bytes.Length then
-        match bytes.[offset] with
+        match bytes[offset] with
         | 'N'B -> readNaNTail &r &result
         | 'I'B -> readInfinityTail &r &result 1.
         | '-'B ->
-            if offset + 1 < bytes.Length && bytes.[offset + 1] = 'I'B then
+            if offset + 1 < bytes.Length && bytes[offset + 1] = 'I'B then
                 r.AdvanceOffset 1
                 readInfinityTail &r &result -1.
             else

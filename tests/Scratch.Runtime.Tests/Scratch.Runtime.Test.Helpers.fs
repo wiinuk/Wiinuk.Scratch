@@ -148,7 +148,7 @@ let complexExpressionArb wrapSymbol (|UnwrapSymbol|) =
         let! state = Arb.generate<_>
         let! UnwrapSymbol operator = Arb.generate<_>
 
-        let! operands = knownAllOperatorMap.[operator].operands |> Gen.collectToSeq operandGen
+        let! operands = knownAllOperatorMap[operator].operands |> Gen.collectToSeq operandGen
         let operands = Seq.concat operands |> Seq.toList
         return ComplexExpression(state, operator, operands)
     }
@@ -388,7 +388,7 @@ type Arbs =
         let g = gen {
             let! state = Arb.generate<_>
             let! KnownListenerHeaderName name = Arb.generate<_>
-            let! arguments = knownListenerHeaderMap.[name] |> Gen.collect argumentGen
+            let! arguments = knownListenerHeaderMap[name] |> Gen.collect argumentGen
             let! body = Arb.generate<_>
             return ListenerDefinition(state, name, arguments, body)
         }

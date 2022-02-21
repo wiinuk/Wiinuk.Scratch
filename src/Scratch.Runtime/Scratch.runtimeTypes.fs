@@ -242,7 +242,7 @@ module KeyCode =
         | 39.
         | 40. as key -> int key
 
-        // string(keyCode).[0]
+        // string(keyCode)[0]
         | key when 0. <= key && key < 10. -> int '0' + int key 
         | key when key < 0. -> int '-'
         | key when Double.IsPositiveInfinity key -> int 'I'
@@ -268,7 +268,7 @@ module KeyCode =
         | "" -> KeyCode.None
         | key ->
 
-        match key.[0] with
+        match key[0] with
         | ' ' -> KeyCode.Space
         | key -> enum (int (Char.ToUpperInvariant key))
 
