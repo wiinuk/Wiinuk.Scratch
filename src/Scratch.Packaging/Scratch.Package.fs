@@ -40,7 +40,7 @@ let readSb2Package sb2Path = async {
     let! stage = readSb2Project sb2Path
     use zip = ZipFile.OpenRead sb2Path
 
-    let tryNameToInt n =
+    let tryNameToInt (n: string) =
         match Path.GetFileNameWithoutExtension n |> Int32.TryParse with
         | false, _ -> None
         | true, n -> Some n

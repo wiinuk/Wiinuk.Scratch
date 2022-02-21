@@ -27,10 +27,8 @@ module Buffer =
     let item i (b: _ inref) = if b.size <= i then raiseOutOfRangeError() else b.items.[i]
 
     let clear (b: 'T Buffer byref) =
-        // netstandard2.1 <= version < netstandard3
-#if NETSTANDARD2 && !NETSTANDARD2_0
         if not (RuntimeHelpers.IsReferenceOrContainsReferences<'T>()) then b.size <- 0 else
-#endif
+
         let size = b.size
         b.size <- 0
         if 0 < size then

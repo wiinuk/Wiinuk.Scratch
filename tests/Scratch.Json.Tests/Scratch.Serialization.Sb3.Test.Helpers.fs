@@ -168,7 +168,7 @@ module AdaptorJs =
         if e.ValueKind = JsonValueKind.Undefined then "undefined" else
         JsonSerializer.Serialize(e, JsonSerializerOptions(WriteIndented = true))
 
-    let deserializeJsonElement (_: 'T The) (element: JsonElement) options =
+    let deserializeJsonElement (_: 'T The) (element: JsonElement) (options: JsonSerializerOptions) =
         let bufferWriter = ArrayBufferWriter()
         use writer = new Utf8JsonWriter(bufferWriter)
         element.WriteTo writer

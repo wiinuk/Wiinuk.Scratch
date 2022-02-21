@@ -18,23 +18,8 @@ module Isolated =
     let parser = ArgumentParser.Create<TesterCLIArgs>()
 
     let tfm =
-#if NET45
-        "net45"
-#endif
-#if NET47
-        "net47"
-#endif
-#if NETCOREAPP2_1
-        "netcoreapp2.1"
-#endif
-#if NETCOREAPP2_2
-        "netcoreapp2.2"
-#endif
-#if NETCOREAPP3_1
-        "netcoreapp3.1"
-#endif
-#if NET5_0
-        "net5.0"
+#if NET6_0
+        "net6.0"
 #endif
     let testerPath = Path.Combine(__SOURCE_DIRECTORY__, sprintf "../scratch-tester/bin/Debug/%s/scratch-tester.dll" tfm)
 

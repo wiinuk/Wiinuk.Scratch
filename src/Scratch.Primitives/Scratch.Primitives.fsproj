@@ -7,7 +7,6 @@
     <Compile Include="global.Array.fs" />
     <Compile Include="global.List.fs" />
     <Compile Include="global.FSharp.Quotations.DerivedPatterns.fs" />
-    <Compile Include="global.RuntimeHelpersExtensions.fs" />
     <Compile Include="MathExtensions.fs" />
     <Compile Include="ValueFunc.fs" />
     <Compile Include="The.fs" />

@@ -24,7 +24,10 @@ type XDocument with
 let buildToBinary outDirectory source references assemblyName = async {
     let sourcePath = outDirectory/"source.fs"
     let projectPath = outDirectory/(assemblyName + ".fsproj")
-    let framework = "netstandard2.0"
+    let framework =
+#if NET6_0
+        "net6.0"
+#endif
     let outPath = outDirectory/"bin"/"Debug"/framework/(assemblyName + ".dll")
 
     let x = xelement

@@ -90,7 +90,7 @@ module Id =
     let private uniqueIdChars = "!#%()*+,-./:;=?@[]^_`{|}~ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
     let private uniqueIdLength = 20
     let private makeRandom() =
-        use random0 = new RNGCryptoServiceProvider()
+        use random0 = RandomNumberGenerator.Create()
         let buffer = Array.zeroCreate sizeof<int>
         random0.GetBytes buffer
         Random <| BitConverter.ToInt32(buffer, 0)
