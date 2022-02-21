@@ -4,6 +4,7 @@ open Scratch.Ast
 open Scratch.IR
 open Scratch.Primitives
 open Scratch.Primitives.Document.Constructors
+open Scratch.Primitives.Document.Operators
 open System.Collections.Generic
 open System.Text.RegularExpressions
 
@@ -83,13 +84,13 @@ module private Helpers =
 
     module Document =
         /// `nest (group (ns + x))`
-        let layoutBlock x = nest (group (ns + x))
+        let layoutBlock x = nest (group (ns ++ x))
 
 [<AutoOpen>]
 module private Printers =
     type private P = Precedence
 
-    /// `()` -or- `group (f xs[0]) + ns + group (f xs[1]) + … + group (f xs[N])`
+    /// `()` -or- `group (f xs[0]) ++ ns ++ group (f xs[1]) ++ … ++ group (f xs[N])`
     let prettyListOrUnit f = function
         | [] -> text "()"
         | xs -> Document.concatMap (group << f) ns xs
@@ -136,11 +137,11 @@ module private Printers =
         let t = prettyVType t
         match name with
         | "" -> t
-        | _ -> prettyName name + " : " + t
+        | _ -> prettyName name +. " : " ++ t
 
     let prettyType = function
         | UnboxedType [t] -> prettyMemberType t
-        | UnboxedType ts -> "(" + Document.concatMap prettyMemberType (text ", ") ts + ")"
+        | UnboxedType ts -> "(" .+ Document.concatMap prettyMemberType (text ", ") ts +. ")"
 
     let prettyNumberLiteral (x: double) = text (x.ToString "G17")
 
@@ -175,23 +176,23 @@ module private Printers =
     and prettyExp s maxPrec e =
         let struct(e, prec) = prettyExpRaw s e.value
         if maxPrec < prec
-        then text "(" + nest (ne + e) + ne + ")"
+        then "(" .+ nest (ne ++ e) ++ ne +. ")"
         else e
 
     and prettyVarSet s (var, value) =
         let var = prettyVar s var
         let value = prettyExp s P.Assign value
 
-        var + " <-" + Document.layoutBlock value, P.Assign
+        var +. " <-" ++ Document.layoutBlock value, P.Assign
 
     and prettyIf s (test, ifTrue, ifFalse) =
         let test = prettyExp s P.Max test
         let ifTrue = prettyExp s P.Max ifTrue
         let ifFalse = prettyExp s P.Max ifFalse
 
-        "if" + Document.layoutBlock test + ns +
-        "then" + Document.layoutBlock ifTrue + ns +
-        "else" + Document.layoutBlock ifFalse,
+        "if" .+ Document.layoutBlock test ++ ns +.
+        "then" ++ Document.layoutBlock ifTrue ++ ns +.
+        "else" ++ Document.layoutBlock ifFalse,
         P.If
 
     and prettyLet s (var, value, scope) =
@@ -200,50 +201,50 @@ module private Printers =
         let value = prettyExp s P.Max value
         let scope = prettyExp s P.Max scope
 
-        "let " + m + var + " =" + Document.layoutBlock value + breakable " in " +
+        "let " .+ m ++ var +. " =" ++ Document.layoutBlock value ++ breakable " in " ++
         scope,
         P.Let
 
     and prettySeq s (first, last) =
         let first = prettyExp s P.If first
         let last = prettyExp s P.Max last
-        first + breakable "; " + last, P.Seq
+        first ++ breakable "; " ++ last, P.Seq
 
     and prettyCall s (proc, args) =
         let name = prettyVar s proc
         let args = prettyListOrUnit (prettyExp s P.Primitive) args
-        name + Document.layoutBlock args, P.Apply
+        name ++ Document.layoutBlock args, P.Apply
 
     and prettyNewTuple s = function
         | [] -> text "()", P.Primitive
         // (x1,)
-        | [x1] -> text "(" + nest (ne + prettyExp s P.Max x1) + ne + ",)", P.Primitive
+        | [x1] -> "(" .+ nest (ne ++ prettyExp s P.Max x1) ++ ne +. ",)", P.Primitive
         // x1, x2, ..., xN
-        | xs -> Document.concatMap (prettyExp s (Precedence.sub P.Comma 1) >> group) (text "," + ns) xs, P.Comma
+        | xs -> Document.concatMap (prettyExp s (Precedence.sub P.Comma 1) >> group) ("," .+ ns) xs, P.Comma
 
     and prettyTupleGet s (value, index) =
         let value = prettyExp s P.Primitive value
         let index = prettyNumberLiteral (double index)
 
-        value + "." + index, P.Primitive
+        value +. "." ++ index, P.Primitive
 
     and prettyTupleSet s (var, index, value) =
         let var = prettyVar s var
         let index = prettyNumberLiteral (double index)
         let value = prettyExp s P.Assign value
 
-        var + "." + index + " <-" + Document.layoutBlock value, P.Assign
+        var +. "." ++ index +. " <-" ++ Document.layoutBlock value, P.Assign
 
     and prettyCoerce s (kind, value, newType) =
         let value = prettyExp s (Precedence.sub P.TypeOp 1) value
         let op = match kind with CoerceKind.Convert -> ":>" | CoerceKind.Reinterpret -> ":?>"
         let newType = prettyType newType
 
-        group (value + ns) + op + ws + newType, P.TypeOp
+        group (value ++ ns) +. op ++ ws ++ newType, P.TypeOp
 
     and prettyAtom s e =
         let e = prettyExp s P.Primitive e
-        "atomic" + Document.layoutBlock e, P.If
+        "atomic" .+ Document.layoutBlock e, P.If
 
     and prettyOperands s ops = prettyListOrUnit (prettyExp s P.Primitive) ops
 
@@ -261,12 +262,12 @@ module private Printers =
 
     and prettyExtOp s (spec, ops) =
         let op = prettyName spec.extensionId
-        op + nest (ns + prettyOperands s ops), P.Apply
+        op ++ nest (ns ++ prettyOperands s ops), P.Apply
 
     and prettyNormalOp s (op, ops) =
         let struct(op, _) = prettyOperator s op
         let ops = prettyOperands s ops
-        op + nest (ns + ops), P.Apply
+        op ++ nest (ns ++ ops), P.Apply
 
     and prettyBinaryOp s (leftPrec, opPrec, rightPrec) (op, ops) =
         match ops with
@@ -274,7 +275,7 @@ module private Printers =
             let l = prettyExp s leftPrec l
             let struct(op, _) = prettyOperator s op
             let r = prettyExp s rightPrec r
-            group l + group (nest (ns + op + ns + group r)), opPrec
+            group l ++ group (nest (ns ++ op ++ ns ++ group r)), opPrec
 
         | _  -> prettyNormalOp s (op, ops)
 
@@ -285,12 +286,12 @@ module private Printers =
     and prettyListOp s (op, ops) =
         let struct(op, _) = prettyOperator s op
         let ops = prettyListOrUnit (prettyListOperand s) ops
-        op + nest (ns + ops), P.Apply
+        op ++ nest (ns ++ ops), P.Apply
 
     let prettyParameter s { Source.value = var } = prettyVar s var
 
     let prettyProcedure s (ProcDef(ProcHeader(var, ps, atomicity), body)) =
-        let attrs = match atomicity with NoAtomic -> "@async" + ns | Atomic -> empty
+        let attrs = match atomicity with NoAtomic -> "@async" .+ ns | Atomic -> empty
         let name = prettyVar s var
 
         let parameters =
@@ -299,19 +300,19 @@ module private Printers =
             | _ -> Document.concatMap (prettyParameter s) ns ps
 
         let body = prettyExp s P.Max body
-        group (attrs + "let " + name + nest (ns + group (parameters + ns) + "=")) +
+        group (attrs +. "let " ++ name ++ nest (ns ++ group (parameters ++ ns) +. "=")) ++
         Document.layoutBlock body
 
     let prettyListener s (ListenerDef(name, ps, body)) =
         let struct(n, _) = prettyOperator s name
         let ps = Document.concatMap (group << prettyExp s P.Primitive) ns ps
         let body = prettyExp s P.Max body
-        "do" + group (nest (ns + n + ns + ps) + ns) + body
+        "do" .+ group (nest (ns ++ n ++ ns ++ ps) ++ ns) ++ body
 
     let prettyVariableInit s (VariableInitDef(var, init)) =
         let var = prettyVar s var
         let init = prettyExp s P.Apply init
-        "do " + var + " :=" + Document.layoutBlock init
+        "do " .+ var +. " :=" ++ Document.layoutBlock init
 
     let prettyTop state = function
         | Top.Procedure p -> prettyProcedure state p.value
@@ -324,22 +325,22 @@ module private Printers =
         let ps = empty
         let ps =
             if x <> 0. || y <> 0.
-            then ps + "@position(" + string x + ", " + string y + ns
+            then ps +. "@position(" +. string x +. ", " +. string y ++ ns
             else ps
 
         let ps =
             if w <> 0. || h <> 0.
-            then ps + "@size(" + string w + ", " + string h + ")" + ns
+            then ps +. "@size(" +. string w +. ", " +. string h +. ")" ++ ns
             else ps
 
         let ps =
             match v with
-            | Visible -> ps + "@visible" + ns
+            | Visible -> ps +. "@visible" ++ ns
             | Hidden -> ps
 
         let ps =
             match list.isPersistent with
-            | Persistent -> ps + "@persistent" + ns
+            | Persistent -> ps +. "@persistent" ++ ns
             | NoPersistent -> ps
 
         let name = prettyVar state list.var
@@ -349,15 +350,15 @@ module private Printers =
             |> Document.concatMap prettyLit ns
 
         group (
-            group (ps + "let " + name + ns + "=" + ns + "[") +
-            nest (ne + group values) + ne +
+            group (ps +. "let " ++ name ++ ns +. "=" ++ ns +. "[") ++
+            nest (ne ++ group values) ++ ne +.
             "]"
         )
 
     let prettyVariableDecl s (v: VariableDecl<_>) =
-        let p = match v.isPersistent with Persistent -> "@persistent" + ns | NoPersistent -> empty
+        let p = match v.isPersistent with Persistent -> "@persistent" .+ ns | NoPersistent -> empty
         let m = prettyMutability v.var
-        group (p + text "let " + m + prettyVar s v.var)
+        group (p +. "let " ++ m ++ prettyVar s v.var)
 
 let private varNaming struct(var, i) = if i = 0 then Var.name var else Var.name var + "@" + string i
 let private newState() = { ns = Namespace.newNamespace varNaming }
