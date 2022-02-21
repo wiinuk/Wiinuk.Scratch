@@ -110,6 +110,57 @@ const sb3ToSb3Binary = async sb3BinaryBase64 => {
     }
 }
 
+/** @returns {Promise<void>} */
+const awaitAllThreads = (/** @type {InstanceType<typeof Vm>} */ vm, { timeout = Infinity, pollingInterval = 20 } = {}) => new Promise((onSuccess, onError) => {
+    const timeoutId = setTimeout(() => {
+        clearInterval(intervalId)
+        onError(new Error(`timeout ${timeout}ms`))
+    }, timeout)
+
+    const intervalId = setInterval(() => {
+        if (!vm.runtime.threads.some(thread => !!/** @type {any} */ (thread).updateMonitor)) {
+            clearTimeout(timeoutId)
+            onSuccess()
+        }
+    }, pollingInterval)
+})
+const serializeStates = (/** @type {InstanceType<typeof Vm>} */ vm) => {
+    const targets = []
+    for (const t of /** @type {import("scratch-vm/src/sprites/rendered-target")[]} */ (vm.runtime.targets)) {
+        const variables = []
+        for (const k in Object.keys(t.variables)) {
+            variables.push[t.variables[k]]
+        }
+        targets.push({
+            name: t.getName(),
+            id: t.id,
+            isStage: t.isStage,
+            isOriginal: t.isOriginal,
+            variables: t.variables,
+        })
+    }
+    return JSON.stringify({
+        targets
+    })
+}
+const runSb3Project = async (/** @type {Readonly<{ projectJson: string, timeout: number }>} */ { projectJson, timeout }) => {
+    const vm = new Vm()
+    try {
+        vm.attachStorage(newDummyStorage())
+        vm.start()
+        vm.clear()
+        vm.setCompatibilityMode(false)
+        vm.setTurboMode(false)
+        await vm.loadProject(projectJson)
+        vm.greenFlag()
+        await awaitAllThreads(vm, { timeout })
+        return serializeStates(vm)
+    }
+    finally {
+        clearInterval(vm.runtime._steppingInterval)
+    }
+}
+
 /**
  * @param {string} path
  */
@@ -228,6 +279,17 @@ const writeExtensionSpec = async (/** @type {Readonly<{ path: string }>} */ { pa
     })
     await Fs.writeFile(path, JSON.stringify(xs))
 }
+const runSb3ProjectFile = async (/** @type {{ path: string, outPath?: string, timeout?: number }} */ { path, outPath, timeout }) => {
+    const projectJson = await Fs.readFile(path, "utf8")
+
+    const result = await runSb3Project({ projectJson, timeout})
+
+    const resultJsonPath =
+        outPath ? (await Fs.writeFile(outPath, result), outPath) :
+        await writeFileWithFleshName(path, result)
+
+    console.log(`wrote: ${Path.resolve(resultJsonPath)}`)
+}
 
 let createInnerArgv = () => Yargs()
     .command(
@@ -269,6 +331,15 @@ let createInnerArgv = () => Yargs()
         "Write extension specs json file",
         p => p.positional("path", { type: "string", demandOption: true }),
         async ({ path }) => writeExtensionSpec({ path })
+    )
+    .command(
+        ["run-project <path>"],
+        "Run sb3 project.json",
+        p => p
+            .positional("path", { type: "string", demandOption: true })
+            .option("outPath", { type: "string" })
+            .option("timeout", { type: "number", default: Infinity }),
+        runSb3ProjectFile
     )
     .demandCommand(1)
     .help()
@@ -346,6 +417,10 @@ const startAliveTimer = (timeout, timeoutAction) => {
  * @property {"string"} kind
  */
 /**
+ * @typedef {object} NumberSchema
+ * @property {"number"} kind
+ */
+/**
  * @typedef {object} LiteralSchema
  * @property {"literal"} kind
  * @property {Literal} value
@@ -373,6 +448,7 @@ const startAliveTimer = (timeout, timeoutAction) => {
     | UnknownSchema
     | LiteralSchema
     | StringSchema
+    | NumberSchema
     | InterfaceSchema
     | UnionSchema
    } ValueSchema
@@ -436,6 +512,12 @@ class Schema {
     })
     static get string() { return Schema._string }
 
+    /** @private @type {Readonly<Schema<number>>} */
+    static _number = new Schema({
+        kind: "number",
+    })
+    static get number() { return Schema._number }
+
     /** @private @type {Readonly<Schema<unknown>>} */
     static _unknown = new Schema({
         kind: "unknown",
@@ -486,6 +568,7 @@ class Schema {
             switch (schema.kind) {
                 case "unknown": return result.push("unknown")
                 case "string": return result.push("string")
+                case "number": return result.push("number")
                 case "literal":
                     const { value } = schema
                     switch (value) {
@@ -537,11 +620,15 @@ class Schema {
                 case "unknown": return null
                 case "literal":
                     if (actualValue === schema.value) { return null }
-                    return { path, schema: schema, actualValue }
+                    return { path, schema, actualValue }
 
                 case "string":
                     if (typeof actualValue === "string") { return null }
-                    return { path, schema: schema, actualValue }
+                    return { path, schema, actualValue }
+
+                case "number":
+                    if (typeof actualValue === "number") { return null }
+                    return { path, schema, actualValue }
 
                 case "interface":
                     const { propertySchemas } = schema
@@ -581,7 +668,11 @@ class Schema {
         if (r) { throw new ValidationError(r.path, r.schema, r.actualValue) }
     }
 }
-const { properties, literal, union, string, unknown } = Schema
+import AdaptorSchemaJson from "./adaptor.schema.json"
+
+AdaptorSchemaJson.definitions.Person
+
+const { properties, literal, union, string, unknown, number } = Schema
 const messageSchema = union(
     properties({ type: literal("echo"), data: unknown }),
     properties({ type: literal("stop"), data: unknown }),
@@ -604,6 +695,13 @@ const messageSchema = union(
                 name: literal("roundtrip-package"),
                 args: properties({
                     binary: string
+                })
+            }),
+            properties({
+                name: literal("run-project"),
+                args: properties({
+                    projectJson: string,
+                    timeout: union(number, Schema.undefined)
                 })
             })
         )
@@ -668,6 +766,7 @@ const startServer = (/** @type {{ port: number, silent: boolean, timeout: number
                             case "roundtrip-json": return { projectJson: await sb3ToSb3Json(data.args.projectJson) }
                             case "import-sb2-json": return { projectJson: await sb2ToSb3Json(data.args.projectJson) }
                             case "roundtrip-package": return { binary: await sb3ToSb3Binary(data.args.binary) }
+                            case "run-project": return { state: await runSb3Project(data.args) }
                         }
                     })
                     log("[server] send", result)
