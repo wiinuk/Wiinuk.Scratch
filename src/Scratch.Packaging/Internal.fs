@@ -361,7 +361,7 @@ let writeResources zip resourceNaming packageData = async {
 let writeProjectJson (zip: ZipArchive) syntax packageData = async {
     let project = zip.CreateEntry "project.json"
     use stream = project.Open()
-    do! Syntax.serializeStream syntax stream packageData.project
+    do! Syntax.serializeStream syntax stream packageData.project |> Async.AwaitTask
 }
 let writePackage zip resourceNaming packageData projectJsonSyntax = async {
     do! writeResources zip resourceNaming packageData

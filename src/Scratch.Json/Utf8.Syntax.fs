@@ -22,12 +22,12 @@ let private ensure (items: _ byref) newSize =
     Buffer.BlockCopy(items, 0, newItems, 0, items.Length)
     items <- newItems
 
-let deserializeStream syntax (stream: Stream) = async {
+let deserializeStream syntax (stream: Stream) = task {
     let mutable items = Array.zeroCreate 2048
     let mutable itemsSize = 0
     let mutable loop = true
     while loop do
-        let! readCount = stream.AsyncRead(items, itemsSize, items.Length - itemsSize)
+        let! readCount = stream.ReadAsync(items, itemsSize, items.Length - itemsSize)
         if 0 < readCount then
             itemsSize <- itemsSize + readCount
             if itemsSize = items.Length then
@@ -47,12 +47,12 @@ let serializeString (syntax: 's when 's :> _ ISyntax and 's : not struct) value 
     syntax.Serialize(&writer, value)
     writer.ToString()
 
-let serializeStream (syntax: 's when 's :> _ ISyntax and 's : not struct) (stream: Stream) value = async {
+let serializeStream (syntax: 's when 's :> _ ISyntax and 's : not struct) (stream: Stream) value = task {
     let buffer = Array.zeroCreate 65535
     let mutable writer = JsonWriter buffer
     syntax.Serialize(&writer, value)
     let buffer = writer.GetBuffer()
-    do! stream.AsyncWrite(buffer.Array, buffer.Offset, buffer.Count)
+    do! stream.WriteAsync(buffer.Array, buffer.Offset, buffer.Count)
 }
 let raiseParsingException (r: _ inref) message =
     raise <| makeParsingException r message null

@@ -401,6 +401,7 @@ type IpcTests(fixture: IpcTestFixture) =
             use stream = new MemoryStream(bytes, 0, bytes.Length, writable = false, publiclyVisible = false)
             return! usingReadZipEntry stream "project.json" <| fun stream ->
                 Json.Utf8.Syntax.deserializeStream Syntax.jProject stream
+                |> Async.AwaitTask
         }
 
         let projectFromFs =

@@ -32,9 +32,11 @@ let readSb2ResourceMD5 sb2Path resourceType resourceId = async {
 }
 let readSprite2Project sprite2Path = usingReadZipEntry sprite2Path "sprite.json" <| fun stream ->
     Syntax.deserializeStream (Sb2.Syntax.spriteData HasDefault.option) stream
+    |> Async.AwaitTask
 
 let readSb2Project sb2Path = usingReadZipEntry sb2Path "project.json" <| fun stream ->
     Syntax.deserializeStream (Sb2.Syntax.stageData HasDefault.option) stream
+    |> Async.AwaitTask
 
 let readSb2Package sb2Path = async {
     let! stage = readSb2Project sb2Path
