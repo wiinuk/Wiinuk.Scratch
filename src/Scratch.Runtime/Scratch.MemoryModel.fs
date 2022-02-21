@@ -6,6 +6,7 @@ open Scratch.MemoryModel
 open Scratch.Primitives
 open Scratch.Reflection
 open System.Reflection
+module VOption = ValueOption
 
 
 [<NoComparison>]
@@ -82,7 +83,8 @@ module internal TypeSpecHelpers =
         interface ICustomLayoutShape with
             member _.ValueLayout = None
 
-    let (|CustomLayoutShape|_|) (t: Type) =
+    [<return: Struct>]
+    let (|CustomLayoutShape|_|) (t: Type): _ voption =
         t.GetInterfaces()
         |> Seq.tryPick (function
 
@@ -90,10 +92,11 @@ module internal TypeSpecHelpers =
             // new shapeT().ValueLayout
             | GenericType(d, [shapeT]) when d = typedefof<ICustomLayout<DummyCustomLayoutShape>> ->
                 let shape = Activator.CreateInstance shapeT :?> ICustomLayoutShape
-                Some shape.ValueLayout
+                Some <| VOption.unbox shape.ValueLayout
 
             | _ -> None
         )
+        |> VOption.unbox
 
     let rec isZeroSizedType = function
         | t when t = typeof<unit> -> true
@@ -106,7 +109,7 @@ module internal TypeSpecHelpers =
 
         | UnionType _ as t ->
             TypeSpec.unionRepresentation t
-            |> Option.map (function
+            |> VOption.map (function
                 
                 // e.g. `type Union = | Case`
                 | UnitLikeUnion _ -> true
@@ -118,53 +121,53 @@ module internal TypeSpecHelpers =
                 | OptionLikeUnion _
                 | ComplexUnion _ -> false
             )
-            |> Option.defaultValue false
+            |> VOption.defaultValue false
 
         | _ -> false
 
     let rec valueLayout = function
-        | t when typeof<ISyntaxInfrastructure>.IsAssignableFrom t -> None
+        | t when typeof<ISyntaxInfrastructure>.IsAssignableFrom t -> ValueNone
         | t ->
 
         match TypeSpec.underlyingPrimitiveType t with
-        | Some t -> Some [UnderlyingTypeSpec(t, UnderlyingValue, Kind.Primitive)]
-        | None ->
+        | ValueSome t -> ValueSome [UnderlyingTypeSpec(t, UnderlyingValue, Kind.Primitive)]
+        | _ ->
 
         match t with
 
         // type T = interface ICustomLayout
         | CustomLayoutShape x -> x
         
-        | t when isZeroSizedType t -> Some []
+        | t when isZeroSizedType t -> ValueSome []
 
-        | t when t = typeof<obj> -> Some TypeSpec.collectableType
+        | t when t = typeof<obj> -> ValueSome TypeSpec.collectableType
 
         // 'T when 'T : not struct
         | GenericParameterType(GenericParameterAttributes.ReferenceTypeConstraint, []) ->
-            Some TypeSpec.collectableType
+            ValueSome TypeSpec.collectableType
 
         // 'T when 'T :> IWord
         | GenericParameterType(GenericParameterAttributes.None, [c0]) when typeof<IWord>.IsAssignableFrom c0 ->
-            Some TypeSpec.iwordType
+            ValueSome TypeSpec.iwordType
 
         | TupleType es as t -> 
             if t.IsValueType then valueTupleValueLayout es
-            else Some TypeSpec.collectableType
+            else ValueSome TypeSpec.collectableType
 
         | RecordType fs as t ->
             if t.IsValueType then valueRecordValueLayout fs
-            else Some TypeSpec.collectableType
+            else ValueSome TypeSpec.collectableType
 
         | UnionType _ as t ->
             TypeSpec.unionRepresentation t
-            |> Option.bind unionValueLayout
+            |> VOption.bind unionValueLayout
 
-        | _ -> None
+        | _ -> ValueNone
 
     and valueTupleValueLayout es =
         es
-        |> Option.mapSeq TypeSpec.valueLayoutCached
-        |> Option.map (fun tupleFields ->
+        |> VOption.mapSeq TypeSpec.valueLayoutCached
+        |> VOption.map (fun tupleFields ->
             tupleFields
             |> Seq.mapi (fun i fields -> inMember (TupleField(i + 1)) fields)
             |> List.concat
@@ -172,25 +175,25 @@ module internal TypeSpecHelpers =
 
     and valueRecordValueLayout fs =
         fs
-        |> Option.mapSeq (fun f ->
+        |> VOption.mapSeq (fun f ->
             TypeSpec.valueLayoutCached f.PropertyType
-            |> Option.map (inMember (RecordField(MemberId.propertyId f)))
+            |> VOption.map (inMember (RecordField(MemberId.propertyId f)))
         )
-        |> Option.map List.concat
+        |> VOption.map List.concat
 
     and unionValueLayout = function
-        | UnitLikeUnion _ -> Some []
-        | EnumLikeUnion _ -> Some TypeSpec.enumLikeCaseType
+        | UnitLikeUnion _ -> ValueSome []
+        | EnumLikeUnion _ -> ValueSome TypeSpec.enumLikeCaseType
         | RecordLikeUnion case ->
-            if case.DeclaringType.IsClass then Some TypeSpec.collectableType else
+            if case.DeclaringType.IsClass then ValueSome TypeSpec.collectableType else
             recordLikeValueUnionLayout case
 
         | OptionLikeUnion(noneCase, someCase) ->
-            if noneCase.DeclaringType.IsClass then Some TypeSpec.collectableType else
+            if noneCase.DeclaringType.IsClass then ValueSome TypeSpec.collectableType else
             optionLikeValueUnionLayout noneCase someCase
 
         | ComplexUnion(case1, case2, cases) ->
-            if case1.DeclaringType.IsClass then Some TypeSpec.collectableType else
+            if case1.DeclaringType.IsClass then ValueSome TypeSpec.collectableType else
             complexValueUnionLayout case1 case2 cases
 
     and complexValueUnionLayout case1 case2 cases =
@@ -211,16 +214,16 @@ module internal TypeSpecHelpers =
         //     4: Primitive
         // }
         cases
-        |> Option.mapSeq (fun c ->
+        |> VOption.mapSeq (fun c ->
             c.GetFields()
             |> Seq.indexed
-            |> Option.mapSeq (fun (i, f) ->
+            |> VOption.mapSeq (fun (i, f) ->
                 TypeSpec.valueLayoutCached f.PropertyType
-                |> Option.map (inMember (UnionCaseField <| UnionCaseFieldInfo(MemberId.unionCaseId c, i, MemberId.propertyId f)))
+                |> VOption.map (inMember (UnionCaseField <| UnionCaseFieldInfo(MemberId.unionCaseId c, i, MemberId.propertyId f)))
             )
-            |> Option.map List.concat
+            |> VOption.map List.concat
         )
-        |> Option.map (fun caseLayouts ->
+        |> VOption.map (fun caseLayouts ->
             let rec sort (collectables, primitives) = function
                 | [] -> List.rev collectables, List.rev primitives
                 | UnderlyingTypeSpec(t, path, Kind.Collectable)::ts -> sort ((t, path)::collectables, primitives) ts
@@ -282,48 +285,48 @@ module internal TypeSpecHelpers =
     and recordLikeValueUnionLayout case =
         case.GetFields()
         |> Seq.indexed
-        |> Option.mapSeq (fun (i, f) ->
+        |> VOption.mapSeq (fun (i, f) ->
             TypeSpec.valueLayoutCached f.PropertyType
-            |> Option.map (inMember (UnionCaseField <| UnionCaseFieldInfo(MemberId.unionCaseId case, i, MemberId.propertyId f)))
+            |> VOption.map (inMember (UnionCaseField <| UnionCaseFieldInfo(MemberId.unionCaseId case, i, MemberId.propertyId f)))
         )
-        |> Option.map List.concat
+        |> VOption.map List.concat
 
     and optionLikeValueUnionLayout noneCase someCase =
         let u = if noneCase.Tag < someCase.Tag then ComplexUnion(noneCase, someCase, []) else ComplexUnion(someCase, noneCase, [])
         unionValueLayout u
 
     let unionMemoryLayout = function
-        | UnitLikeUnion _ -> Some []
-        | EnumLikeUnion _ -> Some TypeSpec.enumLikeCaseType
+        | UnitLikeUnion _ -> ValueSome []
+        | EnumLikeUnion _ -> ValueSome TypeSpec.enumLikeCaseType
         | RecordLikeUnion case -> recordLikeValueUnionLayout case
 
         | OptionLikeUnion(noneCase, someCase) ->
             if noneCase.DeclaringType.IsValueType
             then optionLikeValueUnionLayout noneCase someCase
-            else None
+            else ValueNone
 
         | ComplexUnion(case1, case2, cases) ->
             if case1.DeclaringType.IsValueType
             then complexValueUnionLayout case1 case2 cases
-            else None
+            else ValueNone
 
     let unionCaseMemoryLayout (c: UnionCaseInfo) =
         TypeSpec.unionRepresentation c.DeclaringType
-        |> Option.bind (function
+        |> VOption.bind (function
             | UnitLikeUnion _
             | EnumLikeUnion _
             | RecordLikeUnion _ as u -> unionMemoryLayout u
             | OptionLikeUnion(noneCase, someCase) ->
                 if c.DeclaringType.IsValueType then optionLikeValueUnionLayout noneCase someCase else
 
-                if c.Tag = noneCase.Tag then Some []
+                if c.Tag = noneCase.Tag then ValueSome []
                 else recordLikeValueUnionLayout someCase
 
             | ComplexUnion(case1, case2, cases) ->
                 if c.DeclaringType.IsValueType then complexValueUnionLayout case1 case2 cases else
 
                 recordLikeValueUnionLayout c
-                |> Option.map (fun c' -> TypeSpec.caseTagType c.DeclaringType::c')
+                |> VOption.map (fun c' -> TypeSpec.caseTagType c.DeclaringType::c')
         )
 
 module TypeSpec =
@@ -342,7 +345,7 @@ module TypeSpec =
             typeof<IWord>.IsAssignableFrom t ||
             typeof<ISyntaxInfrastructure>.IsAssignableFrom t ||
             not (T.IsUnion(t, allowAccessToPrivateRepresentation = true))
-        then None
+        then ValueNone
         else
 
         let cases =
@@ -351,48 +354,48 @@ module TypeSpec =
             |> Seq.toList
 
         match cases with
-        | [] -> None
+        | [] -> ValueNone
 
-        | [case, []] -> UnitLikeUnion case |> Some
+        | [case, []] -> UnitLikeUnion case |> ValueSome
 
         | (enum1, [])::(enum2, [])::cases ->
             let enums = cases |> Seq.map fst |> Seq.toList
             if List.forall (snd >> List.isEmpty) cases
-            then EnumLikeUnion(enum1, enum2, enums) |> Some
-            else ComplexUnion(enum1, enum2, enums) |> Some
+            then EnumLikeUnion(enum1, enum2, enums) |> ValueSome
+            else ComplexUnion(enum1, enum2, enums) |> ValueSome
 
         | [noneCase, []; someCase, _::_]
         | [someCase, _::_; noneCase, []] ->
-            OptionLikeUnion(noneCase, someCase) |> Some
+            OptionLikeUnion(noneCase, someCase) |> ValueSome
 
-        | [case, _::_] -> RecordLikeUnion case |> Some
+        | [case, _::_] -> RecordLikeUnion case |> ValueSome
 
         | (case1, _)::(case2, _)::cases ->
             let cases = cases |> Seq.map fst |> Seq.toList
-            ComplexUnion(case1, case2, cases) |> Some
+            ComplexUnion(case1, case2, cases) |> ValueSome
 
     // t が class なら t の値のメモリ上のレイアウトを返す
     // t が class でないなら t の値をメモリ上にボックス化した時のレイアウトを返す
     let memoryLayout = function
         | Choice1Of2 t ->
             match t with
-            | t when typeof<ISyntaxInfrastructure>.IsAssignableFrom t -> None
-            | t when t = typeof<unit> -> Some []
+            | t when typeof<ISyntaxInfrastructure>.IsAssignableFrom t -> ValueNone
+            | t when t = typeof<unit> -> ValueSome []
             | GenericParameterType(GenericParameterAttributes.None, [c0]) when typeof<IWord>.IsAssignableFrom c0 ->
-                Some iwordType
+                ValueSome iwordType
 
             | TupleType es -> valueTupleValueLayout es
             | RecordType fs -> valueRecordValueLayout fs
 
             | UnionType _ as t ->
                 unionRepresentation t
-                |> Option.bind unionMemoryLayout
+                |> VOption.bind unionMemoryLayout
 
             | t ->
 
             match underlyingPrimitiveType t with
-            | Some t -> Some [UnderlyingTypeSpec(t, UnderlyingValue, Kind.Primitive)]
-            | None -> None
+            | ValueSome t -> ValueSome [UnderlyingTypeSpec(t, UnderlyingValue, Kind.Primitive)]
+            | ValueNone -> ValueNone
 
         | Choice2Of2 c -> unionCaseMemoryLayout c
 
@@ -405,15 +408,15 @@ module TypeSpec =
 
     let underlyingPrimitiveType (GenericTypeDefinition t) =
         match underlyingPrimitiveTypeTable.TryGetValue t with
-        | true, t -> Some t
+        | true, t -> ValueSome t
         | _ ->
-            if typeof<IWord>.IsAssignableFrom t then Some Any
-            else None
+            if typeof<IWord>.IsAssignableFrom t then ValueSome Any
+            else ValueNone
 
     /// `unit` -> `[]`
     /// `struct(struct(int * IWord * #IWord) * unit * string)` -> `[N, [TupleField 1; TupleField 1]; Any, [TupleField 1; TupleField 2]; Any, [TupleField 1; TupleField 3]; S, [TupleField 2]]`
     let underlyingType t = valueLayoutCached t
-    let isZeroSizedType t = match underlyingType t with Some [] -> true | _ -> false
+    let isZeroSizedType t = match underlyingType t with ValueSome [] -> true | _ -> false
 
     let internal sizeRaw = function
         | UnderlyingType t -> List.length t
@@ -432,7 +435,8 @@ module TypeSpecOperators =
     open Scratch.Threading
     open System
 
-    let (|GeneratorType|_|) t =
+    [<return: Struct>]
+    let (|GeneratorType|_|) t: _ voption =
         let rec inheritTypes (t: Type) = seq {
             t
             for i in t.GetInterfaces() do
@@ -451,12 +455,16 @@ module TypeSpecOperators =
             | GenericType(d, [_;_;t]) when d = typedefof<IFiber<_,_,_>> -> Some t
             | _ -> None
         )
+        |> VOption.unbox
 
-    let (|AtomicType|_|) = function
-        | GenericType(d, [_;_;t]) when d = typedefof<Atomic<_,_,_>> -> Some t
-        | _ -> None
+    [<return: Struct>]
+    let (|AtomicType|_|): _ -> _ voption = function
+        | GenericType(d, [_;_;t]) when d = typedefof<Atomic<_,_,_>> -> ValueSome t
+        | _ -> ValueNone
 
-    let (|UnderlyingType|_|) t = TypeSpec.underlyingType t
+    [<return: Struct>]
+    let (|UnderlyingType|_|) t: _ voption = TypeSpec.underlyingType t
+    [<return: Struct>]
     let (|UnderlyingPrimitiveType|_|) t = TypeSpec.underlyingPrimitiveType t
 
 module Size =
@@ -529,10 +537,10 @@ module Field =
         let f =
             e
             |> Expr.tryPick (function
-                | Patterns.PropertyGet(_, m, _) -> Some m
-                | _ -> None
+                | Patterns.PropertyGet(_, m, _) -> ValueSome m
+                | _ -> ValueNone
             )
-            |> Option.defaultWith (fun _ ->
+            |> VOption.defaultWith (fun _ ->
                 failwith $"invalid record field expr: %A{e}"
             )
         recordFieldRaw f |> Field

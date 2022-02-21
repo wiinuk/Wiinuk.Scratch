@@ -15,15 +15,21 @@ module Field = Scratch.MemoryModel.Field
 module E = Quotations.Patterns
 module E = Quotations.DerivedPatterns
 module Exp = Exp.Op
+module VOption = ValueOption
 type private E = Quotations.Expr
 
 
 [<AutoOpen>]
 module private Helpers =
+    [<return: Struct>]
     let (|NewNil|_|) : E -> _ = (|SpecificNewUnionCase|_|) <@@ Nil @@>
+    [<return: Struct>]
     let (|NewNonNil|_|) : E -> _ = (|SpecificNewUnionCase|_|) <@@ NonNil @@>
+    [<return: Struct>]
     let (|NilTest|_|) : E -> _ = (|SpecificUnionCaseTest|_|) <@@ Nil @@>
+    [<return: Struct>]
     let (|NonNilTest|_|) : E -> _ = (|SpecificUnionCaseTest|_|) <@@ NonNil @@>
+    [<return: Struct>]
     let (|NonNilGet|_|) : E -> _ = (|SpecificUnionCaseFieldGet|_|) <@@ function NonNil x -> Some x | _ -> None @@>
 
     let push senv listSource list e1 source = context {
@@ -155,14 +161,14 @@ let scratchCallExpressions() = [
     [ <@@ WordOperations.toS @@>; <@@ Word.toString @@> ], unaryWithS <| fun senv e1 s -> context {
         let! x1 = transpilePrimitiveExpression senv e1
         match underlyingPrimitiveType e1.Type with
-        | Some(Typed SType.S) -> return x1
+        | ValueSome(Typed SType.S) -> return x1
         | _ -> return Exp.toS (SourceCode.tag s) x1
     }
     // <@ toN ... @> => <@ ... @> | <@ ... + 0 @>
     single <@@ WordOperations.toN @@> unaryWithS <| fun senv e1 s -> context {
         let! x1 = transpilePrimitiveExpression senv e1
         match underlyingPrimitiveType e1.Type with
-        | Some(Typed SType.N) -> return x1
+        | ValueSome(Typed SType.N) -> return x1
         | _ -> return Exp.toN (SourceCode.tag s) x1
     }
     // <@ % $e @> => <@ $e @>
@@ -273,10 +279,10 @@ let scratchCallExpressions() = [
             return
                 recordField
                 |> Expr.tryPick (function
-                    | E.PropertyGet(_, m, _) -> Some m
-                    | _ -> None
+                    | E.PropertyGet(_, m, _) -> ValueSome m
+                    | _ -> ValueNone
                 )
-                |> Option.defaultWith (fun _ ->
+                |> VOption.defaultWith (fun _ ->
                     failwith $"invalid record field expr: %A{recordField}"
                 )
                 |> Field.recordFieldRaw

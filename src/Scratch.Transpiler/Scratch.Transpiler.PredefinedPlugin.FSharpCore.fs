@@ -34,28 +34,30 @@ module private Helpers =
         | m, null | null, m -> Some m
         | _ -> None
 
+    [<return: Struct>]
     let (|BinaryOpMethodCall|_|) operatorMethodName = function
         | _, [t1; t2; _], [e1; e2] ->
             match tryGetBinaryOpMethod operatorMethodName t1 t2 with
-            | Some m -> Some(m, e1, e2)
-            | None -> None
-        | _ -> None
+            | Some m -> ValueSome struct(m, e1, e2)
+            | None -> ValueNone
+        | _ -> ValueNone
 
+    [<return: Struct>]
     let (|UnwrapFSharpCoreInlineOpMethod|_|) = function
         | E.SpecificCall <@ (+) @> (BinaryOpMethodCall "op_Addition" (m, e1, e2))
         | E.SpecificCall <@ (-) @> (BinaryOpMethodCall "op_Subtraction" (m, e1, e2))
         | E.SpecificCall <@ (*) @> (BinaryOpMethodCall "op_Multiply" (m, e1, e2))
         | E.SpecificCall <@ (/) @> (BinaryOpMethodCall "op_Division" (m, e1, e2))
         | E.SpecificCall <@ (%) @> (BinaryOpMethodCall "op_Modulus" (m, e1, e2)) ->
-            Some(m, [e1; e2])
+            ValueSome struct(m, [e1; e2])
 
         | E.SpecificCall <@ (~-) @> (_, [t1], [e1]) ->
             let m1 = t1.GetMethod("op_UnaryNegation", [|t1|])
             match m1 with
-            | null -> None
-            | m -> Some(m, [e1])
+            | null -> ValueNone
+            | m -> ValueSome(m, [e1])
 
-        | _ -> None
+        | _ -> ValueNone
 
     let transformInlineOperatorCall = function
         | UnwrapFSharpCoreInlineOpMethod(m, args) as e ->
@@ -121,7 +123,7 @@ let fsharpCoreCallExpressions() = [
     // <@ -(%e) @> => <@ -1 * %e @>
     [ <@@ Operators.(~-) @@> ], unaryType1WithE <| fun senv t1 e1 e -> context {
         match underlyingPrimitiveType t1 with
-        | Some(Typed SType.N) ->
+        | ValueSome(Typed SType.N) ->
             let! e1 = transpilePrimitiveExpression senv e1
             let l = getLoc e
             return Exp.``*`` l (Exp.number l -1.) e1

@@ -1,10 +1,12 @@
 ﻿module Scratch.Reflection.Expr
 open FSharp.Quotations
 open FSharp.Reflection
+open Scratch.Primitives
 open System.Reflection
 open System
 open System.Runtime.CompilerServices
 open System.Text.RegularExpressions
+
 module E = FSharp.Quotations.ExprShape
 module E = FSharp.Quotations.Patterns
 module E = FSharp.Quotations.DerivedPatterns
@@ -13,11 +15,18 @@ type private V = FSharp.Reflection.FSharpValue
 type private T = FSharp.Reflection.FSharpType
 
 
-let rec tryPick (|Pick|_|) = function
-    | Pick x -> Some x
-    | E.ShapeVar _ -> None
-    | E.ShapeLambda(_, e) -> tryPick (|Pick|_|) e
-    | E.ShapeCombination(_, es) -> List.tryPick (tryPick (|Pick|_|)) es
+let tryPick pick e =
+    let rec tryPick pick e =
+        match pick e with
+        | ValueSome x -> Some x
+        | _ ->
+
+        match e with
+        | E.ShapeVar _ -> None
+        | E.ShapeLambda(_, e) -> tryPick pick e
+        | E.ShapeCombination(_, es) -> List.tryPick (tryPick pick) es
+
+    tryPick pick e |> VOption.unbox
 
 module internal ToLinqExpression =
     open System.Linq.Expressions
@@ -176,26 +185,26 @@ module internal ToLinqExpression =
         | None -> L.Call(m, es) :> L
         | Some this -> L.Call(this, m, es) :> L
 
-    and (|Binary|_|) template env kind = function
+    and [<return: Struct>] (|Binary|_|) template env kind: _ -> _ voption = function
 
         // bool byte sbyte int16 uint16 int32 uint32 int64 uint64 nativeptr unativeptr char double single
         | E.SpecificCall template (_, t1::ts, [e1; e2]) when t1.IsPrimitive && List.forall ((=) t1) ts ->
             let name = "Call"
             let e1 = toExpression (child name 0 env) e1
             let e2 = toExpression (child name 1 env) e2
-            L.MakeBinary(kind, e1, e2) :> L |> Some
+            L.MakeBinary(kind, e1, e2) :> L |> ValueSome
 
-        | _ -> None
+        | _ -> ValueNone
 
-    and (|Unary|_|) template env kind = function
+    and [<return: Struct>] (|Unary|_|) template env kind: _ -> _ voption = function
 
         // bool byte sbyte int16 uint16 int32 uint32 int64 uint64 nativeptr unativeptr char double single
         | E.SpecificCall template (_, t1::ts, [e1]) when t1.IsPrimitive && List.forall ((=) t1) ts ->
             let name = "Call"
             let e1 = toExpression (child name 0 env) e1
-            L.MakeUnary(kind, e1, null) :> L |> Some
+            L.MakeUnary(kind, e1, null) :> L |> ValueSome
 
-        | _ -> None
+        | _ -> ValueNone
 
     and ifThenElseToExpression env (test, ifTrue, ifFalse) =
         let n = "IfThenElse"
@@ -305,9 +314,10 @@ let withLocation ca e =
         exprLocationTable.Add(e, ca)
         e
 
+[<return: Struct>]
 let private (|DebugRange|_|) = function
     | E.NewTuple(E.String "DebugRange"::E.NewTuple(E.String path::E.Int32 l1::E.Int32 c1::E.Int32 l2::E.Int32 c2::_)::_) ->
-        Some {
+        ValueSome {
             path = path
             position1 =
                 {
@@ -320,9 +330,9 @@ let private (|DebugRange|_|) = function
                 column = c2
                 }
         }
-    | _ -> None
+    | _ -> ValueNone
 
-let private getLocationRaw (e: Expr) = List.tryPick (|DebugRange|_|) e.CustomAttributes
+let private getLocationRaw (e: Expr) = List.tryPick (fun x -> (|DebugRange|_|) x |> VOption.box) e.CustomAttributes
 let private getLocationRawDelegate = System.Runtime.CompilerServices.ConditionalWeakTable.CreateValueCallback getLocationRaw
 let getLocation e = exprLocationTable.GetValue(e, getLocationRawDelegate)
 
@@ -635,14 +645,14 @@ let tryFindRecursiveCall m e =
     let mutable visitedMethods = []
     let rec visitMethod m' e =
         let m' = genericTypeGenericMethodDefinition m'
-        if m = m' then Some(m', e) else
+        if m = m' then ValueSome struct(m', e) else
 
-        if List.contains m' visitedMethods then None else
+        if List.contains m' visitedMethods then ValueNone else
         visitedMethods <- m'::visitedMethods
 
         match m' with
         | E.MethodWithReflectedDefinition body -> aux body
-        | _ -> None
+        | _ -> ValueNone
 
     and aux e =
         e
@@ -654,7 +664,7 @@ let tryFindRecursiveCall m e =
             // コンストラクタはインライン展開しない
             //| E.NewObject(c, _) -> 
 
-            | _ -> None
+            | _ -> ValueNone
         )
 
     aux e

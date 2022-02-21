@@ -6,6 +6,7 @@ open Scratch.Primitives
 open Scratch.Reflection.Expr
 module E = FSharp.Quotations.Patterns
 module E = FSharp.Quotations.DerivedPatterns
+module VOption = ValueOption
 type private T = FSharp.Reflection.FSharpType
 
 
@@ -18,8 +19,8 @@ let private qOneOrMoreRLinear q inp =
         | _ -> 
 
         match rvs with
-        | [] -> None
-        | _ -> Some(List.rev rvs, e) 
+        | [] -> ValueNone
+        | _ -> ValueSome struct(List.rev rvs, e) 
 
     queryAcc [] inp
 
@@ -43,6 +44,7 @@ let private (|TupledLambda|) lam =
 
     | _ -> ValueNone
 
+[<return: Struct>]
 let (|Lambdas|_|) (input: Expr) = qOneOrMoreRLinear (|TupledLambda|) input
 
 let private qOneOrMoreLLinear q inp =
@@ -51,8 +53,8 @@ let private qOneOrMoreLLinear q inp =
         | ValueSome struct(body, v) -> queryAcc body (v::rvs) 
         | _ -> 
             match rvs with
-            | [] -> None
-            | _ -> Some(e, rvs)
+            | [] -> ValueNone
+            | _ -> ValueSome struct(e, rvs)
     queryAcc inp []
 
 let private (|TupledApplication|) e =
@@ -63,21 +65,24 @@ let private (|TupledApplication|) e =
         | x -> ValueSome struct(f, [x])
     | _ -> ValueNone
 
+[<return: Struct>]
 let (|Applications|_|) (input: Expr) = qOneOrMoreLLinear (|TupledApplication|) input
 
-let (|TupleChain|_|) e =
-    let rec (|TupleChain|_|) = function
-        | E.TupleGet(tuple, i) -> Some(tuple, i, [])
-        | E.Let(v, TupleChain(tuple, i, is), E.TupleGet(E.Var v', n')) when v = v' -> Some(tuple, n', i::is)
-        | _ -> None
+[<return: Struct>]
+let rec private (|TupleChainRev|_|): _ -> _ voption = function
+    | E.TupleGet(tuple, i) -> ValueSome struct(tuple, i, [])
+    | E.Let(v, TupleChainRev(tuple, i, is), E.TupleGet(E.Var v', n')) when v = v' -> ValueSome(tuple, n', i::is)
+    | _ -> ValueNone
 
-    match e with
-    | TupleChain(tuple, i, is) -> Some(tuple, List.rev(i::is))
-    | _ -> None
+[<return: Struct>]
+let (|TupleChain|_|) = function
+    | TupleChainRev(tuple, i, is) -> ValueSome struct(tuple, List.rev(i::is))
+    | _ -> ValueNone
 
-let rec (|Sequentials|_|) = function
-    | E.Sequential(e1, Sequentials(es, e)) as seq -> Some((e1, getLocation seq)::es, e)
-    | e -> Some([], e)
+[<return: Struct>]
+let rec (|Sequentials|_|): _ -> struct(_ * _) voption = function
+    | E.Sequential(e1, Sequentials(es, e)) as seq -> ValueSome((e1, getLocation seq)::es, e)
+    | e -> ValueSome([], e)
 
 /// `<@ let $x1 = $v1 in let $x2 = $v2 in ... in $e @>`
 let rec (|Lets|) = function
@@ -85,64 +90,69 @@ let rec (|Lets|) = function
     | e -> [], e
 
 /// `[$xs...; $x]`
-let rec (|HeadAndLast|_|) = function
-    | [x] -> Some([], x)
-    | x::HeadAndLast(xs, last) -> Some(x::xs, last)
-    | _ -> None
+[<return: Struct>]
+let rec (|HeadAndLast|_|): _ -> _ voption = function
+    | [x] -> ValueSome struct([], x)
+    | x::HeadAndLast(xs, last) -> ValueSome struct(x::xs, last)
+    | _ -> ValueNone
 
+[<return: Struct>]
 let (|LetRecursiveLambdas|_|) = function
     | E.LetRecursive(ves, e) ->
         ves
-        |> Option.mapSeq (function
-            | v, (Lambdas(vvs, body) as lambda) -> Some(v, vvs, body, lambda)
-            | _ -> None
+        |> VOption.mapSeq (function
+            | v, (Lambdas(vvs, body) as lambda) -> ValueSome struct(v, vvs, body, lambda)
+            | _ -> ValueNone
         )
-        |> Option.map (fun xs -> Seq.toList xs, e)
-    | _ -> None
+        |> VOption.map (fun xs -> struct (Seq.toList xs, e))
+    | _ -> ValueNone
 
 let inline private getCaseOrRaise templateParameter =
     let c =
         templateParameter
         |> tryPick (function
-            | E.NewUnionCase(c, _) -> Some c
-            | _ -> None
+            | E.NewUnionCase(c, _) -> ValueSome c
+            | _ -> ValueNone
         )
-        |> Option.defaultWith (fun _ ->
+        |> VOption.defaultWith (fun _ ->
             invalidArg "templateParameter" "e.g. <@ Some @>"
         )
-    c.Tag, let (GenericTypeDefinition t) = c.DeclaringType in t
+    struct(c.Tag, let (GenericTypeDefinition t) = c.DeclaringType in t)
 
+[<return: Struct>]
 let (|SpecificNewUnionCase|_|) templateParameter =
-    let tag, t = getCaseOrRaise templateParameter
+    let struct(tag, t) = getCaseOrRaise templateParameter
 
     function
     | E.NewUnionCase(c', args) when tag = c'.Tag && let (GenericTypeDefinition t') = c'.DeclaringType in t = t' ->
-       Some(c'.DeclaringType.GetGenericArguments() |> Array.toList, args)
-    | _ -> None
+       ValueSome struct(c'.DeclaringType.GetGenericArguments() |> Array.toList, args)
+    | _ -> ValueNone
 
+[<return: Struct>]
 let (|SpecificUnionCaseTest|_|) templateParameter =
-    let tag, t = getCaseOrRaise templateParameter
+    let struct(tag, t) = getCaseOrRaise templateParameter
 
     function
     | E.UnionCaseTest(e, c') when tag = c'.Tag && let (GenericTypeDefinition t') = c'.DeclaringType in t = t' ->
-        Some(c'.DeclaringType.GetGenericArguments() |> Array.toList, e)
-    | _ -> None
+        ValueSome struct(c'.DeclaringType.GetGenericArguments() |> Array.toList, e)
+    | _ -> ValueNone
 
+[<return: Struct>]
 let (|SpecificUnionCaseFieldGet|_|) templateParameter =
-    let (GenericTypeDefinition t), name =
+    let struct(GenericTypeDefinition t, name) =
         templateParameter
         |> tryPick (function
-            | E.PropertyGet(Some u, p, []) when T.IsUnion(u.Type, true) -> Some(u.Type, p.Name)
-            | _ -> None
+            | E.PropertyGet(Some u, p, []) when T.IsUnion(u.Type, true) -> ValueSome struct(u.Type, p.Name)
+            | _ -> ValueNone
         )
-        |> Option.defaultWith (fun _->
+        |> VOption.defaultWith (fun _->
             invalidArg "templateParameter" "e.g. <@ function Some x -> Some x | _ -> None @>"
         )
 
     function
     | E.PropertyGet(Some u, p, []) when p.Name = name && let (GenericTypeDefinition t') = u.Type in t = t' ->
-        Some(u.Type.GetGenericArguments() |> Array.toList, u)
-    | _ -> None
+        ValueSome struct(u.Type.GetGenericArguments() |> Array.toList, u)
+    | _ -> ValueNone
 
 let (|SpecificPropertyGet|_|) templateParameter =
     let p' = Member.findProperty templateParameter
@@ -159,8 +169,9 @@ let (|SpecificPropertySet|_|) templateParameter =
 // <@ f.m(a, b, c) @> => <@ $Call(f, m, [a;b;c]) @>
 // <@ f.m a (b, c) d @> => <@ (fun a (b, c) d -> $Call(f, m, [a;b;c;d]))) a (b, c) d @>
 // <@ (p x).m a (b, c) d @> => <@ let objectArg = (p x) in (fun a (b, c) d -> $Call(objectArg, m, [a;b;c;d]))) a (b, c) d @>
+[<return: Struct>]
 let (|UniversalCall|_|) = function
-    | E.Call(this, m, args) -> Some(this, m, args)
+    | E.Call(this, m, args) -> ValueSome struct(this, m, args)
     | E.Applications(lambdas, args) ->
         let rec varEq = function
             | [], [] -> true
@@ -170,10 +181,10 @@ let (|UniversalCall|_|) = function
         match lambdas with
         | E.Let(objectArg, objectWithSideEffect, Lambdas(vvs, E.Call(Some(E.Var objectArg'), m, callArgs))) when 
             objectArg = objectArg' && varEq (List.concat vvs, callArgs) ->
-            Some(Some objectWithSideEffect, m, List.concat args)
+            ValueSome(Some objectWithSideEffect, m, List.concat args)
 
         | Lambdas(vvs, E.Call(this, m, callArgs)) when varEq (List.concat vvs, callArgs) ->
-            Some(this, m, List.concat args)
+            ValueSome(this, m, List.concat args)
 
-        | _ -> None
-    | _ -> None
+        | _ -> ValueNone
+    | _ -> ValueNone

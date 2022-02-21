@@ -142,8 +142,10 @@ module Expression =
 
 [<AutoOpen>]
 module ExpressionPatterns =
-    let (|EString|_|) = function Literal(p, SString x) -> Some(p, x) | _ -> None
-    let (|EBool|_|) = function Literal(p, SBool x) -> Some(p, x) | _ -> None
+    [<return: Struct>]
+    let (|EString|_|) = function Literal(p, SString x) -> ValueSome struct(p, x) | _ -> ValueNone
+    [<return: Struct>]
+    let (|EBool|_|) = function Literal(p, SBool x) -> ValueSome(p, x) | _ -> ValueNone
 
 module ComplexExpression =
     let map mapping e = mapComplex mapping e

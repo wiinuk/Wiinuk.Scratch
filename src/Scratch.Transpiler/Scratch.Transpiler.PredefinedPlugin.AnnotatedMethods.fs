@@ -18,11 +18,11 @@ module E = FSharp.Quotations.Patterns
 
 [<AutoOpen>]
 module private Helpers =
-    let inline toResult f = function None -> f() | Some x -> Ok x
+    let inline toResult f = function ValueNone -> f() | ValueSome x -> Ok x
     module TsType =
         let ofType t =
             TypeSpec.underlyingPrimitiveType t
-            |> Option.map (function
+            |> VOption.map (function
                 | Any -> TsType.gUnknown
                 | Typed SType.B -> TsType.gBoolean
                 | Typed SType.N -> TsType.gNumber

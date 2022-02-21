@@ -6,16 +6,18 @@ module E = Quotations.DerivedPatterns
 module E = Quotations.Patterns
 
 
+[<return: Struct>]
 let (|MakeFormatClosure|_|) = function
     | E.Call(None, useFormatM, [E.Coerce(E.NewObject(format5C, [E.String format as formatE]), format4T)]) when
         format5C.DeclaringType.GetGenericTypeDefinition() = typedefof<PrintfFormat<_,_,_,_,_>> &&
-        format4T.GetGenericTypeDefinition() = typedefof<PrintfFormat<_,_,_,_>> -> Some(useFormatM, format, SourceCode.ofExpr formatE)
-    | _ -> None
+        format4T.GetGenericTypeDefinition() = typedefof<PrintfFormat<_,_,_,_>> -> ValueSome struct(useFormatM, format, SourceCode.ofExpr formatE)
+    | _ -> ValueNone
 
+[<return: Struct>]
 let (|CallWithFormat|_|) = function
-    | MakeFormatClosure(m, format, formatL) -> Some(m, format, formatL, [])
-    | E.Applications(E.Let(_, MakeFormatClosure(f, format, formatL), _), args) -> Some(f, format, formatL, List.concat args)
-    | _ -> None
+    | MakeFormatClosure(m, format, formatL) -> ValueSome struct(m, format, formatL, [])
+    | E.Applications(E.Let(_, MakeFormatClosure(f, format, formatL), _), args) -> ValueSome struct(f, format, formatL, List.concat args)
+    | _ -> ValueNone
 
 module FormatParser =
     open FParsec
@@ -39,11 +41,12 @@ type StringInterpolationError =
     | ArgumentsLengthMismatch of SourceCode
     | InvalidFormatArgmentType of Type
 
+[<return: Struct>]
 let (|CallWithStringInterpolation|_|) = function
     | CallWithFormat(m, format, formatL, args) ->
         match FormatParser.parseFormat format with
-        | Error e -> Some(Error(FormatError(e, formatL)))
+        | Error e -> ValueSome(Error(FormatError(e, formatL)))
         | Ok(s, xs) ->
-            if List.length xs <> List.length args then Some(Error(ArgumentsLengthMismatch formatL)) else
-            Some(Ok(m, formatL, s, List.zip xs args |> List.map (fun ((p, s), arg) -> p, arg, s)))
-    | _ -> None
+            if List.length xs <> List.length args then ValueSome(Error(ArgumentsLengthMismatch formatL)) else
+            ValueSome(Ok(m, formatL, s, List.zip xs args |> List.map (fun ((p, s), arg) -> p, arg, s)))
+    | _ -> ValueNone

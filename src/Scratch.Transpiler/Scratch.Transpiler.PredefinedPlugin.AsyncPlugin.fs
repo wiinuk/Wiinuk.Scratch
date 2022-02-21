@@ -28,13 +28,15 @@ module private AsyncHelpers =
     let isGeneratorBuilderType t =
         typeof<IGeneratorBuilder>.IsAssignableFrom t
 
+    [<return: Struct>]
     let (|UnitLambda|_|) = function
-        | E.Lambda(unitVar, body) when unitVar.Type = typeof<unit> -> Some body
-        | _ -> None
+        | E.Lambda(unitVar, body) when unitVar.Type = typeof<unit> -> ValueSome body
+        | _ -> ValueNone
 
+    [<return: Struct>]
     let (|BuilderCall|_|) b = function
-        | E.Call(Some(E.Var b'), m, es) when b = b' -> Some(m.Name, es)
-        | _ -> None
+        | E.Call(Some(E.Var b'), m, es) when b = b' -> ValueSome struct(m.Name, es)
+        | _ -> ValueNone
 
     /// <summary>&lt;@ (let $b = %generator in $b) { %body } @&gt;</summary>
     let (|GeneratorBody|_|) = function
@@ -212,27 +214,30 @@ module private AsyncHelpers =
         function
         | E.Call _
         | E.PropertyGet _
-        | E.Var _ as e when maxCost e < HasSideEffect && e.Type = generatorType -> Some()
-        | _ -> None
+        | E.Var _ as e when maxCost e < HasSideEffect && e.Type = generatorType -> ValueSome()
+        | _ -> ValueNone
 
     /// generator { ... }
+    [<return: Struct>]
     let (|GeneratorCall|_|) = unitLikeGeneratorGet typeof<TightropeBuilder>
 
     /// atomic { ... }
+    [<return: Struct>]
     let (|AtomicGet|_|) = unitLikeGeneratorGet typeof<AtomicGeneratorBuilder>
 
+    [<return: Struct>]
     let (|LiteralLikeStringMemberGet|_|) = function
 
         // <@ let n = "s" @>
         | E.PropertyGet(None, E.PropertyGetterWithReflectedDefinition(E.String n) & p, [])
             when Reflection.FSharpType.IsModule p.DeclaringType && not p.CanWrite ->
-            Some n
+            ValueSome n
 
         // <@ [<Literal>] let n = "s" @>
         | E.FieldGet(None, f) when f.IsLiteral && f.FieldType = typeof<string> ->
-            f.GetRawConstantValue() :?> string |> Some
+            f.GetRawConstantValue() :?> string |> ValueSome
 
-        | _ -> None
+        | _ -> ValueNone
 
     let (|ForeverAsyncCall|_|) = E.(|SpecificCall|_|) <@ PrimitiveOperations.foreverAsync @>
     let (|RepeatAsyncCall|_|) = E.(|SpecificCall|_|) <@ PrimitiveOperations.repeatAsync @>

@@ -132,9 +132,10 @@ let endBaseInitAndMemberInit allExpr thisT args selfRef (baseType, baseArgs) bod
 
     | _, e -> Error("requires self initialize. e.g.: <@ self.contents <- this; ... @>", e)
 
+[<return: Struct>]
 let (|BaseNew|_|) thisT = function
-    | E.NewObject(baseC, baseArgs) when (thisT: Type).BaseType = baseC.DeclaringType -> Some(baseC, baseArgs)
-    | _ -> None
+    | E.NewObject(baseC, baseArgs) when (thisT: Type).BaseType = baseC.DeclaringType -> ValueSome struct(baseC, baseArgs)
+    | _ -> ValueNone
 
 /// `<@ (let self = this.self in new Base(...)); ... @>` | `<@ new Base(...); ... @>`
 let baseInitAndBody allExpr thisT args self body =
@@ -150,9 +151,10 @@ let baseInitAndBody allExpr thisT args self body =
 
     | _, e -> Error("requires base new. e.g.: <@ new obj(); ... @>", e)
 
+[<return: Struct>]
 let (|NewThisRef|_|) thisT = function
-    | E.NewRecord(refT, [E.Value(null, _)]) when refT = typedefof<_ ref>.MakeGenericType [|thisT|] -> Some()
-    | _ -> None
+    | E.NewRecord(refT, [E.Value(null, _)]) when refT = typedefof<_ ref>.MakeGenericType [|thisT|] -> ValueSome()
+    | _ -> ValueNone
 
 /// `<@ let self = { contents = null } in ... @>` | `<@ this.self <- { contents = null }; ... @>` | `<@ ... @>`
 let classBody allExpr thisT args = function

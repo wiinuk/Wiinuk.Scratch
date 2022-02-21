@@ -769,26 +769,29 @@ let addExternalSpec senv id spec = modifyRef FExternalItemState senv.s <| fun s 
 let pushExternalAcc senv spec = modifyRef FExternalItemState senv.s <| fun s -> { s with externalAcc = spec::s.externalAcc }
 
 /// `this` in `type Sprite1(x) as this = ...`
+[<return: Struct>]
 let (|SpriteThis|_|) senv this =
     match (get FEnvironment senv.e).rare.sprite, this with
-    | Some s, E.Var this when s.this = this -> Some()
-    | _ -> None
+    | Some s, E.Var this when s.this = this -> ValueSome()
+    | _ -> ValueNone
 
 /// (`this` in `type Sprite1(x) as this = ...`) or (`this` in `member this.M() = ...`)
+[<return: Struct>]
 let (|SpriteOrProcedureThis|_|) senv this =
     match this with
-    | SpriteThis senv () -> Some()
+    | SpriteThis senv () -> ValueSome()
     | _ ->
 
     match (get FBlockEnvironment senv.e).proc.procedureThis, this with
-    | Some v, E.Var this when v = this -> Some()
-    | _ -> None
+    | Some v, E.Var this when v = this -> ValueSome()
+    | _ -> ValueNone
 
+[<return: Struct>]
 let (|PropertyOrVarOrFieldGet|_|) env = function
-    | E.PropertyGet(None, p, []) -> propertyId p |> Some
-    | E.Var v -> VarId v |> Some
-    | E.FieldGet(Some(SpriteOrProcedureThis env ()), f) -> fieldId f |> Some
-    | _ -> None
+    | E.PropertyGet(None, p, []) -> propertyId p |> ValueSome
+    | E.Var v -> VarId v |> ValueSome
+    | E.FieldGet(Some(SpriteOrProcedureThis env ()), f) -> fieldId f |> ValueSome
+    | _ -> ValueNone
 
 module Plugin =
     let empty = {
@@ -941,12 +944,13 @@ let devirtualize thisType (m: MethodInfo) =
 
     | _ -> None
 
+[<return: Struct>]
 let (|NonVirtualInstanceCall|_|) = function
     | E.Call(Some(ExprType thisT as this), m, args) ->
         match devirtualize thisT m with
-        | None -> None
-        | Some m -> Some(this, m, args)
-    | _ -> None
+        | None -> ValueNone
+        | Some m -> ValueSome struct(this, m, args)
+    | _ -> ValueNone
 
 [<AutoOpen>]
 module TranspilerPersistenceExtensions =

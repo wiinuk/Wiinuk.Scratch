@@ -260,8 +260,10 @@ module SValue =
 
 [<AutoOpen>]
 module SValuePatterns =
-    let (|TryParseSNumber|_|) x = SValue.tryParseSNumber x |> VOption.box
-    let (|TryParseSBool|_|) x = SValue.tryParseSBool x |> VOption.box
+    [<return: Struct>]
+    let (|TryParseSNumber|_|) x = SValue.tryParseSNumber x
+    [<return: Struct>]
+    let (|TryParseSBool|_|) x = SValue.tryParseSBool x
 
 type SValue with
     static member op_Implicit s = SValue.toString s

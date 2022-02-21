@@ -30,6 +30,7 @@ module IsTag = Scratch.Transformers.IsTag
 module Exp = Exp.Op
 module Top = Top.Listener
 module Types = ExpTypes
+module VOption = ValueOption
 type private E = Quotations.Expr
 type private T = FSharp.Reflection.FSharpType
 type private InliningOptions = Scratch.Transformers.InliningOptions
@@ -99,8 +100,8 @@ let internal underlyingMemberType (Get FEnvironment env & Get FConfig config) t 
 
     let m =
         match underlyingType t with
-        | None -> None
-        | Some t -> Some <| memberType config t
+        | ValueNone -> None
+        | ValueSome t -> Some <| memberType config t
 
     env.rare.memberTypeCache.Add(t, m)
     m
@@ -152,12 +153,12 @@ let rec isConstantLike = function
         let t = u.DeclaringType
         match unionRepresentation t with
         // repr = void
-        | Some(UnitLikeUnion _)
+        | ValueSome(UnitLikeUnion _)
         // repr = constant(tag)
-        | Some(EnumLikeUnion _) -> true
+        | ValueSome(EnumLikeUnion _) -> true
         // repr = class: collectable | struct: value...
-        | Some(RecordLikeUnion _) -> t.IsValueType && List.forall isConstantLike es
-        | Some(OptionLikeUnion(noneCase = noneCase)) ->
+        | ValueSome(RecordLikeUnion _) -> t.IsValueType && List.forall isConstantLike es
+        | ValueSome(OptionLikeUnion(noneCase = noneCase)) ->
             // repr = struct: constant(tag), value...
             if t.IsValueType then List.forall isConstantLike es
 
@@ -165,8 +166,8 @@ let rec isConstantLike = function
             else u.Tag = noneCase.Tag
 
         // repr = class: collectable | struct: (constant(tag), value...)
-        | Some(ComplexUnion _) -> u.DeclaringType.IsValueType && List.forall isConstantLike es
-        | None -> false
+        | ValueSome(ComplexUnion _) -> u.DeclaringType.IsValueType && List.forall isConstantLike es
+        | ValueNone -> false
 
     //| E.TupleGet(e1, _) -> isConstantLike e1
     //| E.FieldGet(Some e1, f)
@@ -260,6 +261,7 @@ let measureFieldIndexes e = function
 
 let stringLiteralRegex = Regex @"^[^\u0000\r\n]*$"
 
+[<return: Struct>]
 let (|MemoryItem1Get|_|) = (|SpecificUnionCaseFieldGet|_|) <@ function Scratch.MemoryModel.Memory x -> x @>
 let (|IfFSharpCall|_|) = E.(|SpecificCall|_|) <@@ Scratch.Operators.``#if-fsharp`` @@> 
 let (|IfElseFSharpCall|_|) = E.(|SpecificCall|_|) <@@ Scratch.Operators.``#if-else-fsharp`` @@>
@@ -269,19 +271,22 @@ let rec (|StructMutableRecordPropertyGetChain|) = function
     | E.PropertyGet(Some(StructMutableRecordPropertyGetChain (home, ps)), p, []) when isMutableStructRecordField p -> home, ps @ [p]
     | e -> e, []
 
+[<return: Struct>]
 let (|MutableStructHome|_|) senv = function
-    | E.PropertyGet(None, p, []) when p.CanWrite && T.IsModule p.DeclaringType -> propertyId p |> Some
-    | E.Var v when v.IsMutable -> VarId v |> Some
-    | E.FieldGet(Some(SpriteOrProcedureThis senv ()), f) when not f.IsInitOnly && not f.IsLiteral -> fieldId f |> Some
-    | _ -> None
+    | E.PropertyGet(None, p, []) when p.CanWrite && T.IsModule p.DeclaringType -> propertyId p |> ValueSome
+    | E.Var v when v.IsMutable -> VarId v |> ValueSome
+    | E.FieldGet(Some(SpriteOrProcedureThis senv ()), f) when not f.IsInitOnly && not f.IsLiteral -> fieldId f |> ValueSome
+    | _ -> ValueNone
 
+[<return: Struct>]
 let (|ValueOnlyUnionType|_|) t =
-    if not <| isValueType t then None else
+    if not <| isValueType t then ValueNone else
 
     match valueLayout t, unionRepresentation t with
-    | Some us, Some r when us |> List.exists (function UnderlyingTypeSpec(kind = Kind.Collectable) -> true | _ -> false) |> not -> Some struct(us, r)
-    | _ -> None
+    | ValueSome us, ValueSome r when us |> List.exists (function UnderlyingTypeSpec(kind = Kind.Collectable) -> true | _ -> false) |> not -> ValueSome struct(us, r)
+    | _ -> ValueNone
 
+[<return: Struct>]
 let (|ValueOnlyUnion|_|) (u: UnionCaseInfo) =
     (|ValueOnlyUnionType|_|) u.DeclaringType
 
@@ -298,9 +303,10 @@ let isRecordField t (p: PropertyInfo) =
     T.GetRecordFields(t, allowAccessToPrivateRepresentation = true)
     |> Array.exists (fun field -> field.Name = p.Name)
 
+[<return: Struct>]
 let (|RecordOrUnionPropertyGet|_|) = function
-    | E.PropertyGet(Some(ExprType t as this), p, []) when isUnionField t p || isRecordField t p -> Some struct(this, p)
-    | _ -> None
+    | E.PropertyGet(Some(ExprType t as this), p, []) when isUnionField t p || isRecordField t p -> ValueSome struct(this, p)
+    | _ -> ValueNone
 
 let unitArgs = [Expr.Value(())]
 
@@ -381,7 +387,7 @@ let rec transpileExpression senv e =
     | E.NewUnionCase(u, [e]) when isPrimitiveType u.DeclaringType -> transpileExpression senv e
 
     // <@ UnitLike @>
-    | E.NewUnionCase(u, []) when underlyingType u.DeclaringType = Some [] -> Exp.empty (getLoc e)
+    | E.NewUnionCase(u, []) when underlyingType u.DeclaringType = ValueSome [] -> Exp.empty (getLoc e)
 
     // <@ ValueOnlyUnion(%es...) @>
     | E.NewUnionCase(ValueOnlyUnion(us, repr) & c, es) -> transpileValueOnlyNewUnionCase senv us repr c es e
@@ -871,7 +877,7 @@ let rec transpileItems senv e =
         do transpileAccAsWhenGreenFlag senv
         let env =
             recLambdas
-            |> List.fold (fun env (v, _, _, lambda) ->
+            |> List.fold (fun env struct(v, _, _, lambda) ->
                 match expressionPreTransform senv.e lambda with
                 | Lambdas(vvs, body) ->
                     let proc = transpileProcedureSpecFromVar senv (SourceCode.ofExpr lambda) Export None v vvs body
@@ -881,7 +887,7 @@ let rec transpileItems senv e =
             ) senv.e
         let senv = wiz FE env senv
         do
-            List.iter (fun (v, _, body, _) ->
+            List.iter (fun struct(v, _, body, _) ->
                 match lookupVar v env with
                 | ValueSome(ProcedureSpec proc) -> transpileProcedure senv proc body
                 | _ -> failwith "internal error"
@@ -988,11 +994,12 @@ let debugPrintMember (Get FItemEnvironment env) source (m: MemberInfo) print =
     |> Option.defaultValue ""
     |> print (String.replicate env.depth "  ") m.DeclaringType.FullName m.Name
 
+[<return: Struct>]
 let (|SpriteSpecThis|_|) sprite proc e =
     match proc, sprite, e with
-    | _, { this = this' }, E.Var this when this = this' -> Some()
-    | Some { procedureThis = Some this' }, _, E.Var this when this = this' -> Some()
-    | _ -> None
+    | _, { this = this' }, E.Var this when this = this' -> ValueSome()
+    | ValueSome { procedureThis = Some this' }, _, E.Var this when this = this' -> ValueSome()
+    | _ -> ValueNone
 
 let exportOfMember (m: MemberInfo) = if m.GetCustomAttributes<ExportAttribute>(``inherit`` = true) |> Seq.isEmpty then NoExport else Export
 let inliningOfMethod (m: MethodBase) =
@@ -1069,7 +1076,7 @@ and transpileSpriteMethodSpecs senv sprite vvs body lambdaSource callSource m =
 
     do
         let senv = senv |> map FE (map FItemEnvironment <| fun e -> { e with depth = e.depth + 1 })
-        transpileSpriteExternalMemberSpecs senv sprite (Some spec) body
+        transpileSpriteExternalMemberSpecs senv sprite (ValueSome spec) body
 
     modifyRef FExternalItemState senv.s <| fun s -> { s with externalAcc = ExternalProcedure(spec, body)::s.externalAcc }
 
@@ -1113,7 +1120,7 @@ let transpileSpriteMembers senv spec =
                 externalState = get FState states'
             }
         }
-        transpileSpriteExternalMemberSpecs senv spec None spec.items
+        transpileSpriteExternalMemberSpecs senv spec ValueNone spec.items
         senv.s.contents
 
     let { externalEnv = Get FEnvironment env; externalAcc = acc; externalState = state } = get FExternalItemState states
@@ -1189,10 +1196,11 @@ let transpileSprite senv spec = run senv <| fun envs stageStates ->
     let stageExtension = { stageExtension with StageDataExtension.children = Choice2Of3 data::stageExtension.children }
     (), stageStates |> wiz FStageDataExtension stageExtension
 
+[<return: Struct>]
 let (|SpriteSpecThis'|_|) (Get FItemEnvironment { bySprite = sprite }) e =
     match sprite with
-    | None -> None
-    | Some sprite -> (|SpriteSpecThis|_|) sprite None e
+    | None -> ValueNone
+    | Some sprite -> (|SpriteSpecThis|_|) sprite ValueNone e
 
 let isVisited id senv = lookupSpec id senv.s.contents |> VOption.isSome
 

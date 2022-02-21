@@ -21,6 +21,7 @@ module A = Scratch.Ast.Expression
 module A = Scratch.Ast.Expressions
 module E = FSharp.Quotations.Patterns
 module Exp = Exp.Op
+module VOption = ValueOption
 type private QVar = Quotations.Var
 
 
@@ -109,17 +110,17 @@ let outValue senv isLast (ExprType argT & argE) = context {
     let argSource = SourceCode.ofExpr argE
 
     match underlyingPrimitiveType argT with
-    | None -> return! InvalidInterpolationCall(InvalidFormatArgmentType argT) |> raiseError argSource
+    | ValueNone -> return! InvalidInterpolationCall(InvalidFormatArgmentType argT) |> raiseError argSource
 
     // "%s", <@ "abc" @> -> `"abc"`
     // "%s", <@ "" @> -> `""`
-    | Some(Typed SType.S) ->
+    | ValueSome(Typed SType.S) ->
         let! arg = transpilePrimitiveExpression { e = senv.e.outEnv; s = senv.s } argE
         return outString senv (SourceCode.ofExpr argE) isLast arg
 
     // "%f", <@ 12.34 @> -> `12.34 :> S`
     // "%b", <@ true @> -> `true :> S`
-    | Some _ ->
+    | ValueSome _ ->
         let! arg = transpilePrimitiveExpression { e = senv.e.outEnv; s = senv.s } argE
         let s = SourceCode.ofExpr argE
         let a = SourceCode.tag s
@@ -258,12 +259,13 @@ let tryFindMethod (m: System.Reflection.MethodInfo) map =
         let ts = if m.IsGenericMethod then m.GetGenericArguments() |> Array.toList else []
         ValueSome struct(f, ts)
 
+[<return: Struct>]
 let (|CallMap|_|) map senv = function
     | E.Call(this, m, args) as e ->
         match tryFindMethod m map with
-        | ValueNone -> None
-        | ValueSome struct(f: OptimizedClosures.FSharpFunc<_,_,_>, ts) -> Some(f.Invoke(senv, struct((this, ts, args), e)))
-    | _ -> None
+        | ValueNone -> ValueNone
+        | ValueSome(f: OptimizedClosures.FSharpFunc<_,_,_>, ts) -> ValueSome(f.Invoke(senv, struct((this, ts, args), e)))
+    | _ -> ValueNone
 
 let memoryId = propertyId <| findProperty <@@ Memory.memory @@>
 let lookupOrRaiseMemory senv source = context {

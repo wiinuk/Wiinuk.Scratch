@@ -3,27 +3,38 @@ module Scratch.Reflection.MemberPatterns
 open System.Reflection
 open System
 open FSharp.Reflection
+open Scratch.Primitives
 type private T = FSharp.Reflection.FSharpType
+module VOption = ValueOption
 
 
 let (|GenericMethodDefinition|) (m: MethodInfo) =
     if m.IsGenericMethod then m.GetGenericMethodDefinition() else m
 
+[<return: Struct>]
 let (|GenericType|_|) (t: Type) =
-    if t.IsGenericType then Some(t.GetGenericTypeDefinition(), t.GetGenericArguments() |> Array.toList)
-    else None
+    if t.IsGenericType then ValueSome struct(t.GetGenericTypeDefinition(), t.GetGenericArguments() |> Array.toList)
+    else ValueNone
 
-let (|TupleType|_|) t = if T.IsTuple t then Some(T.GetTupleElements t |> Array.toList) else None
+[<return: Struct>]
+let (|TupleType|_|) t = if T.IsTuple t then ValueSome(T.GetTupleElements t |> Array.toList) else ValueNone
+[<return: Struct>]
 let (|GenericParameterType|_|) (t: Type) =
-    if t.IsGenericParameter then Some(t.GenericParameterAttributes, t.GetGenericParameterConstraints() |> Array.toList)
-    else None
+    if t.IsGenericParameter then ValueSome struct(t.GenericParameterAttributes, t.GetGenericParameterConstraints() |> Array.toList)
+    else ValueNone
 
-let (|StructType|_|) (t: Type) = if t.IsValueType then Some() else None
-let (|RecordType|_|) t = if T.IsRecord(t, true) then Some(T.GetRecordFields(t, true)) else None
-let (|UnionType|_|) t = if T.IsUnion(t, true) then Some(T.GetUnionCases(t, true)) else None
-let (|DeclaringType|_|) (t: #MemberInfo) = t.DeclaringType |> Option.ofObj
-let (|ModuleType|_|) t = if T.IsModule t then Some() else None
-let (|ExceptionRepresentationType|_|) t = if T.IsExceptionRepresentation t then Some() else None
+[<return: Struct>]
+let (|StructType|_|) (t: Type) = if t.IsValueType then ValueSome() else ValueNone
+[<return: Struct>]
+let (|RecordType|_|) t = if T.IsRecord(t, true) then ValueSome(T.GetRecordFields(t, true)) else ValueNone
+[<return: Struct>]
+let (|UnionType|_|) t = if T.IsUnion(t, true) then ValueSome(T.GetUnionCases(t, true)) else ValueNone
+[<return: Struct>]
+let (|DeclaringType|_|) (t: #MemberInfo) = t.DeclaringType |> VOption.ofObj
+[<return: Struct>]
+let (|ModuleType|_|) t = if T.IsModule t then ValueSome() else ValueNone
+[<return: Struct>]
+let (|ExceptionRepresentationType|_|) t = if T.IsExceptionRepresentation t then ValueSome() else ValueNone
 
 let (|CaseFields|) (c: UnionCaseInfo) = c.GetFields()
 

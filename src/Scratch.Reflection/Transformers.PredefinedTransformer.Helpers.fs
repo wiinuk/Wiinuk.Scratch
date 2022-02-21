@@ -6,6 +6,7 @@ open Scratch.Reflection.Transformers.Transformer
 open System.Reflection
 module E = FSharp.Quotations.Patterns
 module E = FSharp.Quotations.DerivedPatterns
+module VOption = ValueOption
 type private E = FSharp.Quotations.Expr
 
 
@@ -46,13 +47,14 @@ let rec simpleApplicationsWithLocation f = function
     | [] -> f
     | (x, l)::xs -> simpleApplicationsWithLocation (E.Application(f, x) |> withLocation l) xs
 
+[<return: Struct>]
 let (|CallOrNewUnionCaseOrNewObject|_|) = function
-    | E.Call(None, m, args) -> (Choice1Of3 m, args) |> Some
-    | E.NewUnionCase(u, args) -> (Choice2Of3 u, args) |> Some
-    | E.NewObject(c, args) -> (Choice3Of3 c, args) |> Some
-    | _ -> None
+    | E.Call(None, m, args) -> ValueSome struct(Choice1Of3 m, args)
+    | E.NewUnionCase(u, args) -> ValueSome(Choice2Of3 u, args)
+    | E.NewObject(c, args) -> ValueSome(Choice3Of3 c, args)
+    | _ -> ValueNone
 
-let has m e = tryFindRecursiveCall m e |> Option.isSome
+let has m e = tryFindRecursiveCall m e |> VOption.isSome
 
 let inlining this args vvs body lambda =
     let args = match this with None -> args | Some x -> x::args

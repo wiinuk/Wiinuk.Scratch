@@ -757,61 +757,76 @@ module AlgebraicSimplificationConfig =
 module private AlgebraicSimplificationHelpers =
     let removeTags x = Tagged.withTags Tags.empty x
 
-    let (|LiteralLike|_|) e = if Cost.LiteralLike <= maxCost e then Some() else None
+    [<return: Struct>]
+    let (|LiteralLike|_|) e = if Cost.LiteralLike <= maxCost e then ValueSome() else ValueNone
 
-    let (|BoolExp|_|) e = if ExpType.equals (Exp.varType e) ExpTypes.bool then Some() else None
+    [<return: Struct>]
+    let (|BoolExp|_|) e = if ExpType.equals (Exp.varType e) ExpTypes.bool then ValueSome() else ValueNone
 
+    [<return: Struct>]
     let (|Literal|_|) = function
-        | { Source.value = Lit _ } -> Some()
-        | _ -> None
+        | { Source.value = Lit _ } -> ValueSome()
+        | _ -> ValueNone
 
+    [<return: Struct>]
     let (|Num|_|) = function
-        | { Source.value = Lit(SNumber x) } when (* not nan *) x = x -> Some x
-        | _ -> None
+        | { Source.value = Lit(SNumber x) } when (* not nan *) x = x -> ValueSome x
+        | _ -> ValueNone
 
+    [<return: Struct>]
     let (|True|_|) = function
-        | { Source.value = Lit(SBool true) } -> Some()
-        | _ -> None
+        | { Source.value = Lit(SBool true) } -> ValueSome()
+        | _ -> ValueNone
 
+    [<return: Struct>]
     let (|False|_|) = function
-        | { Source.value = Lit(SBool false) } -> Some()
-        | _ -> None
+        | { Source.value = Lit(SBool false) } -> ValueSome()
+        | _ -> ValueNone
 
+    [<return: Struct>]
     let (|Var|_|) = function
-        | { Source.value = Var v } -> Some v
-        | _ -> None
+        | { Source.value = Var v } -> ValueSome v
+        | _ -> ValueNone
 
+    [<return: Struct>]
     let (|Mul|_|) = function
-        | { Source.value = Op(O.``*``, [e1; e2]) } -> Some struct(e1, e2)
-        | _ -> None
+        | { Source.value = Op(O.``*``, [e1; e2]) } -> ValueSome struct(e1, e2)
+        | _ -> ValueNone
 
+    [<return: Struct>]
     let (|Div|_|) = function
-        | { Source.value = Op(O.``/``, [e1; e2]) } -> Some struct(e1, e2)
-        | _ -> None
+        | { Source.value = Op(O.``/``, [e1; e2]) } -> ValueSome struct(e1, e2)
+        | _ -> ValueNone
 
+    [<return: Struct>]
     let (|Add|_|) = function
-        | { Source.value = Op(O.``+``, [e1; e2]) } -> Some struct(e1, e2)
-        | _ -> None
+        | { Source.value = Op(O.``+``, [e1; e2]) } -> ValueSome struct(e1, e2)
+        | _ -> ValueNone
 
+    [<return: Struct>]
     let (|Sub|_|) = function
-        | { Source.value = Op(O.``-``, [e1; e2]) } -> Some struct(e1, e2)
-        | _ -> None
+        | { Source.value = Op(O.``-``, [e1; e2]) } -> ValueSome struct(e1, e2)
+        | _ -> ValueNone
 
+    [<return: Struct>]
     let (|Not|_|) = function
-        | { Source.value = Op(O.not, [e1]) } -> Some e1
-        | _ -> None
+        | { Source.value = Op(O.not, [e1]) } -> ValueSome e1
+        | _ -> ValueNone
 
+    [<return: Struct>]
     let (|And|_|) = function
-        | { Source.value = Op(O.``&``, [e1; e2]) } -> Some struct(e1, e2)
-        | _ -> None
+        | { Source.value = Op(O.``&``, [e1; e2]) } -> ValueSome struct(e1, e2)
+        | _ -> ValueNone
 
+    [<return: Struct>]
     let (|Or|_|) = function
-        | { Source.value = Op(O.``|``, [e1; e2]) } -> Some struct(e1, e2)
-        | _ -> None
+        | { Source.value = Op(O.``|``, [e1; e2]) } -> ValueSome struct(e1, e2)
+        | _ -> ValueNone
 
+    [<return: Struct>]
     let (|Eq|_|) = function
-        | { Source.value = Op(O.``=``, [e1; e2]) } -> Some struct(e1, e2)
-        | _ -> None
+        | { Source.value = Op(O.``=``, [e1; e2]) } -> ValueSome struct(e1, e2)
+        | _ -> ValueNone
 
     let simpleFiniteNumberOnly e _ =
         match e with
