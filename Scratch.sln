@@ -1,6 +1,6 @@
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio Version 16
-VisualStudioVersion = 16.0.29411.108
+# Visual Studio Version 17
+VisualStudioVersion = 17.1.32210.238
 MinimumVisualStudioVersion = 15.0.26124.0
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{F606A719-951D-4211-A965-F137EC206174}"
 EndProject
@@ -75,6 +75,9 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "files", "files", "{479ED87F
 		publish.fsx = publish.fsx
 		Shell.fsx = Shell.fsx
 		test.fsx = test.fsx
+	EndProjectSection
+	ProjectSection(FolderGlobals) = preProject
+		C_5_4Users_4User_4source_4Repos_4Wiinuk_1Scratch_4package_1json__JsonSchema = 
 	EndProjectSection
 EndProject
 Global

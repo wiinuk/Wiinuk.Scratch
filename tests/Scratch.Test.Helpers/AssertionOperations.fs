@@ -122,7 +122,7 @@ module AssertionWithDiff =
         |> Seq.concat
         |> Seq.map (fun (s, t) ->
             let colorClass = t |> Option.map (fun t -> t.ColorClass) |> Option.defaultValue FSharpTokenColorKind.Default
-            let style = Map.tryFind colorClass colorKindToStyle |> Option.defaultValue []
+            let style = Map.tryFind colorClass colorKindToStyle |> ValueOption.defaultValue []
             div style s
         )
 

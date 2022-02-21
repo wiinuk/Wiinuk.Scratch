@@ -1,0 +1,16 @@
+﻿{
+  "$schema": "https://json-schema.org/draft-04/schema",
+  "definitions": {
+    "Person": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "age": {
+          "type": "number"
+        }
+      }
+    }
+  }
+}
