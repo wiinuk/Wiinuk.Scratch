@@ -131,16 +131,16 @@ let prettyLiteral = function
     | SString x -> prettyStringLiteral x
 
 let prettyAttribute name pretty x =
-    text "@" ++ text name ++ group (text "(" ++ nest (ne ++ pretty x) + ne ++ text ")")
+    "@" .+. name ++ group ("(" .+ nest (ne ++ pretty x) ++ ne +. ")")
 
 /// `None -> "@%name()" | Some v -> "@%name(%(pretty v))"`
 let prettyOptionalAttribute name pretty = function
-    | None -> text "@" ++ text name ++ text "()"
+    | None -> "@" .+. name +. "()"
     | Some x -> prettyAttribute name pretty x
 
 let prettyVariableData { isPersistent = p; name = n; value = v } =
-    let p = match p with Persistent -> text "@persistent" ++ ns | NoPersistent -> empty
-    group (p ++ text "let " ++ prettyName n ++ ns ++ text "=" ++ ns ++ prettyLiteral v)
+    let p = match p with Persistent -> "@persistent" .+ ns | NoPersistent -> empty
+    group (p +. "let " ++ prettyName n ++ ns +. "=" ++ ns ++ prettyLiteral v)
 
 let prettyVariable state v =
     state.plugins.prettyVariable(state.state, v)
@@ -156,30 +156,30 @@ let prettyListVariableData { isPersistent = isP; listName = n; contents' = vs; x
     let ps = empty
     let ps =
         if x <> 0. || y <> 0.
-        then ps ++ text "@position(" ++ text (string x) ++ text ", " ++ text (string y) ++ text ")" ++ ns
+        then ps +. "@position(" +. string x +. ", " +. string y +. ")" ++ ns
         else ps
 
     let ps =
         match isP with
-        | Persistent -> ps ++ text "@persistent" ++ ns
+        | Persistent -> ps +. "@persistent" ++ ns
         | NoPersistent -> ps
 
     let ps =
         if width <> 0. || height <> 0.
-        then ps ++ text "@size(" ++ text (string width) ++ text ", " ++ text (string height) ++ text ")" ++ ns
+        then ps +. "@size(" +. string width +. ", " +. string height +. ")" ++ ns
         else ps
 
     let ps =
         match visible with
-        | Visible -> ps ++ text "@visible" ++ ns
+        | Visible -> ps +. "@visible" ++ ns
         | Hidden -> ps
 
     group (
-        group (ps ++ text "let " ++ prettyName n ++ ns ++ text "=" ++ ns ++ text "[") ++
+        group (ps +. "let " ++ prettyName n ++ ns +. "=" ++ ns +. "[") ++
         nest (ne ++
             group (concatNS prettyLiteral (IArray.toSeqCopiable vs))
-        ) ++ ne ++
-        text "]"
+        ) ++ ne +.
+        "]"
     )
 
 let prettyList state l = state.plugins.prettyList(state.state, l)
@@ -226,7 +226,7 @@ let prettySymbol symbol = prettyName (Symbol.name symbol)
 /// `opName` -or- `system.opName`
 let prettyOperator state op =
     if Set.contains (Symbol.name op) state.procedures then
-        struct(text "system" ++ ws ++ prettySymbol op, Precedence.Application)
+        struct("system" .+ ws ++ prettySymbol op, Precedence.Application)
     else
         prettySymbol op, Precedence.Primitive
 
@@ -238,16 +238,16 @@ let prettyVarOrListName state name =
             | Some p when Set.contains name p.listOrVariables -> "stage"
             | _ -> "sprite"
 
-        struct(text self ++ ws ++ prettyName name, Precedence.Application)
+        struct(self .+ ws ++ prettyName name, Precedence.Application)
     else
         prettyName name, Precedence.Primitive
 
 let prettyListAccess name line =
-    prettyName name ++ group (text "[" + nest (ne ++ line) ++ ne ++ text "]")
+    prettyName name ++ group ("[" .+ nest (ne ++ line) ++ ne +. "]")
 
 let prettyExpressionOrWrap maxPrec struct(e, exprPrec) =
     if maxPrec < exprPrec then
-        group (text "(" ++ nest (ne ++ group e) ++ ne ++ text ")")
+        group ("(" .+ nest (ne ++ group e) ++ ne +. ")")
     else
         e
 
@@ -326,7 +326,7 @@ and prettyExpression state prec = function
     | Block x -> prettyBlockLiteral state x
 
 and prettyBlockLiteral state x =
-    text "\\{" ++ nest (ns ++ group (prettyBlockExpression state x)) ++ ns ++ text "}"
+    "\\{" .+ nest (ns ++ group (prettyBlockExpression state x)) ++ ns +. "}"
 
 and prettyStatement state (ComplexExpression(_, op, ops)) =
     match op with
@@ -344,7 +344,7 @@ and prettySetVar_To_ state op = function
     | [Literal(_, SString name); value] ->
         let struct(name, _) = prettyVarOrListName state name
         let value = prettyExpression state Precedence.Assign value
-        group (name ++ nest (ns ++ text "<-")) ++ nest (ns ++ group value)
+        group (name ++ nest (ns +. "<-")) ++ nest (ns ++ group value)
 
     | ops -> prettyNormalStatement state op ops
 
@@ -352,7 +352,7 @@ and prettySetLine_OfList_To_ state op = function
     | [line; Literal(_, SString name); value] ->
         let access = prettyListAccess name (prettyExpression state Precedence.Max line)
         let value = prettyExpression state Precedence.Assign value
-        group (access ++ nest (ns ++ text "<-")) ++ nest (ns ++ group value)
+        group (access ++ nest (ns +. "<-")) ++ nest (ns ++ group value)
 
     | ops -> prettyNormalStatement state op ops
 
@@ -376,7 +376,7 @@ and prettyBlockExpression state (BlockExpression(_, ss)) =
 let prettyProcedure state (ProcedureDefinition(_, name, ps, isAtomic, body)) =
     let state = { state with parameters = ps |> Seq.map (fun (ParameterDefinition(name = n)) -> n) |> Set.ofSeq }
 
-    let attrs = match isAtomic with NoAtomic -> text "@async" ++ ns | Atomic -> empty
+    let attrs = match isAtomic with NoAtomic -> "@async" .+ ns | Atomic -> empty
     let name = prettyName name
     let parameters =
         match ps with
@@ -384,25 +384,25 @@ let prettyProcedure state (ProcedureDefinition(_, name, ps, isAtomic, body)) =
         | _ -> concatMap prettyParameter ns ps
 
     let body = prettyBlockExpression state body
-    group (attrs ++ text "let " ++ name ++ nest (ns ++ group (parameters ++ ns) ++ text "=")) ++ nest (ns ++ group body)
+    group (attrs +. "let " ++ name ++ nest (ns ++ group (parameters ++ ns) +. "=")) ++ nest (ns ++ group body)
 
 let prettyListener state (ListenerDefinition(_, n, xs, b)) =
     let struct(n, _) = prettyOperator state n
     let ps = prettyExpressions state xs
     let body = prettyBlockLiteral state b
-    text "do" ++ group (nest (ns ++ n ++ ns ++ ps) ++ ns) ++ body
+    "do" .+ group (nest (ns ++ n ++ ns ++ ps) ++ ns) ++ body
 
 let prettyScriptAst state = function
     | Procedure p -> prettyProcedure state p
-    | Statements x -> text "lazy" ++ ns ++ prettyBlockLiteral state x
-    | Expression(ComplexExpression(_, n, xs)) -> text "lazy" ++ ns ++ prettyComplexExpression state Precedence.Max n xs
+    | Statements x -> "lazy" .+ ns ++ prettyBlockLiteral state x
+    | Expression(ComplexExpression(_, n, xs)) -> "lazy" .+ ns ++ prettyComplexExpression state Precedence.Max n xs
     | Listener l -> prettyListener state l
 
 let prettyScript state script =
     state.plugins.prettyScript(state.state, script)
 
 let prettyScriptData state { x = x; y = y; script = s } =
-    let p = if x <> 0. || y <> 0. then text "@position(" ++ text (string x) ++ text ", " ++ text (string y) ++ text ")" ++ ns else empty
+    let p = if x <> 0. || y <> 0. then "@position(" .+. string x +. ", " +. string y +. ")" ++ ns else empty
     p ++ prettyScript state s
 
 let prettyAdd pretty x xs = pretty x::xs
@@ -413,8 +413,8 @@ let prettyAddOptional pretty x xs = match x with None -> xs | Some x -> prettyAd
 
 let prettyRevAppend pretty xs attrs = List.fold (fun attrs x -> pretty x::attrs) attrs xs
 
-let prettyProperty name pretty x = text name ++ text " = " ++ pretty x
-let prettyTuple = function [] -> empty | x::xs -> x ++ sequence (Seq.map (fun x -> text "," ++ ns ++ x) xs)
+let prettyProperty name pretty x = name .+. " = " ++ pretty x
+let prettyTuple = function [] -> empty | x::xs -> x ++ sequence (Seq.map (fun x -> "," .+ ns ++ x) xs)
 
 let prettyAddProperty name pretty x = prettyAdd (prettyProperty name pretty) x
 
@@ -462,7 +462,7 @@ let prettyRotationStyle = function
 
 let prettyInfo x =
     Map.toSeq x
-    |> Seq.map (fun (k, v) -> prettyName k ++ text " = " ++ prettyLiteral v)
+    |> Seq.map (fun (k, v) -> prettyName k +. " = " ++ prettyLiteral v)
     |> Seq.toList
     |> prettyTuple
 
@@ -530,7 +530,7 @@ let prettySpriteData state x =
         | x::xs -> x ++ sequence (Seq.map (fun x -> ns ++ group x) xs) ++ nl
 
     attributes
-    ++ text "sprite " ++ prettyName x.objName ++ nl
+    +. "sprite " ++ prettyName x.objName ++ nl
     ++ (prettyObjectDatas state x |> concatNL id) ++ nl
 
 let prettyOptionalNullableAttribute name pretty = function
@@ -560,8 +560,8 @@ let prettyWatcherData x =
 
     let name = match x.param with None -> text "null" | Some x -> prettyName x
 
-    attributes ++
-    text "watcher " ++ prettyName x.cmd ++ ws ++ name ++ prettyName x.target ++ nl
+    attributes +.
+    "watcher " ++ prettyName x.cmd ++ ws ++ name ++ prettyName x.target ++ nl
 
 let prettyStageChildren state = function
     | Choice1Of3 x -> prettyWatcherData x
@@ -594,7 +594,7 @@ let prettyStageData plugins x =
     let state = stageState plugins x
     let stage =
         group attributes
-        ++ text "stage " ++ prettyName x.objName ++ nl
+        +. "stage " ++ prettyName x.objName ++ nl
         ++ (prettyObjectDatas state x |> concatNL id) ++ nl
 
     stage::List.map (prettyStageChildren state) e.children

@@ -346,17 +346,14 @@ module Document =
     let concatMap f sep xs = concat sep <| Seq.map f xs
 
     module Operators =
-        let (++) d1 d2 = Constructors.append d1 d2
+        open Constructors
+        let (++) d1 d2 = append d1 d2
+        let (+.) d s = append d (text s)
+        let (.+) s d = append (text s) d
+        let (.+.) s1 s2 = append (text s1) (text s2)
 
 open Document.Constructors
 type Document with
-    static member op_Addition(d1, d2) = append d1 d2
-
-    static member op_Addition(d, s) = append d (text s)
-    static member op_Addition(s, d) = append (text s) d
-    static member op_Addition(d, c) = append d (rune c)
-    static member op_Addition(c, d) = append (rune c) d
-
     member d.StructuredFormatDisplay =
         let s = Document.renderWith { Document.Config.defaultConfig with newLine = "⏎"; indent = "•"; maxWidth = Int32.MaxValue } d
         if 20 < s.Length then s.[0..19] + "…"

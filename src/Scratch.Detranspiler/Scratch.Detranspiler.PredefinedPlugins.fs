@@ -1,8 +1,9 @@
 ﻿module Scratch.Detranspiler.PredefinedPlugins
-open Core
+open Scratch.Detranspiler.Core
 open Scratch
 open Scratch.Primitives
 open Scratch.Primitives.Document.Constructors
+open Scratch.Primitives.Document.Operators
 open Scratch.Reflection
 open Scratch.Ast
 module A = Scratch.Ast.ExpressionPatterns
@@ -22,7 +23,7 @@ let binaryOp (prec1, op, prec2) prec s = context {
     | ComplexExpression(operands = [e1; e2]) ->
         let! e1 = prettyExpression prec1 e1
         let! e2 = prettyExpression prec2 e2
-        return struct(e1 + text op + e2, prec)
+        return struct(e1 +. op ++ e2, prec)
     | _ -> return! skip()
 }
 let inline prettyBlock prec body = context {
@@ -75,15 +76,15 @@ let inline spriteOnly x f = context {
 }
 let prettySpritePropertyGet (spriteProperty: Quotations.Expr<Sprite -> 'a>) sprite = context {
     let p = Member.findProperty spriteProperty
-    return sprite.selfName + "." + prettyName p.Name
+    return sprite.selfName +. "." ++ prettyName p.Name
 }
 let prettySpriteMethodCall (spriteMethod: Quotations.Expr<Sprite -> 'a>) sprite operands = context {
     let args =
         match Seq.toList operands with
         | [] -> text "()"
-        | arg::args -> "(" + nest (ne + arg + sequence (List.map (fun x -> "," + ns + x) args)) + ne + ")"
+        | arg::args -> "(" .+ nest (ne ++ arg ++ sequence (List.map (fun x -> "," .+ ns ++ x) args)) ++ ne +. ")"
 
-    return sprite.selfName + "." + prettyMethodName spriteMethod + args
+    return sprite.selfName +. "." ++ prettyMethodName spriteMethod ++ args
 }
 let inline spriteMethodOnly spriteMethod x = spriteOnly x <| fun struct(sprite, ComplexExpression(operands = operands)) -> context {
     let! operands = prettyOperands Precedence.Lazy operands
@@ -95,7 +96,7 @@ let inline spriteCall1 x f = spriteOnly x <| function
         withPrec Precedence.Call <| f struct(sprite, e)
     | _ -> skip()
 
-let prettyApplications f xs = f + group (nest (sequence <| Seq.map (fun x -> ns + group x) xs))
+let prettyApplications f xs = f ++ group (nest (sequence <| Seq.map (fun x -> ns ++ group x) xs))
 let prettyExpressionApplications f es = context {
     let! es = Context.mapSeq (prettyExpression Precedence.Primitive) es
     return struct(prettyApplications f es, Precedence.Application)
@@ -106,7 +107,7 @@ let prettyIntExpression prec e = context {
     | _ ->
         let! int = prettyKnownEntity <@ Operators.int @>
         let! e = prettyExpression prec e
-        return "(" + int + ws + e + ")"
+        return "(" .+ int ++ ws ++ e +. ")"
 }
 
 let knownCallExpressions() = [
@@ -128,12 +129,12 @@ let knownCallExpressions() = [
         | ComplexExpression(operands = [nth; A.EString(struct(l, _), listName)]) ->
             let enum f list = context {
                 let! f = prettyKnownEntity f
-                return struct(f + ws + list, Precedence.Application)
+                return struct(f ++ ws ++ list, Precedence.Application)
             }
             let simple nth list = context {
                 let! get = prettyKnownEntity <@@ SList.get @@>
                 let! nth = prettyIntExpression Precedence.Primitive nth
-                return struct(get + ws + list + ws + nth, Precedence.Application)
+                return struct(get ++ ws ++ list ++ ws ++ nth, Precedence.Application)
             }
             let! list = prettyVariableOrListId l listName
             match nth with
@@ -179,7 +180,7 @@ let knownNumberExpressions() = [
         let! length = prettyKnownEntity <@ SList.length @>
         let! list = prettyVariableOrListId l listName
         let! double = prettyKnownEntity <@ ExtraTopLevelOperators.double @>
-        return prettyApplications double ["(" + prettyApplications length [list] + ")"]
+        return prettyApplications double ["(" .+ prettyApplications length [list] +. ")"]
     }
     O.``+``, fun e -> context {
         match e with
@@ -311,16 +312,16 @@ let knownStatements() = [
             let! args = prettyOperands Precedence.Primitive args
             let call =
                 match args with
-                | [] -> name + text "()"
+                | [] -> name +. "()"
                 | args -> prettyApplications name args
 
             match atomicity with
             | Atomic ->
                 let! awaitAtomic = prettyKnownEntity <@ awaitAtomic @>
-                return struct("do! " + awaitAtomic + " (" + call + ")", Precedence.Do)
+                return struct("do! " .+ awaitAtomic +. " (" ++ call +. ")", Precedence.Do)
 
             | NoAtomic ->
-                return struct("do! " + call, Precedence.Do)
+                return struct("do! " .+ call, Precedence.Do)
 
         | _ -> return! skip()
     }
@@ -395,7 +396,7 @@ let knownStatements() = [
     //"setTempoTo:", g0s1 gNumber
     O.clearPenTrails, nullary Precedence.Application <| context {
         let! clearPenTrails = prettyKnownEntity <@ PenOperations.clearPenTrails @>
-        return clearPenTrails + "()"
+        return clearPenTrails +. "()"
     }
     //"putPenDown", g0s0
     //"putPenUp", g0s0
@@ -411,13 +412,13 @@ let knownStatements() = [
     O.``setVar:to:``, binaryStringValue Precedence.VarSet <| fun (struct(l, _), varName) value -> context {
         let! var = prettyVariableOrListId l varName
         let! value = prettyExpression Precedence.Lazy value
-        return var + " <- " + value
+        return var +. " <- " ++ value
     }
     O.``changeVar:by:``, binaryStringValue Precedence.VarSet <| fun (struct(l, _), varName) value -> context {
         // <@ var <- var + %value @>
         let! var = prettyVariableOrListId l varName
         let! value = prettyExpression Precedence.Mul value
-        return var + " <- " + var + " + " + value
+        return var +. " <- " ++ var +. " + " ++ value
     }
     O.``append:toList:``, binaryValueString Precedence.Application <| fun value (struct(l, _), listName) -> context {
         // <@ SList.push %listName %value @>
@@ -502,7 +503,7 @@ let knownStatements() = [
         // if %test then %ifTrue
         let! test = prettyExpression Precedence.Expression test
         let! ifTrue = prettyBlock Precedence.Sequence ifTrue
-        return "if" + group (nest (ns + test) + ns) + "then" + group (nest (ns + group ifTrue))
+        return "if" .+ group (nest (ns ++ test) ++ ns) +. "then" ++ group (nest (ns ++ group ifTrue))
     }
     O.doIfElse, fun x -> context {
         match x with
@@ -510,7 +511,7 @@ let knownStatements() = [
             let! test = prettyExpression Precedence.Expression test
             let! ifTrue = prettyBlock Precedence.Sequence ifTrue
             let! ifFalse = prettyBlock Precedence.Sequence ifFalse
-            let d = "if" + group (nest (ns + test) + ns) + "then" + group (nest (ns + group ifTrue) + ns + "else" + nest (ns + group ifFalse))
+            let d = "if" .+ group (nest (ns ++ test) ++ ns) +. "then" ++ group (nest (ns ++ group ifTrue) ++ ns +. "else" ++ nest (ns ++ group ifFalse))
             return struct(d, Precedence.If)
         | _ -> return! skip()
     }
@@ -519,7 +520,7 @@ let knownStatements() = [
         let! repeatAsync = prettyKnownEntity <@ PrimitiveOperations.repeatAsync @>
         let! count = prettyIntExpression Precedence.Primitive count
         let! body = prettyBlock Precedence.Sequence body
-        return "do! " + repeatAsync + group (nest (ns + count) + ns) + " {" + nest (ns + body) + ns + "}"
+        return "do! " .+ repeatAsync ++ group (nest (ns ++ count) ++ ns) +. " {" ++ nest (ns ++ body) ++ ns +. "}"
     }
     //"doReturn", g0s0
     O.doUntil, binaryValueBlock Precedence.Do <| fun test body -> context {
@@ -527,14 +528,14 @@ let knownStatements() = [
         let! repeatUntilAsync = prettyKnownEntity <@ PrimitiveOperations.repeatUntilAsync @>
         let! test = prettyExpression Precedence.Do test
         let! body = prettyBlock Precedence.Sequence body
-        return "do! " + repeatUntilAsync + " (fun () -> " + test + ") {" + nest (nl + body) + nl + "}"
+        return "do! " .+ repeatUntilAsync +. " (fun () -> " ++ test +. ") {" ++ nest (nl ++ body) ++ nl +. "}"
     }
     //"doWhile", g0 (ebs gBoolean)
     O.doWaitUntil, unary Precedence.Do <| fun test -> context {
         // do! waitUntilAsync (fun () -> %test)
         let! waitUntilAsync = prettyKnownEntity <@ PrimitiveOperations.waitUntilAsync @>
         let! test = prettyExpression Precedence.Do test
-        return "do! " + waitUntilAsync + " (fun () -> " + test + ")"
+        return "do! " .+ waitUntilAsync +. " (fun () -> " ++ test +. ")"
     }
     //"glideSecs:toX:y:elapsed:from:", g0 (s3 gNumber gNumber gNumber)
     //"stopScripts", g0 ([OperandType.Stop], gUnit)
@@ -542,7 +543,7 @@ let knownStatements() = [
         // do! waitElapsedFrom %seconds
         let! waitElapsedFrom = prettyKnownEntity <@ Control.waitElapsedFrom @>
         let! seconds = prettyExpression Precedence.Primitive seconds
-        return "do! " + waitElapsedFrom + " " + seconds
+        return "do! " .+ waitElapsedFrom +. " " ++ seconds
     }
     //"warpSpeed", g0 ([OperandType.Block], gUnit)
 
@@ -581,19 +582,19 @@ let knownFooterStatements() = [
             | NoAtomic -> prettyKnownEntity <@ GeneratorBuilderOperations.tightrope @>
 
         let! body = prettyBlock Precedence.Sequence body
-        return "do! " + foreverAsync + "(" + context + " {" + group (nest (ns + body) + ns) + "})"
+        return "do! " .+ foreverAsync +. "(" ++ context +. " {" ++ group (nest (ns ++ body) ++ ns) +. "})"
     }
     //"stopAll", g0s0
     O.stopScripts, unaryString Precedence.Application <| fun (_, enum) -> context {
         match enum with
         | "all" ->
             let! stopAllScripts = prettyKnownEntity <@ PrimitiveOperations.stopAllScripts @>
-            return stopAllScripts + "()"
+            return stopAllScripts +. "()"
 
         | "this script" ->
             // do! stopThisScript()
             let! stopThisScript = prettyKnownEntity <@ PrimitiveOperations.stopThisScript @>
-            return "do! " + stopThisScript + "()"
+            return "do! " .+ stopThisScript +. "()"
 
         | _ -> return! skip()
     }
@@ -633,7 +634,7 @@ let knownListeners = [
 
                 let! whenGreenFlag = prettyKnownEntity <@ whenGreenFlag @>
                 let! body = prettyBlock Precedence.Sequence body
-                let d = whenGreenFlag + " {" + group (nest (nl + body) + nl) + "}"
+                let d = whenGreenFlag +. " {" ++ group (nest (nl ++ body) ++ nl) +. "}"
                 return struct(d, Precedence.Application)
 
             | Some self ->
@@ -644,8 +645,8 @@ let knownListeners = [
                 let! whenGreenFlag = prettySpritePropertyGet <@ fun s -> s.WhenGreenFlag @> self
                 let! body = prettyBlock Precedence.Sequence body
                 let d =
-                    "do " + self.selfName + whenGreenFlag + " {" +
-                    group (nest (nl + body) + nl) +
+                    "do " .+ self.selfName ++ whenGreenFlag +. " {" ++
+                    group (nest (nl ++ body) ++ nl) +.
                     "}"
 
                 return struct(d, Precedence.Call)
@@ -664,7 +665,7 @@ let knownListeners = [
 
                 let! whenIReceive = prettyKnownEntity <@ whenIReceive @>
                 let! body = prettyBlock Precedence.Sequence body
-                let d = whenIReceive + " " + prettyStringLiteral name + " {" + group (nest (nl + body) + nl) + "}"
+                let d = whenIReceive +. " " ++ prettyStringLiteral name +. " {" ++ group (nest (nl ++ body) ++ nl) +. "}"
                 return struct(d, Precedence.Application)
 
             | Some self ->
@@ -675,8 +676,8 @@ let knownListeners = [
                 let! whenIReceive = prettySpriteMethodCall <@ fun s -> s.WhenIReceive @> self [prettyStringLiteral name]
                 let! body = prettyBlock Precedence.Sequence body
                 let d =
-                    "do " + self.selfName + whenIReceive + " {" +
-                    group (nest (nl + body) + nl) +
+                    "do " .+ self.selfName ++ whenIReceive +. " {" ++
+                    group (nest (nl ++ body) ++ nl) +.
                     "}"
                 return struct(d, Precedence.Call)
         | _ -> return! skip()

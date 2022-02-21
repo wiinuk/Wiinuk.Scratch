@@ -38,7 +38,7 @@ let exQuotedNameInnerRegex =
 
 let prettyName n =
     if simpleNameRegex.IsMatch n && not (Map.containsKey n reservedNames) then text n else
-    if exQuotedNameInnerRegex.IsMatch n then "``" + text n + "``" else
+    if exQuotedNameInnerRegex.IsMatch n then "``" .+. n +. "``" else
     let n = Regex.Replace(n, @"[`\n\r\t\\@]", (fun m ->
         match m.Value with
         | "`" -> "\\u0060"
@@ -49,12 +49,12 @@ let prettyName n =
         | "\\" -> "\\\\"
         | x -> x
     ))
-    "``" + text n + "``"
+    "``" .+. n +. "``"
 
 let prettyLongNameRaw kind (LongName(ns, n)) =
-    let path = sequence (Seq.map (fun n -> prettyName n + ".") ns) + prettyName n
+    let path = sequence (Seq.map (fun n -> prettyName n +. ".") ns) ++ prettyName n
     match kind with
-    | Global -> "global." + path
+    | Global -> "global." .+ path
     | Local -> path
 
 let invalidStringLiteralCharRegex = Regex @"[\n\t\r\b\a\f\v\\""]"
@@ -76,7 +76,7 @@ let prettyStringLiteral s =
             ))
         else
             s
-    "\"" + text s + "\""
+    "\"" .+. s +. "\""
 
 // TODO: nan, infinity, -infinity
 let private invariantCulture = System.Globalization.CultureInfo.InvariantCulture
@@ -112,11 +112,11 @@ let prettyBoolLiteral = function
     | true -> text "true"
     | _ -> text "false"
 
-let prettyAttributePropertySet n v = prettyName n + " =" + nest (ns + v)
+let prettyAttributePropertySet n v = prettyName n +. " =" ++ nest (ns ++ v)
 
 let prettyTuple = function
     | [] -> empty
-    | x::xs -> group x + sequence (Seq.map (fun x -> "," + ns + group x) xs)
+    | x::xs -> group x ++ sequence (Seq.map (fun x -> "," .+ ns ++ group x) xs)
 
 let lookupKnownShortestId name = context {
     let! env = Context.environment
@@ -161,8 +161,8 @@ let prettyKnownAttribute typeName args = context {
     let args =
         match args with
         | [] -> empty
-        | props -> group ("(" + nest (ne + prettyTuple props) + ne + ")")
-    return "[<" + name + args + ">]"
+        | props -> group ("(" .+ nest (ne ++ prettyTuple props) ++ ne +. ")")
+    return "[<" .+ name ++ args +. ">]"
 }
 let add x xs = x::xs
 let addOption x xs = match x with None -> xs | Some x -> x::xs
@@ -297,7 +297,7 @@ let prettyDefaultAttribute x = context {
 /// `newlines ["A"; "B"; "C"] = sequence ["A"; nl; "B"; nl; "C"; nl]`
 let newlines xs =
     xs
-    |> Seq.map (fun x -> x + nl)
+    |> Seq.map (fun x -> x ++ nl)
     |> sequence
 
 let prettyVariableOrListId location varOrListName = context {
@@ -313,7 +313,7 @@ let prettyPersistentAttributeOrEmpty isPersistent = context {
     | Persistent ->
         let! name = nameOf the<PersistentAttribute>
         let! a = prettyKnownAttribute name []
-        return a + nl
+        return a ++ nl
     | NoPersistent ->
         return empty
 }
@@ -324,8 +324,8 @@ let prettyLetVariable { state = struct(location, _); isPersistent = isPersistent
     let! env = Context.environment
     let value = prettySValue env.prettyEnv value
     return
-        attributes +
-        "let mutable " + name + " = " + value
+        attributes +.
+        "let mutable " ++ name +. " = " ++ value
 }
 let prettyLetList { state = struct(location, itemType); listName = name; isPersistent = isPersistent; contents' = contents } = context {
     let! attributes = prettyPersistentAttributeOrEmpty isPersistent
@@ -337,7 +337,7 @@ let prettyLetList { state = struct(location, itemType); listName = name; isPersi
         | TypeScheme _ ->
             let! name = nameOf the<System.String>
             let! string = prettyKnownGlobalName name
-            return defineList + "<" + string + ">"
+            return defineList +. "<" ++ string +. ">"
     }
     let! env = Context.environment
     let contents =
@@ -349,11 +349,11 @@ let prettyLetList { state = struct(location, itemType); listName = name; isPersi
 
             let x = IArray.ref 0 contents
             let xs = Seq.truncate 1 <| IArray.toSeqCopiable contents
-            x + sequence (Seq.map (fun x -> nsc + x) xs)
+            x ++ sequence (Seq.map (fun x -> nsc ++ x) xs)
 
     return
-        attributes +
-        group ("let " + name + " = " + defineList + " [" + nest (ne + contents) + ne + "]")
+        attributes ++
+        group ("let " .+ name +. " = " ++ defineList +. " [" ++ nest (ne ++ contents) ++ ne +. "]")
 }
 let prettyProcedureParameters ps = context {
     match ps with
@@ -380,13 +380,13 @@ let prettyProcedureParameters ps = context {
 
             return
                 match attrs with
-                | [] -> ws + n
-                | attrs -> "(" + sequence attrs + ws + n + ")" + ws
+                | [] -> ws ++ n
+                | attrs -> "(" .+ sequence attrs ++ ws ++ n +. ")" ++ ws
         })
     return sequence ps
 }
 let inline localPrecedence prec = Context.local (fun env -> { env with precedence = prec })
-let wrap x = "(" + nest (ne + x) + ne + ")"
+let wrap x = "(" .+ nest (ne ++ x) ++ ne +. ")"
 
 let startPlugin getPlugin xMapping error getLocation x = context {
     let! env = Context.environment
@@ -454,8 +454,8 @@ let prettyProcedure headKeyword (x, y, ProcedureDefinition(struct(location, _), 
         let! struct(body, _) = localExpressionEnv Precedence.Sequence isAtomic (prettyBlock body)
         return
             attributes ++
-            headKeyword + prettyName name + parameters + " = " + context + " {" +
-            group (nest (nl + body) + nl) +
+            headKeyword ++ prettyName name ++ parameters +. " = " ++ context +. " {" ++
+            group (nest (nl ++ body) ++ nl) +.
             "}"
     }
 
@@ -503,21 +503,21 @@ let prettyListener l = context {
 }
 let prettyLazyExpression e = context {
     let! e = localPrecedence Precedence.Lazy <| prettyExpression (Complex e)
-    return "lazy" + nest (ns + e)
+    return "lazy" .+ nest (ns ++ e)
 }
 let prettyLazyBlock b = context {
     let! struct(b, _) = localPrecedence Precedence.Lazy <| prettyBlock b
-    return "lazy" + nest (ns + b)
+    return "lazy" .+ nest (ns ++ b)
 }
 
 let prettyKnownNewObject name args = context {
     let args =
         match args with
         | [] -> text "()"
-        | props -> group ("(" + nest (ne + prettyTuple props) + ne + ")")
+        | props -> group ("(" .+ nest (ne ++ prettyTuple props) ++ ne +. ")")
 
     let! name = prettyKnownGlobalName name
-    return name + args
+    return name ++ args
 }
 
 // attributes (lazy [PositionAttribute(1.0, 2.0)]) (...)
@@ -530,7 +530,7 @@ let inline prettyWithPosition x y a = context {
         return! prettyKnownNewObject name [prettyDoubleLiteral x; prettyDoubleLiteral y]
     })
     let! l = localPrecedence Precedence.Primitive a
-    return attributesP + " (lazy [" + posisionA + "]) " + l
+    return attributesP +. " (lazy [" ++ posisionA +. "]) " ++ l
 }
 
 let prettyListenerWithPosition x y l = prettyWithPosition x y <| prettyListener l
@@ -628,7 +628,7 @@ let prettyListenerAndExpressionAndStatements scripts = context {
 let prettyEntryPointBody scripts = context {
     let! scripts = prettyListenerAndExpressionAndStatements scripts
     let! startMainLoop = prettyKnownEntity <@ Control.startMainLoop @>
-    let callStartMainLoop = startMainLoop + "()"
+    let callStartMainLoop = startMainLoop +. "()"
 
     return
         Seq.append scripts [callStartMainLoop]
@@ -704,8 +704,8 @@ let prettySprite data = context {
     let! spriteTypeName = nameOf the<Sprite>
     let! sprite = prettyKnownGlobalName spriteTypeName
     let spriteHeader =
-        newlines attributes +
-        "type " + spriteName + " () as " + self + " =" + nl
+        newlines attributes +.
+        "type " ++ spriteName +. " () as " ++ self +. " =" ++ nl
 
     return! Context.local (fun _ -> env) (context {
         let! variables = data.variables |> Context.mapList prettyLetVariable
@@ -714,14 +714,14 @@ let prettySprite data = context {
         let! listeners = prettyListenerAndExpressionAndStatements data.scripts
 
         return
-            spriteHeader + nest (nl +
-                "inherit " + sprite + "()" + nl +
-                newlines variables +
-                newlines lists +
-                newlines procedures +
+            spriteHeader ++ nest (nl +.
+                "inherit " ++ sprite +. "()" ++ nl ++
+                newlines variables ++
+                newlines lists ++
+                newlines procedures ++
                 newlines listeners
             )
-            + nl
+            ++ nl
     })
 }
 
@@ -757,12 +757,12 @@ let prettyStage data = context {
 
         let opens =
             coreOpenNames env.resolveEnv
-            |> Seq.map (fun name -> "open " + prettyLongNameRaw Global (LongName.ofGlobalName name))
+            |> Seq.map (fun name -> "open " .+ prettyLongNameRaw Global (LongName.ofGlobalName name))
 
         let moduleHeader =
-            newlines attributes +
-            "module " + prettyName data.objName + nl +
-            newlines opens + nl
+            newlines attributes +.
+            "module " ++ prettyName data.objName ++ nl ++
+            newlines opens ++ nl
 
         return! Context.local (fun env -> { env with specs = openNames (coreOpenNames env.prettyEnv.resolveEnv) env.specs }) (context {
             let! variables = data.variables |> Context.mapList prettyLetVariable
@@ -773,12 +773,12 @@ let prettyStage data = context {
             let! env = Context.environment
 
             return
-                moduleHeader +
-                newlines variables +
-                newlines lists +
-                newlines procedures +
-                newlines sprites +
-                "let " + env.entryPoint + "() =" + nest (ns + entryPointBody)
+                moduleHeader ++
+                newlines variables ++
+                newlines lists ++
+                newlines procedures ++
+                newlines sprites +.
+                "let " ++ env.entryPoint +. "() =" ++ nest (ns ++ entryPointBody)
         })
     }
 }
