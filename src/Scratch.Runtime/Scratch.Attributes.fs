@@ -133,10 +133,10 @@ type SpriteAttribute(Direction, IndexInLibrary, IsDraggable, RotationStyle, Scal
 type AnnotationAttribute private (key, value) =
     inherit DataAttribute<string * SValue>()
     override _.GetData() = key, value
-    new (key: string, value) = AnnotationAttribute(key, SNumber value)
-    new (key: string, value) = AnnotationAttribute(key, SString value)
-    new (key: string, value) = AnnotationAttribute(key, SBool value)
-    new (key: string, value) = AnnotationAttribute(key, SNumber(double<int> value))
+    new (key: string, value: double) = AnnotationAttribute(key, SNumber value)
+    new (key: string, value: string) = AnnotationAttribute(key, SString value)
+    new (key: string, value: bool) = AnnotationAttribute(key, SBool value)
+    new (key: string, value: int) = AnnotationAttribute(key, SNumber(double<int> value))
 
 [<AttributeUsage(AttributeTargets.All)>]
 type PersistentAttribute() =
@@ -151,9 +151,9 @@ type PositionAttribute(X, Y) =
 type DefaultAttribute private (value) =
     inherit DataAttribute<SValue>()
     override _.GetData() = value
-    new (value) = DefaultAttribute(SNumber value)
-    new (value) = DefaultAttribute(SString value)
-    new (value) = DefaultAttribute(SBool value)
+    new (value: double) = DefaultAttribute(SNumber value)
+    new (value: string) = DefaultAttribute(SString value)
+    new (value: bool) = DefaultAttribute(SBool value)
 
 [<AttributeUsage(AttributeTargets.All)>]
 type ExportAttribute() = inherit Attribute()
