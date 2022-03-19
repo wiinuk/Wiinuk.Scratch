@@ -90,12 +90,10 @@ let expressionFromUnion1 e =
         let test = X.UnionCaseTest(union, case)
         let fieldGet = X.InstancePropertyGet(union, fields.head)
         let caseName = X.Value(U.name case)
-        X.Lambda(u,
-            <@
+        X.Lambda(u, <@
             if %test then Ok { head = %fieldGet; tail = HUnit }
             else isoFromUnionError %caseName %union
-            @>
-        )
+        @>)
 
     ExprIso(forward, reverse)
 
@@ -114,12 +112,10 @@ let expressionFromUnion2 e =
         let fieldGet1 = X.InstancePropertyGet(union, fields.head)
         let fieldGet2 = X.InstancePropertyGet(union, fields.tail.head)
         let caseName = X.Value(U.name case)
-        X.Lambda(u,
-            <@
+        X.Lambda(u, <@
             if %test then Ok { head = %fieldGet1; tail = { head = %fieldGet2; tail = HUnit } }
             else isoFromUnionError %caseName %union
-            @>
-        )
+        @>)
 
     ExprIso(forward, reverse)
 
@@ -141,12 +137,10 @@ let expressionFromUnion3 e =
         let fieldGet2 = X.InstancePropertyGet(union, fields.tail.head)
         let fieldGet3 = X.InstancePropertyGet(union, fields.tail.tail.head)
         let caseName = X.Value(U.name case)
-        X.Lambda(u,
-            <@
+        X.Lambda(u, <@
             if %test then Ok (%fieldGet1 ^^ %fieldGet2 ^^ %fieldGet3 ^^ HUnit)
             else isoFromUnionError %caseName %union
-            @>
-        )
+        @>)
 
     ExprIso(forward, reverse)
 
@@ -174,12 +168,10 @@ let expressionFromUnion4 e =
         let fieldGet3 = X.InstancePropertyGet(union, fields.tail.tail.head)
         let fieldGet4 = X.InstancePropertyGet(union, fields.tail.tail.tail.head)
         let caseName = X.Value(U.name case)
-        X.Lambda(u,
-            <@
+        X.Lambda(u, <@
             if %test then Ok (%fieldGet1 ^^ %fieldGet2 ^^ %fieldGet3 ^^ %fieldGet4 ^^ HUnit)
             else isoFromUnionError %caseName %union
-            @>
-        )
+        @>)
     ExprIso(forward, reverse)
 
 let expressionFromUnion5 e =
@@ -208,12 +200,10 @@ let expressionFromUnion5 e =
         let fieldGet4 = X.InstancePropertyGet(union, fields.tail.tail.tail.head)
         let fieldGet5 = X.InstancePropertyGet(union, fields.tail.tail.tail.tail.head)
         let caseName = X.Value(U.name case)
-        X.Lambda(u,
-            <@
+        X.Lambda(u, <@
             if %test then Ok (%fieldGet1 ^^ %fieldGet2 ^^ %fieldGet3 ^^ %fieldGet4 ^^ %fieldGet5 ^^ HUnit)
             else isoFromUnionError %caseName %union
-            @>
-        )
+        @>)
     ExprIso(forward, reverse)
 
 let expressionFromRecord (recordToHList: Expr<'R -> 'T> when 'T :> HList): ExprIso<'T,'R> =

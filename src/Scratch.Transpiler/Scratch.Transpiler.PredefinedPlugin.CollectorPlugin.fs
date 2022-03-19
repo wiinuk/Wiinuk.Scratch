@@ -562,8 +562,7 @@ module private Helpers =
         | _ -> return! skip()
     }
 
-let callExpressions() =
-    [
+let callExpressions() = [
 
     // <@ addReferenceMark $e1 @> => `let temp = $e1 in addReference temp.$N1; addReference temp.$N2; ...`
     [ <@@ addReferenceMark @@> ], fun senv struct(args, e) -> context {
@@ -599,12 +598,11 @@ let callExpressions() =
 
         | _ -> return! skip()
     }
-    ]
+]
 
 let preTransformPlugin = tryMark
 
-let externalCallItems() =
-    [
+let externalCallItems() = [
     [
         <@@ addReferenceMark @@>
     ], fun senv _ ->
@@ -615,7 +613,7 @@ let externalCallItems() =
     ], fun senv _ ->
         do transpileExternalItemSpecs senv deleteReferenceE
         Ok()
-    ]
+]
 
 let expressionPlugin() = { new ExpressionPluginProcess() with member _.Invoke senv e = expressionPlugin' senv e }
 let externalItemsPlugin() = { new ExternalItemsPluginProcess() with member _.Invoke senv e = externalItemsPlugin' senv e }

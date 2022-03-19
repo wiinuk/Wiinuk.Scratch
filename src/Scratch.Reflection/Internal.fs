@@ -31,8 +31,7 @@ let trySizeOf (t: Type) =
 
 let genericTypeGenericMethodDefinition (m: 'm when 'm :> MethodBase): 'm =
     if
-        not m.IsGenericMethod &&
-        (
+        not m.IsGenericMethod && (
             let t = m.DeclaringType
             not t.IsGenericType && isNull t.DeclaringType
         )

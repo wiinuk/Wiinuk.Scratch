@@ -60,9 +60,9 @@ let simpleGenericProcedureTest() =
 [<Fact>]
 let assignTest() =
     <@
-    let mutable out = ""
-    let f x = out <- x
-    ()
+        let mutable out = ""
+        let f x = out <- x
+        ()
     @>
     |> transpileAndInfer =? (
         ["out", T.gString],

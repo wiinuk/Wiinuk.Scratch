@@ -55,8 +55,8 @@ module E = Ast.Expressions
 [<Fact>]
 let getTranslateTest() =
     <@
-    let output = defineList []
-    SList.push output (Translate.getTranslate "Hello" "sr")
+        let output = defineList []
+        SList.push output (Translate.getTranslate "Hello" "sr")
     @>
     |> transpileStageWith Translate.withTranspilerConfig
     |> StageData.map ignore
@@ -85,8 +85,8 @@ module Translate2 =
 [<Fact>]
 let instantGetTranslateTest() =
     <@
-    let output = defineList []
-    SList.push output (Translate2.getTranslate "Hello" "sr")
+        let output = defineList []
+        SList.push output (Translate2.getTranslate "Hello" "sr")
     @>
     |> transpileStageWith id
     |> StageData.map ignore

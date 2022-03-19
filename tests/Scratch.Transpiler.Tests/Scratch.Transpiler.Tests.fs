@@ -344,18 +344,17 @@ let inlineProcedureTest() =
     @>
     |> transpile
     |> StageData.map ignore
-    =@? { defaultData with
-            variables =
-                [
-                VariableData.make () "f.result" SType.N
-                ]
-            scripts =
-                [
-                ScriptData.procedure () "f %n %n" [P.make () "x" SType.N; P.make () "y" SType.N] Atomic [
-                    A.``setVar:to:`` () "f.result" (A.``+`` () (A.getParam () "x") (A.getParam () "y"))
-                ]
-                ]
-        }
+    =@? {
+    defaultData with
+        variables = [
+            VariableData.make () "f.result" SType.N
+        ]
+        scripts = [
+            ScriptData.procedure () "f %n %n" [P.make () "x" SType.N; P.make () "y" SType.N] Atomic [
+                A.``setVar:to:`` () "f.result" (A.``+`` () (A.getParam () "x") (A.getParam () "y"))
+            ]
+        ]
+    }
 
 [<ReflectedDefinition; Export>]
 let f x y = x + y
@@ -365,17 +364,16 @@ let reflectedDefinitonProcedureTest() =
     <@ export f @>
     |> transpile
     |> StageData.map ignore
-    =@? { defaultData with
-            variables =
-                [
-                VariableData.make () "f.result" SType.N
-                ]
-            scripts =
-                [
-                ScriptData.procedure () "f %n %n" [P.make () "x" SType.N; P.make () "y" SType.N] Atomic [
-                    A.``setVar:to:`` () "f.result" (A.``+`` () (A.getParam () "x") (A.getParam () "y"))
-                ]
-                ]
+    =@? {
+    defaultData with
+        variables = [
+            VariableData.make () "f.result" SType.N
+        ]
+        scripts = [
+            ScriptData.procedure () "f %n %n" [P.make () "x" SType.N; P.make () "y" SType.N] Atomic [
+                A.``setVar:to:`` () "f.result" (A.``+`` () (A.getParam () "x") (A.getParam () "y"))
+            ]
+        ]
     }
 
 [<Fact>]
@@ -388,24 +386,22 @@ let inlineProcedureTest2() =
     |> transpileStageWith (fun c -> { c with plugin = { c.plugin with postTransform = Scratch.Ast.Transformers.Plugins.empty } })
     |> StageData.map ignore
     =@? {
-        defaultData with
-            variables =
-                [
-                VariableData.make () "p1.result" SType.N
-                VariableData.make () "p2.result" SType.N
-                VariableData.make () "p2._" SType.N
-                ]
-            scripts =
-                [
-                ScriptData.procedure () "p1 %n %n" [P.make () "x" SType.N; P.make () "y" SType.N] Atomic [
-                    A.``setVar:to:`` () "p1.result" (A.``+`` () (A.getParam () "x") (A.getParam () "y"))
-                ]
-                ScriptData.procedure () "p2 %n %n" [P.make () "x" SType.N; P.make () "y" SType.N] Atomic [
-                    A.call () "p1 %n %n" [A.getParam () "x"; A.getParam () "y"]
-                    A.``setVar:to:`` () "p2._" (A.readVariable () "p1.result")
-                    A.``setVar:to:`` () "p2.result" (A.``+`` () (A.readVariable () "p2._") (A.getParam () "y"))
-                ]
-                ]
+    defaultData with
+        variables = [
+            VariableData.make () "p1.result" SType.N
+            VariableData.make () "p2.result" SType.N
+            VariableData.make () "p2._" SType.N
+        ]
+        scripts = [
+            ScriptData.procedure () "p1 %n %n" [P.make () "x" SType.N; P.make () "y" SType.N] Atomic [
+                A.``setVar:to:`` () "p1.result" (A.``+`` () (A.getParam () "x") (A.getParam () "y"))
+            ]
+            ScriptData.procedure () "p2 %n %n" [P.make () "x" SType.N; P.make () "y" SType.N] Atomic [
+                A.call () "p1 %n %n" [A.getParam () "x"; A.getParam () "y"]
+                A.``setVar:to:`` () "p2._" (A.readVariable () "p1.result")
+                A.``setVar:to:`` () "p2.result" (A.``+`` () (A.readVariable () "p2._") (A.getParam () "y"))
+            ]
+        ]
     }
 
 let startAsStdSpriteWith' withTranspileConfig withEvaluateConfig withExecuteConfig e =
@@ -609,23 +605,21 @@ let parameterTest() =
     |> transpile
     |> StageData.map ignore
     =@? {
-        defaultData with
-            variables =
-                [
-                VariableData.make () "useWord@V.result.1.1" SType.S
-                VariableData.make () "useWord@V.result.1.2" SType.S
-                VariableData.make () "useWord@V.result.2.1" SType.S
-                VariableData.make () "useWord@V.result.2.2" SType.S
-                ]
-            scripts =
-                [
-                ScriptData.procedure () "useWord@V %s %s" [P.make () "x" SType.S; P.make () "y" SType.S] Atomic [
-                    A.``setVar:to:`` () "useWord@V.result.1.1" (A.getParam () "x")
-                    A.``setVar:to:`` () "useWord@V.result.1.2" (A.getParam () "y")
-                    A.``setVar:to:`` () "useWord@V.result.2.1" (A.getParam () "x")
-                    A.``setVar:to:`` () "useWord@V.result.2.2" (A.getParam () "y")
-                ]
-                ]
+    defaultData with
+        variables = [
+            VariableData.make () "useWord@V.result.1.1" SType.S
+            VariableData.make () "useWord@V.result.1.2" SType.S
+            VariableData.make () "useWord@V.result.2.1" SType.S
+            VariableData.make () "useWord@V.result.2.2" SType.S
+        ]
+        scripts = [
+            ScriptData.procedure () "useWord@V %s %s" [P.make () "x" SType.S; P.make () "y" SType.S] Atomic [
+                A.``setVar:to:`` () "useWord@V.result.1.1" (A.getParam () "x")
+                A.``setVar:to:`` () "useWord@V.result.1.2" (A.getParam () "y")
+                A.``setVar:to:`` () "useWord@V.result.2.1" (A.getParam () "x")
+                A.``setVar:to:`` () "useWord@V.result.2.2" (A.getParam () "y")
+            ]
+        ]
     }
 
 [<Fact>]
@@ -970,7 +964,6 @@ let externalList = defineList []
 [<Fact>]
 let listLengthTest() =
     <@
-
         L.push output <| string (L.length externalList)
         L.push externalList "a"
         L.push output <| string (L.length externalList)
@@ -1876,14 +1869,14 @@ let valueOnlyUnionTest() =
 [<Fact>]
 let signTest() =
     <@
-    outLine (string (sign 10))
-    outLine (string (sign -10))
-    outLine (string (sign 0))
+        outLine (string (sign 10))
+        outLine (string (sign -10))
+        outLine (string (sign 0))
 
-    outLine (string (sign 10.))
-    outLine (string (sign -10.))
-    outLine (string (sign 0.))
-    outLine (string (sign (0. / 0.)))
+        outLine (string (sign 10.))
+        outLine (string (sign -10.))
+        outLine (string (sign 0.))
+        outLine (string (sign (0. / 0.)))
     @>
     |> startAsStdSprite
     =? ["1";"-1";"0";"1";"-1";"0";"0";""]
@@ -2091,8 +2084,7 @@ let manyThreadStackTest() =
 
 [<Fact>]
 let emptyRentStackTest() =
-    let stage =
-        <@
+    let stage = transpileStage <@
         whenGreenFlag {
             do! foreverAsync {
                 do! waitElapsedFrom 1.
@@ -2100,8 +2092,7 @@ let emptyRentStackTest() =
             }
         }
         startMainLoop()
-        @>
-        |> transpileStage
+    @>
 
     stage.scripts
     |> Seq.tryFind (function { script = Script.Procedure _ } -> true | _ -> false)
@@ -2121,11 +2112,11 @@ let doAskAndAnswerTest() =
             override _.ShowInputBox(_, f) = HUnit.toUnit <| Func.invoke &f (String.replicate 2 question)
         }
     <@
-    whenGreenFlag {
-        do! doAsk "abc"
-        outLine answer
-    }
-    startMainLoop()
+        whenGreenFlag {
+            do! doAsk "abc"
+            outLine answer
+        }
+        startMainLoop()
     @>
 
     |> startAsStdSpriteWith' id (EvaluateConfig.withView <| view()) (ExecutionConfig.withView <| view())
@@ -2134,11 +2125,11 @@ let doAskAndAnswerTest() =
 [<Fact>]
 let joinSingleListItemTest() =
     <@
-    let list = defineList []
-    SList.push list "A"
-    SList.push list "B"
+        let list = defineList []
+        SList.push list "A"
+        SList.push list "B"
 
-    out (SList.join list)
+        out (SList.join list)
     @>
     |> startAsStdSprite
     =? ["AB"]
@@ -2146,11 +2137,11 @@ let joinSingleListItemTest() =
 [<Fact>]
 let joinNonSingleListItemTest() =
     <@
-    let list = defineList []
-    SList.push list "A"
-    SList.push list "BC"
+        let list = defineList []
+        SList.push list "A"
+        SList.push list "BC"
 
-    out (SList.join list)
+        out (SList.join list)
     @>
     |> startAsStdSprite
     =? ["A BC"]
@@ -2158,11 +2149,11 @@ let joinNonSingleListItemTest() =
 [<Fact>]
 let joinEmptyListItemTest() =
     <@
-    let list = defineList []
-    SList.push list "A"
-    SList.push list ""
+        let list = defineList []
+        SList.push list "A"
+        SList.push list ""
 
-    out (SList.join list)
+        out (SList.join list)
     @>
     |> startAsStdSprite
     =? ["A "]
@@ -2186,8 +2177,8 @@ type CustomLayout2 = class interface ICustomLayout<CustomLayout2Shape> end
 [<Fact>]
 let customSizeTest() =
     <@
-    Size.typeSize<CustomLayout1> |> Size.toNumber |> string |> outLine
-    Size.typeSize<CustomLayout2> |> Size.toNumber |> string |> outLine
+        Size.typeSize<CustomLayout1> |> Size.toNumber |> string |> outLine
+        Size.typeSize<CustomLayout2> |> Size.toNumber |> string |> outLine
     @>
     |> startAsStdSprite
     =? ["1"; "2"; ""]
@@ -2198,7 +2189,7 @@ let add (_: int) (_: int): int = raise <| System.PlatformNotSupportedException()
 [<Fact>]
 let addDeclarationTest() =
     <@
-    add 10 20 |> string |> outLine
+        add 10 20 |> string |> outLine
     @>
     |> startAsStdSprite
     =? ["30"; ""]
@@ -2212,10 +2203,10 @@ let volume<'a> : float = raise <| System.PlatformNotSupportedException()
 [<Fact>]
 let volumeBlocksDeclarationTest() =
     <@
-    setVolumeTo 12.
-    volume |> string |> outLine
-    setVolumeTo 34.
-    volume |> string |> outLine
+        setVolumeTo 12.
+        volume |> string |> outLine
+        setVolumeTo 34.
+        volume |> string |> outLine
     @>
     |> startAsStdSprite
     =? ["12"; "34"; ""]

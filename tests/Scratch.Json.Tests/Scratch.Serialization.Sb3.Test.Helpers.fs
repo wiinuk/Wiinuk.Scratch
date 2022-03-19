@@ -177,11 +177,10 @@ module AdaptorJs =
 
     let exec resultType client commandName args = async {
         let! result =
-            struct
-                {|
+            struct {|
                 name = commandName + ""
                 args = args
-                |}
+            |}
             |> IpcClient.sendAndReceive the<JsonElement> client.ipcClient "exec"
 
         match result.GetProperty("tag").GetString() with
