@@ -114,7 +114,7 @@ let inline private getCaseOrRaise templateParameter =
             | _ -> None
         )
         |> Option.defaultWith (fun _ ->
-            invalidArg "templateParameter" "e.g. <@ Some @>"
+            invalidArg (nameof templateParameter) "e.g. <@ Some @>"
         )
     struct(c.Tag, let (GenericTypeDefinition t) = c.DeclaringType in t)
 
@@ -145,7 +145,7 @@ let (|SpecificUnionCaseFieldGet|_|) templateParameter =
             | _ -> None
         )
         |> Option.defaultWith (fun _->
-            invalidArg "templateParameter" "e.g. <@ function Some x -> Some x | _ -> None @>"
+            invalidArg (nameof templateParameter) "e.g. <@ function Some x -> Some x | _ -> None @>"
         )
 
     function

@@ -16,7 +16,7 @@ let tryFindProperty e =
 let findProperty e =
     tryFindProperty e
     |> Option.defaultWith (fun _ ->
-        invalidArg "e" "e.g. <@ fun x -> x.field @>"
+        invalidArg (nameof e) "e.g. <@ fun x -> x.field @>"
     )
 
 let tryFindMethod e =
@@ -30,7 +30,7 @@ let tryFindMethod e =
 let findMethod e =
     tryFindMethod e
     |> Option.defaultWith (fun _ ->
-        invalidArg "e" "e.g. <@ f @>"
+        invalidArg (nameof e) "e.g. <@ f @>"
     )
 
 let findField field =

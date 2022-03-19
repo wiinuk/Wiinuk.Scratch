@@ -350,7 +350,7 @@ let findNames env e =
         | E.PropertySet(_, p, _, _) -> Some <| memberNames env p
         | _ -> None
     )
-    |> Option.defaultWith (fun _ -> invalidArg "e" "e.g. <@ id @>")
+    |> Option.defaultWith (fun _ -> invalidArg (nameof e) "e.g. <@ id @>")
 
 let findName env e = findNames env e |> Nel.head
 let typeName env t = typeNames env t |> Nel.head
