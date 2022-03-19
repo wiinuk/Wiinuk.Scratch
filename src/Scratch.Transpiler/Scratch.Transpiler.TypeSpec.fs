@@ -9,18 +9,19 @@ open System
 open System.Reflection
 module E = FSharp.Quotations.DerivedPatterns
 module E = FSharp.Quotations.Patterns
+module VOption = ValueOption
 
 
-let isPrimitiveType t = underlyingPrimitiveType t |> Option.isSome
+let isPrimitiveType t = underlyingPrimitiveType t |> VOption.isSome
 
 let collectableInValue t =
     match underlyingType t with
-    | None -> false
-    | Some vs -> vs |> List.exists (function UnderlyingTypeSpec(kind = Kind.Collectable) -> true | _ -> false)
+    | ValueNone -> false
+    | ValueSome vs -> vs |> List.exists (function UnderlyingTypeSpec(kind = Kind.Collectable) -> true | _ -> false)
 
 let newable t =
     match underlyingType t with
-    | Some [UnderlyingTypeSpec(kind = Kind.Collectable)] when not t.IsValueType -> true
+    | ValueSome [UnderlyingTypeSpec(kind = Kind.Collectable)] when not t.IsValueType -> true
     | _ -> false
 
 let isValueType t =
@@ -39,8 +40,8 @@ let isParameterType = function
         )
     | _ -> false
 
-let isNumericBinaryType t1 t2 tr = (underlyingPrimitiveType t1 = Some (Typed SType.N)) && t1 = t2 && t2 = tr
-let isConcatType t1 t2 tr = (underlyingPrimitiveType t1 = Some (Typed SType.S)) && t1 = t2 && t2 = tr
+let isNumericBinaryType t1 t2 tr = (underlyingPrimitiveType t1 = ValueSome (Typed SType.N)) && t1 = t2 && t2 = tr
+let isConcatType t1 t2 tr = (underlyingPrimitiveType t1 = ValueSome (Typed SType.S)) && t1 = t2 && t2 = tr
 let isAddressAddType t1 t2 tr = t1 = typeof<Address> && (t2 = typeof<N> || t2 = typeof<int>) && tr = typeof<Address>
 let isSubtractType t1 t2 tr = isNumericBinaryType t1 t2 tr || t1 = typeof<Address> && t2 = typeof<Address> && tr = typeof<int>
 

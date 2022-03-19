@@ -10,12 +10,12 @@ let tryFindProperty e =
     e
     |> tryPick (function
         | E.PropertyGet(_, p, _)
-        | E.PropertySet(_, p, _, _) -> ValueSome p
-        | _ -> ValueNone
+        | E.PropertySet(_, p, _, _) -> Some p
+        | _ -> None
     )
 let findProperty e =
     tryFindProperty e
-    |> VOption.defaultWith (fun _ ->
+    |> Option.defaultWith (fun _ ->
         invalidArg "e" "e.g. <@ fun x -> x.field @>"
     )
 
@@ -23,33 +23,33 @@ let tryFindMethod e =
     e
     |> tryPick (function
         | E.Call(_, GenericMethodDefinition m' & m, _) ->
-            ValueSome(m', Array.toList <| m.GetGenericArguments())
-        | _ -> ValueNone
+            Some(m', Array.toList <| m.GetGenericArguments())
+        | _ -> None
     )
 
 let findMethod e =
     tryFindMethod e
-    |> VOption.defaultWith (fun _ ->
+    |> Option.defaultWith (fun _ ->
         invalidArg "e" "e.g. <@ f @>"
     )
 
 let findField field =
     field
     |> tryPick (function
-        | E.FieldGet(Some _, f) -> ValueSome f
-        | _ -> ValueNone
+        | E.FieldGet(Some _, f) -> Some f
+        | _ -> None
     )
-    |> VOption.orElseWith(fun _ ->
+    |> Option.orElseWith(fun _ ->
         tryFindProperty field
-        |> VOption.bind (fun p ->
+        |> Option.bind (fun p ->
             let t = p.DeclaringType
             if FSharpType.IsRecord(t, allowAccessToPrivateRepresentation = true) then
                 t.GetField(p.Name + "@", B.Instance ||| B.Public ||| B.NonPublic)
-                |> VOption.ofObj
+                |> Option.ofObj
             else
-                ValueNone
+                None
         )
     )
-    |> VOption.defaultWith (fun () -> failwith $"field not found: %A{field}")
+    |> Option.defaultWith (fun () -> failwith $"field not found: %A{field}")
 
 let genericTypeGenericMethodDefinition m = genericTypeGenericMethodDefinition m

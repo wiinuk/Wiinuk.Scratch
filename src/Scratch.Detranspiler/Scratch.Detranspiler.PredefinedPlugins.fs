@@ -120,7 +120,7 @@ let knownCallExpressions() = [
     }
     //"costumeName", g0e0 gString
     //"sceneName", g0e0 gString
-    O.readVariable, unaryString Precedence.Primitive <| fun (struct(l, _), varName) ->
+    O.readVariable, unaryString Precedence.Primitive <| fun struct(struct(l, _), varName) ->
         prettyVariableOrListId l varName
 
     //"contentsOfList:", g1 "T" (fun t -> [O.ListVariableExpression t], gString)
@@ -176,7 +176,7 @@ let knownNumberExpressions() = [
     //"scale", g0e0 gNumber
     //"volume", g0e0 gNumber
     //"tempo", g0e0 gNumber
-    O.``lineCountOfList:``, unaryString Precedence.Application <| fun (struct(l, _), listName) -> context {
+    O.``lineCountOfList:``, unaryString Precedence.Application <| fun struct(struct(l, _), listName) -> context {
         let! length = prettyKnownEntity <@ SList.length @>
         let! list = prettyVariableOrListId l listName
         let! double = prettyKnownEntity <@ ExtraTopLevelOperators.double @>
@@ -211,7 +211,7 @@ let knownNumberExpressions() = [
         let! value = prettyExpression Precedence.Primitive value
         return prettyApplications round [value]
     }
-    O.``computeFunction:of:``, binaryStringValue Precedence.Application <| fun (_, mathFunctionName) value -> context {
+    O.``computeFunction:of:``, binaryStringValue Precedence.Application <| fun struct(_, mathFunctionName) value -> context {
         let! func =
             match mathFunctionName with
             | "abs" -> prettyKnownEntity <@ Operators.abs @>
@@ -373,7 +373,7 @@ let knownStatements() = [
     //"hide", g0s0
     //"comeToFront", g0s0
     //"goBackByLayers:", g0s1 gNumber
-    O.``playSound:``, unaryString Precedence.Call <| fun (_, soundName) -> context {
+    O.``playSound:``, unaryString Precedence.Call <| fun struct(_, soundName) -> context {
         let! env = Context.environment
         let name = prettyStringLiteral soundName
         match env.expressionEnv.self with
@@ -409,25 +409,25 @@ let knownStatements() = [
     //"changePenSizeBy:", g0s1 gNumber
     //"stampCostume", g0s0
 
-    O.``setVar:to:``, binaryStringValue Precedence.VarSet <| fun (struct(l, _), varName) value -> context {
+    O.``setVar:to:``, binaryStringValue Precedence.VarSet <| fun struct(struct(l, _), varName) value -> context {
         let! var = prettyVariableOrListId l varName
         let! value = prettyExpression Precedence.Lazy value
         return var +. " <- " ++ value
     }
-    O.``changeVar:by:``, binaryStringValue Precedence.VarSet <| fun (struct(l, _), varName) value -> context {
+    O.``changeVar:by:``, binaryStringValue Precedence.VarSet <| fun struct(struct(l, _), varName) value -> context {
         // <@ var <- var + %value @>
         let! var = prettyVariableOrListId l varName
         let! value = prettyExpression Precedence.Mul value
         return var +. " <- " ++ var +. " + " ++ value
     }
-    O.``append:toList:``, binaryValueString Precedence.Application <| fun value (struct(l, _), listName) -> context {
+    O.``append:toList:``, binaryValueString Precedence.Application <| fun value struct(struct(l, _), listName) -> context {
         // <@ SList.push %listName %value @>
         let! push = prettyKnownEntity <@ SList.push @>
         let! list = prettyVariableOrListId l listName
         let! value = prettyExpression Precedence.Primitive value
         return prettyApplications push [list; value]
     }
-    O.``deleteLine:ofList:``, binaryValueString Precedence.Application <| fun nth (struct(l, _), listName) -> context {
+    O.``deleteLine:ofList:``, binaryValueString Precedence.Application <| fun nth struct(struct(l, _), listName) -> context {
         let simple nth list = context {
             // <@ SList.remove %listName %nth @>
             let! remove = prettyKnownEntity <@ SList.remove @>
@@ -473,12 +473,12 @@ let knownStatements() = [
             | _ -> return! simple nth list value
         | _ -> return! skip()
     }
-    O.``showVariable:``, unaryString Precedence.Application <| fun (struct(l, _), varName) -> context {
+    O.``showVariable:``, unaryString Precedence.Application <| fun struct(struct(l, _), varName) -> context {
         let! show = prettyKnownEntity <@ PrimitiveOperations.showVariable @>
         let! var = prettyVariableOrListId l varName
         return prettyApplications show [var]
     }
-    O.``hideVariable:``, unaryString Precedence.Application <| fun (struct(l, _), varName) -> context {
+    O.``hideVariable:``, unaryString Precedence.Application <| fun struct(struct(l, _), varName) -> context {
         let! hide = prettyKnownEntity <@ PrimitiveOperations.hideVariable @>
         let! var = prettyVariableOrListId l varName
         return prettyApplications hide [var]
@@ -585,7 +585,7 @@ let knownFooterStatements() = [
         return "do! " .+ foreverAsync +. "(" ++ context +. " {" ++ group (nest (ns ++ body) ++ ns) +. "})"
     }
     //"stopAll", g0s0
-    O.stopScripts, unaryString Precedence.Application <| fun (_, enum) -> context {
+    O.stopScripts, unaryString Precedence.Application <| fun struct(_, enum) -> context {
         match enum with
         | "all" ->
             let! stopAllScripts = prettyKnownEntity <@ PrimitiveOperations.stopAllScripts @>

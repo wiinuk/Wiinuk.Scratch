@@ -27,7 +27,7 @@ let constantFolding expression _ =
 // => `$es...; x + 2`
 let constantPropagation expressions env =
     match expressions with
-    | SetVar_To_(Y2(varName, value))::es when isLocalSingleAssignment varName env ->
+    | SetVar_To_(varName, value)::es when isLocalSingleAssignment varName env ->
         match maxCost value with
         | LiteralLike ->
             let es = replaceVar varName value es
@@ -42,7 +42,7 @@ let constantPropagation expressions env =
 // => `$es...; $e + 2`
 let purePropagation expressions env =
     match expressions with
-    | SetVar_To_(Y2(varName, value))::es when isLocalSingleAssignment varName env ->
+    | SetVar_To_(varName, value)::es when isLocalSingleAssignment varName env ->
         match maxCost value with
 
         | Pure when List.sumBy (ComplexExpression.variableCount varName) es <= 1 ->
@@ -58,7 +58,7 @@ let purePropagation expressions env =
 // => `$es...; y + 2`
 let copyPropagation expressions env =
     match expressions with
-    | SetVar_To_(Y2(varName, Complex(ReadVariable(Y _)) & value)) as e::es
+    | SetVar_To_(varName, Complex(ReadVariable _) & value) as e::es
         when isLocalSingleAssignment varName env  ->
         let es = replaceVarToVarIfNotAssigned varName value es
 
@@ -78,7 +78,7 @@ let copyPropagation expressions env =
 // => `$es...; y + 2`
 let copyPurePropagation expressions env =
     match expressions with
-    | SetVar_To_(Y2(varName, value)) as e::es
+    | SetVar_To_(varName, value) as e::es
         when
             isLocalSingleAssignment varName env &&
             maxCostWithoutReadVariable value <= Pure &&
@@ -175,7 +175,7 @@ let eliminateUnusedVariables self (EntityEnvs.Entity { EntityEnv.children = chil
 // => ``
 let eliminateDeadSetExpression e env =
     match e with
-    | SetVar_To_(Y2(varName, value))::xs ->
+    | SetVar_To_(varName, value)::xs ->
         let BlockEnvs.Entity { parent = parent; children = children } & BlockEnvs.Member { self = self } = env
         let varDef, isDefinedAtSelf = resolveVariable varName env
 
@@ -202,7 +202,7 @@ let eliminateDeadSetExpression e env =
 
 let eliminateSelfSetExpression es _ =
     match es with
-    | SetVar_To_(Y2(varName, Complex(ReadVariable(Y varName'))))::xs when varName = varName' -> R.modified xs
+    | SetVar_To_(varName, Complex(ReadVariable varName'))::xs when varName = varName' -> R.modified xs
     | _ -> R.noModify es
 
 let eliminateDeadConditionExpression es env =
@@ -286,84 +286,92 @@ module private AlgebraicSimplificationPatterns =
     // Scratch では `NaN * x = 0`, `NaN + x = x`
 
     // `n * 0 = 0`
-    let (|NMul0|) = function
-        | Mul(Y2(Number(Y 0.) & n, _))
-        | Mul(Y2(_, Number(Y 0.) & n)) -> Y(R.modified n)
-        | _ -> N
+    [<return: Struct>]
+    let (|NMul0|_|) = function
+        | Mul(Number 0. & n, _)
+        | Mul(_, Number 0. & n) -> ValueSome(R.modified n)
+        | _ -> ValueNone
 
     // `n * 1 = n` ( n の型は NaN 以外の数値 )
-    let (|NMul1|) = function
-        | Mul(Y2(Number(Y 1.), n))
-        | Mul(Y2(n, Number(Y 1.))) when isNumberWithoutNaN n -> Y(R.modified n)
-        | _ -> N
+    [<return: Struct>]
+    let (|NMul1|_|) = function
+        | Mul(Number 1., n)
+        | Mul(n, Number 1.) when isNumberWithoutNaN n -> ValueSome(R.modified n)
+        | _ -> ValueNone
 
     // `a * (b * n)` =
     // `a * (n * b)` =
     // `(a * n) * b` =
     // `(n * a) * b` = `(a * b) * n` ( a は定数, b は定数 )
-    let (|AMulBMulN|) = function
-        | Mul(Y2(Literal _ & a, Mul(Y2(Literal _ & b, n))))
-        | Mul(Y2(Literal _ & a, Mul(Y2(n, Literal _ & b))))
-        | Mul(Y2(Mul(Y2(Literal _ & a, n)), Literal _ & b))
-        | Mul(Y2(Mul(Y2(n, Literal _ & a)), Literal _ & b)) as e ->
+    [<return: Struct>]
+    let (|AMulBMulN|_|) = function
+        | Mul(Literal _ & a, Mul(Literal _ & b, n))
+        | Mul(Literal _ & a, Mul(n, Literal _ & b))
+        | Mul(Mul(Literal _ & a, n), Literal _ & b)
+        | Mul(Mul(n, Literal _ & a), Literal _ & b) as e ->
             let s = Expression.state e |> removeTags
             match Expressions.``*`` s a b |> evaluateExpressionWithGlobalContext with
-            | Error _ -> R.noModify e |> Y
-            | Ok c -> Expressions.``*`` s (Literal(s, c)) n |> R.modified |> Y
-        | _ -> N
+            | Error _ -> R.noModify e |> ValueSome
+            | Ok c -> Expressions.``*`` s (Literal(s, c)) n |> R.modified |> ValueSome
+        | _ -> ValueNone
 
     // `a + (b + n)` =
     // `a + (n + b)` =
     // `(a + n) + b` =
     // `(n + a) + b` = `(a + b) + n` ( a は定数, b は定数 )
-    let (|AAddBAddN|) = function
-        | Add(Y2(Literal _ & a, Add(Y2(Literal _ & b, n))))
-        | Add(Y2(Literal _ & a, Add(Y2(n, Literal _ & b))))
-        | Add(Y2(Add(Y2(Literal _ & a, n)), Literal _ & b))
-        | Add(Y2(Add(Y2(n, Literal _ & a)), Literal _ & b)) as e ->
+    [<return: Struct>]
+    let (|AAddBAddN|_|) = function
+        | Add(Literal _ & a, Add(Literal _ & b, n))
+        | Add(Literal _ & a, Add(n, Literal _ & b))
+        | Add(Add(Literal _ & a, n), Literal _ & b)
+        | Add(Add(n, Literal _ & a), Literal _ & b) as e ->
             let s = Expression.state a |> removeTags
             match Expressions.``+`` s a b |> evaluateExpressionWithGlobalContext with
-            | Error _ -> R.noModify e |> Y
-            | Ok c -> Expressions.``+`` s (Literal(s, c)) n |> R.modified |> Y
-        | _ -> N
+            | Error _ -> R.noModify e |> ValueSome
+            | Ok c -> Expressions.``+`` s (Literal(s, c)) n |> R.modified |> ValueSome
+        | _ -> ValueNone
 
     // `(x - x) = 0`
-    let (|XSubX|) = function
-        | Sub(Y2(x, x')) as e when Expression.map ignore x = Expression.map ignore x' ->
-            Expression.eNumber (Expression.state e |> removeTags) 0. |> R.modified |> Y
-        | _ -> N
+    [<return: Struct>]
+    let (|XSubX|_|) = function
+        | Sub(x, x') as e when Expression.map ignore x = Expression.map ignore x' ->
+            Expression.eNumber (Expression.state e |> removeTags) 0. |> R.modified |> ValueSome
+        | _ -> ValueNone
 
     // `(x + -y) = (x - y)`
-    let (|XAddNegY|) = function
-        | Add(Y2(x, Mul(Y2(Number(Y -1.), y))))
-        | Add(Y2(x, Mul(Y2(y, Number(Y -1.))))) as e ->
-            Expressions.``-`` (Expression.state e) x y |> R.modified |> Y
-        | _ -> N
+    [<return: Struct>]
+    let (|XAddNegY|_|) = function
+        | Add(x, Mul(Number -1., y))
+        | Add(x, Mul(y, Number( -1.))) as e ->
+            Expressions.``-`` (Expression.state e) x y |> R.modified |> ValueSome
+        | _ -> ValueNone
 
     // `x * 2 = x + x` (x は定数様)
-    let (|XMul2|) = function
-        | Mul(Y2(Number(Y 2.), x))
-        | Mul(Y2(x, Number(Y 2.))) as e when maxCost x <= LiteralLike ->
-            Expressions.``+`` (Expression.state e |> removeTags) x x |> R.modified |> Y
-        | _ -> N
+    [<return: Struct>]
+    let (|XMul2|_|) = function
+        | Mul(Number 2., x)
+        | Mul(x, Number 2.) as e when maxCost x <= LiteralLike ->
+            Expressions.``+`` (Expression.state e |> removeTags) x x |> R.modified |> ValueSome
+        | _ -> ValueNone
 
     // `(x / a) = (x * (1 / a))` (a は定数)
-    let (|XDivA|) = function
-        | Div(Y2(x, Number(Y a))) as e ->
+    [<return: Struct>]
+    let (|XDivA|_|) = function
+        | Div(x, Number a) as e ->
             let s = Expression.state e |> removeTags
-            Expressions.``*`` s x (Expression.eNumber s (1. / a)) |> R.modified |> Y
-        | _ -> N
+            Expressions.``*`` s x (Expression.eNumber s (1. / a)) |> R.modified |> ValueSome
+        | _ -> ValueNone
 
 let algebraicSimplification e _ =
     match e with
-    | NMul0(Y r)
-    | NMul1(Y r)
-    | AMulBMulN(Y r)
-    | AAddBAddN(Y r)
-    | XSubX(Y r)
-    | XAddNegY(Y r)
-    | XMul2(Y r)
-    | XDivA(Y r)
+    | NMul0 r
+    | NMul1 r
+    | AMulBMulN r
+    | AAddBAddN r
+    | XSubX r
+    | XAddNegY r
+    | XMul2 r
+    | XDivA r
         -> r
 
     | e -> R.noModify e
@@ -372,7 +380,7 @@ let strengthReduction es _ =
 
     // `a <- a + v` = `a += v`
     match es with
-    | SetVar_To_(Y2(varName, Add(Y2(Complex(ReadVariable(Y varName')), value)))) as e::es when varName = varName' ->
+    | SetVar_To_(varName, Add(Complex(ReadVariable varName'), value)) as e::es when varName = varName' ->
         let e = Expressions.``changeVar:by:`` (ComplexExpression.state e |> removeTags) varName value
         R.modified (e::es)
 

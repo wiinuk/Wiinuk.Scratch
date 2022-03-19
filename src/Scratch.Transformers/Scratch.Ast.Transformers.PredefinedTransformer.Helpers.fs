@@ -8,47 +8,40 @@ open Scratch.Reflection
 open Scratch.Transformers
 open Scratch.Ast.Transformers
 module R = Scratch.Transformers.TransformResult
+module VOption = ValueOption
 
 
-[<Struct>]
-type PartialActivePatternResult<'T> =
-    /// `ValueNone`
-    | N
-    /// `ValueSome x`
-    | Y of 'T
-
-[<Struct>]
-type PartialActivePatternResult<'T1,'T2> =
-    /// `ValueNone`
-    | N2
-    /// `ValueSome struct(x1, x2)`
-    | Y2 of 'T1 * 'T2
-
-let (|ReadVariable|) = function
+[<return: Struct>]
+let (|ReadVariable|_|) = function
     | ComplexExpression(operator = O.readVariable; operands = [Literal(_, SString valueVarName)]) ->
-        Y valueVarName
+        ValueSome valueVarName
 
-    | _ -> N
+    | _ -> ValueNone
+    
+[<return: Struct>]
+let (|Add|_|) = function
+    | Complex(ComplexExpression(operator = O.``+``; operands = [e1; e2])) -> ValueSome struct(e1, e2)
+    | _ -> ValueNone
 
-let (|Add|) = function
-    | Complex(ComplexExpression(operator = O.``+``; operands = [e1; e2])) -> Y2(e1, e2)
-    | _ -> N2
+[<return: Struct>]
+let (|Sub|_|) = function
+    | Complex(ComplexExpression(operator = O.``-``; operands = [e1; e2])) -> ValueSome struct(e1, e2)
+    | _ -> ValueNone
 
-let (|Sub|) = function
-    | Complex(ComplexExpression(operator = O.``-``; operands = [e1; e2])) -> Y2(e1, e2)
-    | _ -> N2
+[<return: Struct>]
+let (|Mul|_|) = function
+    | Complex(ComplexExpression(operator = O.``*``; operands = [e1; e2])) -> ValueSome struct(e1, e2)
+    | _ -> ValueNone
 
-let (|Mul|) = function
-    | Complex(ComplexExpression(operator = O.``*``; operands = [e1; e2])) -> Y2(e1, e2)
-    | _ -> N2
+[<return: Struct>]
+let (|Div|_|) = function
+    | Complex(ComplexExpression(operator = O.``/``; operands = [e1; e2])) -> ValueSome struct(e1, e2)
+    | _ -> ValueNone
 
-let (|Div|) = function
-    | Complex(ComplexExpression(operator = O.``/``; operands = [e1; e2])) -> Y2(e1, e2)
-    | _ -> N2
-
-let (|Number|) = function
-    | Literal(_, SNumber x) -> Y x
-    | _ -> N
+[<return: Struct>]
+let (|Number|_|) = function
+    | Literal(_, SNumber x) -> ValueSome x
+    | _ -> ValueNone
 
 let hasExportTag tagged = Tagged.contains ExportTag tagged
 
@@ -166,7 +159,7 @@ let maxCost e = maxCostWith Cost.max (fun _ -> ValueNone) e
 let maxCostWithoutReadVariable e =
     e
     |> maxCostWith HasSideEffect (function
-        | ReadVariable(Y _) -> ValueSome Cost.min
+        | ReadVariable _ -> ValueSome Cost.min
         | _ -> ValueNone
     )
 
@@ -295,7 +288,7 @@ let replaceVar varName value es =
     
     R.mapList complex es
 
-let readVariables e = Expression.fold (fun vs -> function ReadVariable(Y n) -> n::vs | _ -> vs) [] e
+let readVariables e = Expression.fold (fun vs -> function ReadVariable n -> n::vs | _ -> vs) [] e
 
 let replaceVarToVarIfNotAssigned oldVar newValue e =
     let vars = readVariables newValue
@@ -382,10 +375,11 @@ let replaceVarToVarIfNotAssigned oldVar newValue e =
     
     complexes e
 
-let (|SetVar_To_|) = function
+[<return: Struct>]
+let (|SetVar_To_|_|) = function
     | ComplexExpression(operator = O.``setVar:to:``; operands = [Literal(_, SString varName); value]) ->
-        Y2(varName, value)
-    | _ -> N2
+        ValueSome struct(varName, value)
+    | _ -> ValueNone
 
 let hasReferenceAtChildren varName children =
     children

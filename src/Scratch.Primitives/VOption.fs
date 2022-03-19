@@ -30,3 +30,5 @@ let inline mapSeq ([<InlineIfLambda>] mapping) (xs: #seq<_>) =
     | null, true -> ValueNone
     | null, _ -> ValueSome([] :> _ seq)
     | _ -> ValueSome(xs :> _ seq)
+
+let inline defaultWith ([<InlineIfLambda>] defThunk) x = match x with ValueNone -> defThunk() | ValueSome x -> x

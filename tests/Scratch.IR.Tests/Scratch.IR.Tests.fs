@@ -10,6 +10,7 @@ open Xunit
 module E = Quotations.Patterns
 module Exp = Exp.Op
 module Types = ExpTypes
+module VOption = ValueOption
 #nowarn "0086"
 
 

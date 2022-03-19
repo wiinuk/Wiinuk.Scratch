@@ -22,6 +22,7 @@ module E = Quotations.Patterns
 module E = Quotations.DerivedPatterns
 module E = FSharp.Quotations.ExprShape
 module Exp = Exp.Op
+module VOption = ValueOption
 type private T = FSharp.Reflection.FSharpType
 type private E = FSharp.Quotations.Expr
 type private QVar = FSharp.Quotations.Var
@@ -34,8 +35,8 @@ let addReferenceMark (_: 'T) = ()
 module private Helpers =
     let underlyingTypeOrError e t = context {
         match underlyingType t with
-        | None -> return! InvalidExpressionType t |> raiseError e
-        | Some vType -> return vType
+        | ValueNone -> return! InvalidExpressionType t |> raiseError e
+        | ValueSome vType -> return vType
     }
 
     let deleteReferenceMarkMD, _ = findMethod <@ deleteReferenceMark @>
@@ -333,8 +334,8 @@ module private Helpers =
 
     let newUnionCase senv (c: UnionCaseInfo, es) source = context {
         match unionRepresentation c.DeclaringType with
-        | None -> return! skip()
-        | Some r ->
+        | ValueNone -> return! skip()
+        | ValueSome r ->
 
         let l = SourceCode.tag source
         match r with
@@ -351,33 +352,33 @@ module private Helpers =
 
             // new es
             match memoryLayout <| Choice2Of2 c with
-            | None -> return! skip()
-            | Some layout -> return! memoryNew senv (unionCaseId c) None es source layout
+            | ValueNone -> return! skip()
+            | ValueSome layout -> return! memoryNew senv (unionCaseId c) None es source layout
 
         // new es
         | RecordLikeUnion _ ->
             match memoryLayout <| Choice2Of2 c with
-            | None -> return! skip()
-            | Some layout -> return! memoryNew senv (unionCaseId c) None es source layout
+            | ValueNone -> return! skip()
+            | ValueSome layout -> return! memoryNew senv (unionCaseId c) None es source layout
 
         // new tag es
         | ComplexUnion _ ->
             match memoryLayout <| Choice2Of2 c with
-            | None -> return! skip()
-            | Some layout -> return! memoryNew senv (unionCaseId c) (Some (Exp.string l c.Name)) es source layout
+            | ValueNone -> return! skip()
+            | ValueSome layout -> return! memoryNew senv (unionCaseId c) (Some (Exp.string l c.Name)) es source layout
     }
     let expressionPlugin' senv e = context {
         let source = SourceCode.ofExpr e
         match e with
         | E.NewTuple es & ExprType t when newable t ->
             match memoryLayout (Choice1Of2 t) with
-            | None -> return! skip()
-            | Some layout -> return! memoryNew senv (typeId t) None es source layout
+            | ValueNone -> return! skip()
+            | ValueSome layout -> return! memoryNew senv (typeId t) None es source layout
 
         | E.NewRecord(t, es) when newable t ->
             match memoryLayout (Choice1Of2 t) with
-            | None -> return! skip()
-            | Some recordLayout -> return! memoryNew senv (typeId t) None es source recordLayout
+            | ValueNone -> return! skip()
+            | ValueSome recordLayout -> return! memoryNew senv (typeId t) None es source recordLayout
 
         | E.NewUnionCase(c, es) when newable c.DeclaringType -> return! newUnionCase senv (c, es) source
         | E.NewRecord(UnderlyingType _ & t, es) when isValueType t ->
@@ -422,14 +423,14 @@ module private Helpers =
             elif newable thisT && T.IsUnion(thisT, allowAccessToPrivateRepresentation = true) then
                 let repr = unionRepresentation thisT
                 match repr with
-                | None
-                | Some(UnitLikeUnion _)
-                | Some(EnumLikeUnion _) -> return failwithf "internal error"
-                | Some(OptionLikeUnion(_, case))
-                | Some(RecordLikeUnion case) ->
+                | ValueNone
+                | ValueSome(UnitLikeUnion _)
+                | ValueSome(EnumLikeUnion _) -> return failwithf "internal error"
+                | ValueSome(OptionLikeUnion(_, case))
+                | ValueSome(RecordLikeUnion case) ->
                     return! memoryCaseFieldGet senv this p false case source
 
-                | Some(ComplexUnion(case1, case2, cases)) ->
+                | ValueSome(ComplexUnion(case1, case2, cases)) ->
                     let cases = case1::case2::cases
                     let case = cases |> List.find (fun c -> c.GetFields() |> Seq.contains p)
                     return! memoryCaseFieldGet senv this p true case source
@@ -443,8 +444,8 @@ module private Helpers =
             if not (newable thisT && T.IsRecord thisT) then return! raiseError source <| InvalidPropertyType p else
 
             match TypeSpec.underlyingType p.PropertyType with
-            | None -> return! raiseError source <| InvalidPropertyType p
-            | Some _ ->
+            | ValueNone -> return! raiseError source <| InvalidPropertyType p
+            | ValueSome _ ->
 
             let l = getLoc e
             let! this = transpilePrimitiveExpression senv this
@@ -471,8 +472,8 @@ module private Helpers =
 
         | E.UnionCaseTest(this, c) when newable c.DeclaringType ->
             match unionRepresentation c.DeclaringType with
-            | None -> return! raiseError source <| InvalidUnionType c
-            | Some repr ->
+            | ValueNone -> return! raiseError source <| InvalidUnionType c
+            | ValueSome repr ->
 
             let! this = transpilePrimitiveExpression senv this
             let l = getLoc e
@@ -538,9 +539,9 @@ module private Helpers =
         | (E.NewRecord _ | E.NewTuple _) when newable e.Type ->
             let t = e.Type
             match memoryLayout (Choice1Of2 t) with
-            | None
-            | Some [] -> ()
-            | Some layout ->
+            | ValueNone
+            | ValueSome [] -> ()
+            | ValueSome layout ->
 
             let varName() = (get FConfig (get FExternalItemState senv.s.contents).externalEnv).typeName t
             do transpileExternalItemSpecs senv newRcE
@@ -549,9 +550,9 @@ module private Helpers =
 
         | E.NewUnionCase(u, _) when newable u.DeclaringType ->
             match memoryLayout (Choice2Of2 u) with
-            | None
-            | Some [] -> ()
-            | Some layout ->
+            | ValueNone
+            | ValueSome [] -> ()
+            | ValueSome layout ->
 
             let varName() = (get FConfig (get FExternalItemState senv.s.contents).externalEnv).unionCaseName u
             do transpileExternalItemSpecs senv newRcE

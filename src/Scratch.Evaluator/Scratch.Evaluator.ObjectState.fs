@@ -3,6 +3,7 @@ open Scratch
 open Scratch.Ast
 open Scratch.Primitives
 open System
+module VOption = ValueOption
 
 
 // type KnownListenerHeader<S, B> =

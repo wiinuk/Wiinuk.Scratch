@@ -537,10 +537,10 @@ module Field =
         let f =
             e
             |> Expr.tryPick (function
-                | Patterns.PropertyGet(_, m, _) -> ValueSome m
-                | _ -> ValueNone
+                | Patterns.PropertyGet(_, m, _) -> Some m
+                | _ -> None
             )
-            |> VOption.defaultWith (fun _ ->
+            |> Option.defaultWith (fun _ ->
                 failwith $"invalid record field expr: %A{e}"
             )
         recordFieldRaw f |> Field

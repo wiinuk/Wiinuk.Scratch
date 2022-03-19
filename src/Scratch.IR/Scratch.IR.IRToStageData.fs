@@ -12,6 +12,7 @@ module A = Expression
 module A = Expressions
 module Types = ExpTypes
 module Types = MemberTypes
+module VOption = ValueOption
 
 
 [<AutoOpen>]

@@ -4,6 +4,7 @@ open Scratch.Primitives
 open Scratch.Serialization.Sb3.Ast
 open Scratch.Serialization.Sb3.OpCodeSpecs
 open System.Text.RegularExpressions
+module VOption = ValueOption
 
 
 module Target =

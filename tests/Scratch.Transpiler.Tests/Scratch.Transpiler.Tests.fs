@@ -146,11 +146,10 @@ let typeSizeTest() =
     defineTypeSize<StructA> =? Size.unsafeOfNumber<StructA> 2
 
 let valueLayout t =
-    match valueLayout t with
-    | None -> failwithf "valueLayout undefined: %A" t
-    | Some l ->
-
-    l
+    valueLayout t
+    |> VOption.defaultWith (fun _ ->
+        failwithf "valueLayout undefined: %A" t
+    )
     |> List.map (fun (UnderlyingTypeSpec(t, p, k)) ->
         let p = withMemberPath Main.defaultConfig "" p
         let t = match t with Any -> "Any" | Typed SType.B -> "B" | Typed SType.N -> "N" | Typed SType.S -> "S"

@@ -6,6 +6,7 @@ open Scratch.Primitives
 open System.Collections.Generic
 open Xunit
 open Scratch.Test.AssertionWithDiff.Operators
+module VOption = ValueOption
 
 
 module ComplexBlock =

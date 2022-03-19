@@ -6,6 +6,7 @@ open Scratch.Primitives
 open Scratch.Ast
 open Scratch.AstDefinitions
 open Scratch.Executor
+module VOption = ValueOption
 
 
 let screenWidth = 480.

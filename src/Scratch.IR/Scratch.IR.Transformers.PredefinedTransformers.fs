@@ -13,6 +13,7 @@ open Scratch.IR.Transformers.Transformer
 open System.Runtime.CompilerServices
 
 module R = Scratch.Transformers.TransformResult
+module VOption = ValueOption
 
 [<AutoOpen>]
 module private CostHelpers =

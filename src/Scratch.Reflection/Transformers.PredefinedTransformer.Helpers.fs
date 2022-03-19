@@ -54,7 +54,7 @@ let (|CallOrNewUnionCaseOrNewObject|_|) = function
     | E.NewObject(c, args) -> ValueSome(Choice3Of3 c, args)
     | _ -> ValueNone
 
-let has m e = tryFindRecursiveCall m e |> VOption.isSome
+let has m e = tryFindRecursiveCall m e |> Option.isSome
 
 let inlining this args vvs body lambda =
     let args = match this with None -> args | Some x -> x::args

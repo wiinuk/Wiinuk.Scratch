@@ -4,6 +4,7 @@ open Scratch.AstDefinitions
 open Scratch.IR
 open Scratch.Primitives
 open System.Collections.Generic
+module VOption = ValueOption
 
 
 [<Struct>]

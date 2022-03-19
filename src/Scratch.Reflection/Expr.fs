@@ -18,7 +18,7 @@ type private T = FSharp.Reflection.FSharpType
 let tryPick pick e =
     let rec tryPick pick e =
         match pick e with
-        | ValueSome x -> Some x
+        | Some _ as r -> r
         | _ ->
 
         match e with
@@ -26,7 +26,7 @@ let tryPick pick e =
         | E.ShapeLambda(_, e) -> tryPick pick e
         | E.ShapeCombination(_, es) -> List.tryPick (tryPick pick) es
 
-    tryPick pick e |> VOption.unbox
+    tryPick pick e
 
 module internal ToLinqExpression =
     open System.Linq.Expressions
@@ -645,26 +645,27 @@ let tryFindRecursiveCall m e =
     let mutable visitedMethods = []
     let rec visitMethod m' e =
         let m' = genericTypeGenericMethodDefinition m'
-        if m = m' then ValueSome struct(m', e) else
+        if m = m' then Some struct(m', e) else
 
-        if List.contains m' visitedMethods then ValueNone else
+        if List.contains m' visitedMethods then None else
         visitedMethods <- m'::visitedMethods
 
         match m' with
         | E.MethodWithReflectedDefinition body -> aux body
-        | _ -> ValueNone
+        | _ -> None
 
     and aux e =
         e
-        |> tryPick (function
-            | E.Call(_, m', _) as e -> visitMethod m' e
-            | E.PropertyGet(_, p, _) as e -> visitMethod p.GetMethod e
-            | E.PropertySet(_, p, _, _) as e -> visitMethod p.SetMethod e
+        |> tryPick (fun e ->
+            match e with
+            | E.Call(_, m', _) -> visitMethod m' e
+            | E.PropertyGet(_, p, _) -> visitMethod p.GetMethod e
+            | E.PropertySet(_, p, _, _) -> visitMethod p.SetMethod e
 
             // コンストラクタはインライン展開しない
             //| E.NewObject(c, _) -> 
 
-            | _ -> ValueNone
+            | _ -> None
         )
 
     aux e

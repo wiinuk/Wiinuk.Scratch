@@ -9,6 +9,7 @@ open Scratch.Evaluator
 open Scratch.Evaluator.Expressions
 open Scratch.Evaluator.ObjectState
 open FiberBuilderDelay
+module VOption = ValueOption
 
 
 let screenWidth = 480.

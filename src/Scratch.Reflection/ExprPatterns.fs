@@ -6,7 +6,6 @@ open Scratch.Primitives
 open Scratch.Reflection.Expr
 module E = FSharp.Quotations.Patterns
 module E = FSharp.Quotations.DerivedPatterns
-module VOption = ValueOption
 type private T = FSharp.Reflection.FSharpType
 
 
@@ -111,10 +110,10 @@ let inline private getCaseOrRaise templateParameter =
     let c =
         templateParameter
         |> tryPick (function
-            | E.NewUnionCase(c, _) -> ValueSome c
-            | _ -> ValueNone
+            | E.NewUnionCase(c, _) -> Some c
+            | _ -> None
         )
-        |> VOption.defaultWith (fun _ ->
+        |> Option.defaultWith (fun _ ->
             invalidArg "templateParameter" "e.g. <@ Some @>"
         )
     struct(c.Tag, let (GenericTypeDefinition t) = c.DeclaringType in t)
@@ -142,10 +141,10 @@ let (|SpecificUnionCaseFieldGet|_|) templateParameter =
     let struct(GenericTypeDefinition t, name) =
         templateParameter
         |> tryPick (function
-            | E.PropertyGet(Some u, p, []) when T.IsUnion(u.Type, true) -> ValueSome struct(u.Type, p.Name)
-            | _ -> ValueNone
+            | E.PropertyGet(Some u, p, []) when T.IsUnion(u.Type, true) -> Some struct(u.Type, p.Name)
+            | _ -> None
         )
-        |> VOption.defaultWith (fun _->
+        |> Option.defaultWith (fun _->
             invalidArg "templateParameter" "e.g. <@ function Some x -> Some x | _ -> None @>"
         )
 

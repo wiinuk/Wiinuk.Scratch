@@ -279,10 +279,10 @@ let scratchCallExpressions() = [
             return
                 recordField
                 |> Expr.tryPick (function
-                    | E.PropertyGet(_, m, _) -> ValueSome m
-                    | _ -> ValueNone
+                    | E.PropertyGet(_, m, _) -> Some m
+                    | _ -> None
                 )
-                |> VOption.defaultWith (fun _ ->
+                |> Option.defaultWith (fun _ ->
                     failwith $"invalid record field expr: %A{recordField}"
                 )
                 |> Field.recordFieldRaw
