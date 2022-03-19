@@ -187,13 +187,13 @@ let costumeDataFromResource costumeName bitmapResolution rotationCenterX rotatio
     }
 }
 
-let inline fixField get update fix x = async {
+let inline fixField ([<InlineIfLambda>] get) ([<InlineIfLambda>] update) ([<InlineIfLambda>] fix) x = async {
     match! fix (get x) with
     | None -> return None
     | Some v -> return Some (update x v)
 }
 
-let inline (>>?) f1 f2 x = async {
+let inline (>>?) ([<InlineIfLambda>] f1) f2 x = async {
     match! f1 x with
     | None -> return! f2 x
     | Some x ->

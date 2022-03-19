@@ -25,7 +25,7 @@ module VOption = ValueOption
 type private QVar = Quotations.Var
 
 
-let inline transpilePrimitiveBinaryCallExpression senv x1 x2 call make =
+let inline transpilePrimitiveBinaryCallExpression senv x1 x2 call ([<InlineIfLambda>] make) =
     let e1 = transpilePrimitiveExpression senv x1
     let e2 = transpilePrimitiveExpression senv x2
     make (getLocation call |> Tagged.empty) e1 e2 |> Ok
@@ -179,52 +179,52 @@ let formatCallToOutCall senv lastOutAsNewLine formatL head tail source = context
 
 let iwordToConstant l u = Exp.lit l (toV u)
 
-let inline binaryTypePred3 pred make senv = function
+let inline binaryTypePred3 ([<InlineIfLambda>] pred) ([<InlineIfLambda>] make) senv = function
     | struct((_, [t1; t2; tr], [x1; x2]), e) when pred t1 t2 tr -> transpilePrimitiveBinaryCallExpression senv x1 x2 e make
     | _ -> skip()
 
-let inline binaryTypePred1 pred make senv = function
+let inline binaryTypePred1 ([<InlineIfLambda>] pred) ([<InlineIfLambda>] make) senv = function
     | struct((_, [t1], [x1; x2]), e) when pred t1 -> transpilePrimitiveBinaryCallExpression senv x1 x2 e make
     | _ -> skip()
 
-let inline unary f senv = function
+let inline unary ([<InlineIfLambda>] f) senv = function
     | struct((_, _, [x1]), _) -> f senv x1
     | _ -> skip()
 
-let inline unaryWithE f senv = function
+let inline unaryWithE ([<InlineIfLambda>] f) senv = function
     | struct((_, _, [x1]), e) -> f senv x1 e
     | _ -> skip()
 
-let inline unaryWithS f senv e =
+let inline unaryWithS ([<InlineIfLambda>] f) senv e =
     unaryWithE (fun senv x1 e -> f senv x1 (SourceCode.ofExpr e)) senv e
 
-let inline single e f x = [e], f x
+let inline single e ([<InlineIfLambda>] f) x = [e], f x
 
-let inline unaryType1WithE f senv = function
+let inline unaryType1WithE ([<InlineIfLambda>] f) senv = function
     | struct((_, [t1], [e1]), e) -> f senv t1 e1 e
     | _ -> skip()
 
-let inline unaryType2WithS f senv = function
+let inline unaryType2WithS ([<InlineIfLambda>] f) senv = function
     | struct((_, [t1;t2], [e1]), e) -> f senv t1 t2 e1 (SourceCode.ofExpr e)
     | _ -> skip()
 
-let inline nullaryWithS f senv = function
+let inline nullaryWithS ([<InlineIfLambda>] f) senv = function
     | struct((_, _, []), e) -> f senv (SourceCode.ofExpr e)
     | _ -> skip()
 
-let inline binaryWithE f senv = function
+let inline binaryWithE ([<InlineIfLambda>] f) senv = function
     | struct((_, _, [e1; e2]), e) -> f senv e1 e2 e
     | _ -> skip()
 
-let inline binaryWithS f senv e =
+let inline binaryWithS ([<InlineIfLambda>] f) senv e =
     binaryWithE (fun senv e1 e2 e -> f senv e1 e2 (SourceCode.ofExpr e)) senv e
 
-let inline binaryPrimitive f = binaryWithS <| fun senv e1 e2 s -> context {
+let inline binaryPrimitive ([<InlineIfLambda>] f) = binaryWithS <| fun senv e1 e2 s -> context {
     let! e1 = transpilePrimitiveExpression senv e1
     let! e2 = transpilePrimitiveExpression senv e2
     return f (SourceCode.tag s) e1 e2
 }
-let inline ternaryWithS f senv = function
+let inline ternaryWithS ([<InlineIfLambda>] f) senv = function
     | struct((_, _, [e1; e2; e3]), e) -> f senv e1 e2 e3 (SourceCode.ofExpr e)
     | _ -> skip()
 
@@ -236,7 +236,7 @@ let inline mathFunction f senv struct(args, e) = context {
     | _ -> return! skip()
 }
 
-let inline spriteInstanceCallWithS (template: Quotations.Expr<Sprite -> _>) f = [template :> Quotations.Expr], fun senv struct(args, e) ->
+let inline spriteInstanceCallWithS (template: Quotations.Expr<Sprite -> _>) ([<InlineIfLambda>] f) = [template :> Quotations.Expr], fun senv struct(args, e) ->
     match args with
     | Some(SpriteOrProcedureThis senv ()), _, args -> f senv args (SourceCode.ofExpr e)
     | _ -> skip()

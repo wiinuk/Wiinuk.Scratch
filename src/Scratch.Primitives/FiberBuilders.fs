@@ -8,7 +8,7 @@ with
     interface IGeneratorBuilder
 
 type FiberBuilder with
-    member inline _.Bind(x, f) = Fiber.bind (let f = Func.ofFun f in &f) &x
+    member inline _.Bind(x, [<InlineIfLambda>] f) = Fiber.bind (let f = Func.ofFun f in &f) &x
     member inline _.Return x = Fiber.result x
     member inline _.ReturnFrom x = x
     member inline _.Zero() = Fiber.zero
@@ -18,19 +18,19 @@ type FiberBuilder with
 module FiberBuilderDelay =
     type FiberBuilder with
         member inline _.Delay x = x
-        member inline _.Combine(x1, cont) = Fiber.combine &x1 (let cont = Func.ofFun cont in &cont)
-        member inline _.For(xs, action) = Fiber.for' action xs
+        member inline _.Combine(x1, [<InlineIfLambda>] cont) = Fiber.combine &x1 (let cont = Func.ofFun cont in &cont)
+        member inline _.For(xs, [<InlineIfLambda>] action) = Fiber.for' action xs
         // <@ while %e1 do %e2 @> => <@ $b.While((fun () -> %e1), $b.Delay(fun () -> %(c e2))) @>
-        member inline _.While(test, body) = Fiber.while' (let test = Func.ofFun test in &test) (let body = Func.ofFun body in &body)
+        member inline _.While([<InlineIfLambda>] test, [<InlineIfLambda>] body) = Fiber.while' (let test = Func.ofFun test in &test) (let body = Func.ofFun body in &body)
         // <@ try %e1 with | .. | $pi -> %ci @> => <@ $b.TryWith($b.Delay(fun () -> %(c e1)), function | .. | $pi -> %(c ci)) @>
-        member inline _.TryWith(body, handler) = Fiber.tryWith (let body = Func.ofFun body in &body) (let handler = Func.ofFun handler in &handler)
-        member inline _.Run f = Fiber.delay (let f = Func.ofFun f in &f)
+        member inline _.TryWith([<InlineIfLambda>] body, [<InlineIfLambda>] handler) = Fiber.tryWith (let body = Func.ofFun body in &body) (let handler = Func.ofFun handler in &handler)
+        member inline _.Run([<InlineIfLambda>] f) = Fiber.delay (let f = Func.ofFun f in &f)
 
 type FiberBuilderPoly = | FiberBuilderPoly
 with
     interface IGeneratorBuilder
 
-    member inline _.Bind(x: #fiber<_,_,_>, f): fiber<_,_,_> = upcast Fiber.bind (let f = Func.ofFun f in &f) &x
+    member inline _.Bind(x: #fiber<_,_,_>, [<InlineIfLambda>] f): fiber<_,_,_> = upcast Fiber.bind (let f = Func.ofFun f in &f) &x
     member inline _.Return x: fiber<_,_,_> = upcast Fiber.result x
     member inline _.ReturnFrom x = x
     member inline _.Zero(): fiber<_,_,_> = upcast Fiber.zero
@@ -38,11 +38,11 @@ with
     member inline _.YieldFrom x = x
 
     member inline _.Delay x = x
-    member inline _.Combine(x1: #fiber<_,_,_>, cont): fiber<_,_,_> = upcast Fiber.combine &x1 (let cont = Func.ofFun cont in &cont)
-    member inline _.For(xs, action): fiber<_,_,_> = upcast Fiber.for' action xs
-    member inline _.While(test, body): fiber<_,_,_> = upcast Fiber.while' (let test = Func.ofFun test in &test) (let body = Func.ofFun body in &body)
-    member inline _.TryWith(body, handler): fiber<_,_,_> = upcast Fiber.tryWith (let body = Func.ofFun body in &body) (let handler = Func.ofFun handler in &handler)
-    member inline _.Run f = Fiber.delay (let f = Func.ofFun f in &f)
+    member inline _.Combine(x1: #fiber<_,_,_>, [<InlineIfLambda>] cont): fiber<_,_,_> = upcast Fiber.combine &x1 (let cont = Func.ofFun cont in &cont)
+    member inline _.For(xs, [<InlineIfLambda>] action): fiber<_,_,_> = upcast Fiber.for' action xs
+    member inline _.While(test, [<InlineIfLambda>] body): fiber<_,_,_> = upcast Fiber.while' (let test = Func.ofFun test in &test) (let body = Func.ofFun body in &body)
+    member inline _.TryWith([<InlineIfLambda>] body, [<InlineIfLambda>] handler): fiber<_,_,_> = upcast Fiber.tryWith (let body = Func.ofFun body in &body) (let handler = Func.ofFun handler in &handler)
+    member inline _.Run([<InlineIfLambda>] f) = Fiber.delay (let f = Func.ofFun f in &f)
 
 [<Struct>]
 [<NoComparison; NoEquality>]
@@ -51,7 +51,7 @@ with
     interface IGeneratorBuilder
 
 type FiberBuilderPolyWith<'T,'E,'R,'C> with
-    member inline _.Bind(x: #fiber<_,_,_>, f): fiber<_,_,_> = upcast Fiber.bind (let f = Func.ofFun f in &f) &x
+    member inline _.Bind(x: #fiber<_,_,_>, [<InlineIfLambda>] f): fiber<_,_,_> = upcast Fiber.bind (let f = Func.ofFun f in &f) &x
     member inline _.Return x: fiber<_,_,_> = upcast Fiber.result x
     member inline _.ReturnFrom x = x
     member inline _.Zero(): fiber<_,_,_> = upcast Fiber.zero
@@ -59,12 +59,12 @@ type FiberBuilderPolyWith<'T,'E,'R,'C> with
     member inline _.YieldFrom x = x
 
     member inline _.Delay x = x
-    member inline _.Combine(x1: #fiber<_,_,_>, cont): fiber<_,_,_> = upcast Fiber.combine &x1 (let cont = Func.ofFun cont in &cont)
-    member inline _.For(xs, action): fiber<_,_,_> = upcast Fiber.for' action xs
-    member inline _.While(test, body): fiber<_,_,_> = upcast Fiber.while' (let test = Func.ofFun test in &test) (let body = Func.ofFun body in &body)
-    member inline _.TryWith(body, handler): fiber<_,_,_> = upcast Fiber.tryWith (let body = Func.ofFun body in &body) (let handler = Func.ofFun handler in &handler)
+    member inline _.Combine(x1: #fiber<_,_,_>, [<InlineIfLambda>] cont): fiber<_,_,_> = upcast Fiber.combine &x1 (let cont = Func.ofFun cont in &cont)
+    member inline _.For(xs, [<InlineIfLambda>] action): fiber<_,_,_> = upcast Fiber.for' action xs
+    member inline _.While([<InlineIfLambda>] test, [<InlineIfLambda>] body): fiber<_,_,_> = upcast Fiber.while' (let test = Func.ofFun test in &test) (let body = Func.ofFun body in &body)
+    member inline _.TryWith([<InlineIfLambda>] body, [<InlineIfLambda>] handler): fiber<_,_,_> = upcast Fiber.tryWith (let body = Func.ofFun body in &body) (let handler = Func.ofFun handler in &handler)
 
-    member inline b.Run f =
+    member inline b.Run([<InlineIfLambda>] f) =
         let f = Fiber.delay (let f = Func.ofFun f in &f)
         let (FiberBuilderPolyWith b) = b in b f
 
@@ -75,7 +75,7 @@ with
     interface IGeneratorBuilder
 
 type GeneratorPolyWith<'F,'T,'E,'R,'C> when 'F :> fiber<'T,'E,'R> with
-    member inline _.Bind(x: #fiber<_,_,_>, f): fiber<_,_,_> = upcast Fiber.bind (let f = Func.ofFun f in &f) &x
+    member inline _.Bind(x: #fiber<_,_,_>, [<InlineIfLambda>] f): fiber<_,_,_> = upcast Fiber.bind (let f = Func.ofFun f in &f) &x
     member inline _.Return x: fiber<_,_,_> = upcast Fiber.result x
     member inline _.ReturnFrom x = x
     member inline _.Zero(): fiber<_,_,_> = upcast Fiber.zero
@@ -83,12 +83,12 @@ type GeneratorPolyWith<'F,'T,'E,'R,'C> when 'F :> fiber<'T,'E,'R> with
     member inline _.YieldFrom x = x
 
     member inline _.Delay x = x
-    member inline _.Combine(x1: #fiber<_,_,_>, cont): fiber<_,_,_> = upcast Fiber.combine &x1 (let cont = Func.ofFun cont in &cont)
-    member inline _.For(xs, action): fiber<_,_,_> = upcast Fiber.for' action xs
-    member inline _.While(test, body): fiber<_,_,_> = upcast Fiber.while' (let test = Func.ofFun test in &test) (let body = Func.ofFun body in &body)
-    member inline _.TryWith(body, handler): fiber<_,_,_> = upcast Fiber.tryWith (let body = Func.ofFun body in &body) (let handler = Func.ofFun handler in &handler)
+    member inline _.Combine(x1: #fiber<_,_,_>, [<InlineIfLambda>] cont): fiber<_,_,_> = upcast Fiber.combine &x1 (let cont = Func.ofFun cont in &cont)
+    member inline _.For(xs, [<InlineIfLambda>] action): fiber<_,_,_> = upcast Fiber.for' action xs
+    member inline _.While(test, [<InlineIfLambda>] body): fiber<_,_,_> = upcast Fiber.while' (let test = Func.ofFun test in &test) (let body = Func.ofFun body in &body)
+    member inline _.TryWith(body, [<InlineIfLambda>] handler): fiber<_,_,_> = upcast Fiber.tryWith (let body = Func.ofFun body in &body) (let handler = Func.ofFun handler in &handler)
 
-    member inline b.Run f = let (GeneratorPolyWith b) = b in b (Generator.delay f)
+    member inline b.Run([<InlineIfLambda>] f) = let (GeneratorPolyWith b) = b in b (Generator.delay f)
 
 [<AutoOpen>]
 module FiberBuilderOperations =

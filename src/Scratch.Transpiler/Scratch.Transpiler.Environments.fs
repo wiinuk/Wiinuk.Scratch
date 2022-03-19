@@ -366,7 +366,7 @@ type SE<'S,'E> = { s: 'S ref; e: 'E } with
 
 type PluginProcess<'E,'S,'T,'R> = SE<'S,'E> -> 'T -> Result<'R, PluginError>
 
-let inline compose c1 c2 e s =
+let inline compose ([<InlineIfLambda>] c1) ([<InlineIfLambda>] c2) e s =
     match c1 e s with
     | Ok _ as r -> r
     | Error None -> c2 e s
@@ -663,9 +663,9 @@ let rec choice env state e = function
     | Some _ as r -> r
     | None -> choice env state e ps
 
-let inline localEnv senv mapEnv f = f { s = senv.s; e = mapEnv senv.e }
+let inline localEnv senv ([<InlineIfLambda>] mapEnv) ([<InlineIfLambda>] f) = f { s = senv.s; e = mapEnv senv.e }
 
-let inline run senv f =
+let inline run senv ([<InlineIfLambda>] f) =
     let r, state = f senv.e senv.s.contents
     senv.s.contents <- state
     r

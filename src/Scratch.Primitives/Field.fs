@@ -11,9 +11,9 @@ module Field =
     /// like `{ x with f = v }`
     let wiz (s: 's when 's :> IFieldShape<_,_> and 's : struct) v x = s.With(x, v)
     /// like `{ x with f = mapping x.f }`
-    let inline map s mapping x = wiz s (mapping (get s x)) x
+    let inline map s ([<InlineIfLambda>] mapping) x = wiz s (mapping (get s x)) x
     /// like `scope { x with f = mapping x.f }`
-    let inline local s x mapping scope = scope (map s mapping x)
+    let inline local s x ([<InlineIfLambda>] mapping) ([<InlineIfLambda>] scope) = scope (map s mapping x)
     let (|Get|) s x = get s x
 
     [<Struct; RequireQualifiedAccess>]
@@ -24,12 +24,12 @@ module Field =
 
     let compose (_s1: 's1) (_s2: 's2): Compose<'s1,'s2,_,_,_> = Compose.Compose
 
-    let inline runRef s ref f =
+    let inline runRef s ref ([<InlineIfLambda>] f) =
         let states = ref.contents
         let r, state = f (get s states)
         ref.contents <- wiz s state states
         r
     
-    let inline modifyRef s ref f =
+    let inline modifyRef s ref ([<InlineIfLambda>] f) =
         let states = ref.contents
         ref.contents <- wiz s (f (get s states)) states

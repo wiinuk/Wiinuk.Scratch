@@ -3,11 +3,11 @@
 type ResultBuilder = | ResultBuilder with
     member inline _.Return x = Ok x
     member inline _.ReturnFrom x = x
-    member inline _.Bind(x, f) = match x with Ok x -> f x | Error x -> Error x
+    member inline _.Bind(x, [<InlineIfLambda>] f) = match x with Ok x -> f x | Error x -> Error x
     member inline _.Zero() = Ok()
-    member inline _.Combine(m1, m2) = match m1 with Ok() -> m2() | Error x -> Error x
-    member inline _.Delay f = f
-    member inline _.Run f = f()
+    member inline _.Combine(m1, [<InlineIfLambda>] m2) = match m1 with Ok() -> m2() | Error x -> Error x
+    member inline _.Delay([<InlineIfLambda>] f: _ -> _) = f
+    member inline _.Run([<InlineIfLambda>] f) = f()
 
 [<AutoOpen>]
 module ResultOperators =

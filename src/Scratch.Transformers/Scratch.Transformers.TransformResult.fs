@@ -14,9 +14,8 @@ let isSkip r = r.tag &&& T.Skip <> T.None
 let isRemoved r = r.tag &&& T.RemovedMask <> T.None
 let valueOrOld oldValue r = if isNoModify r then oldValue else r.value
 
-let inline private map mapping r = { tag = r.tag; value = mapping r.value }
 /// if (isNoModify x || isRemoved x) then oldValue else f x
-let inline mapIfModified oldValue f x =
+let inline mapIfModified oldValue ([<InlineIfLambda>] f) x =
     if isNoModify x || isRemoved x then { tag = x.tag; value = oldValue }
     else { tag = x.tag; value = f x.value }
 
@@ -49,7 +48,7 @@ let mergeState destination target = {
     value = target.value
 }
 
-let inline sequence2 f1 f2 = fun struct(x1, x2) ->
+let inline sequence2 ([<InlineIfLambda>] f1) ([<InlineIfLambda>] f2) = fun struct(x1, x2) ->
     let r1 = f1 x1
     let x1 = if isNoModify r1 then x1 else r1.value
     if isSkip r1 then
@@ -63,7 +62,7 @@ let inline sequence2 f1 f2 = fun struct(x1, x2) ->
         value = struct(x1, x2)
     }
 
-let inline parallel2 f1 f2 = fun struct(x1, x2) ->
+let inline parallel2 ([<InlineIfLambda>] f1) ([<InlineIfLambda>] f2) = fun struct(x1, x2) ->
     let r1 = f1 x1
     let r2 = f2 x2
     {
@@ -131,7 +130,7 @@ let mapList f xs =
     let struct(xs, _) = mapFoldListV { MapListMapping.f = f } HUnit xs
     xs
 
-let inline compose t1 t2 x env =
+let inline compose ([<InlineIfLambda>] t1) ([<InlineIfLambda>] t2) x env =
     let x' = t1 x env
     let x'' = t2 x'.value env
     { tag = x'.tag ||| x''.tag; value = x''.value }

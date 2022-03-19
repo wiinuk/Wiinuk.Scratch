@@ -44,7 +44,7 @@ let vtyped state name x = typed' (V.Var(name, newTVar state)) x
 let raiseError env location error = raise <| DetranspileException(env.procedureEnv.inferEnv.config.showLocation location, error, null)
 let addWarning env location warning = env.inferEnv.warnings.Add <| DetranspileWarning(location, warning)
 
-let inline tryGetOrAddWarning env location name types error =
+let inline tryGetOrAddWarning env location name types ([<InlineIfLambda>] error) =
     match Map.tryFind name types with
     | ValueSome _ as t -> t
     | ValueNone ->

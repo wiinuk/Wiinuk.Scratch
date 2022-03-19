@@ -318,7 +318,7 @@ module private AsyncHelpers =
     let (|SpriteWhenGreenFlagGet|_|) = (|SpecificPropertyGet|_|) <@ fun (s: Sprite) -> s.WhenGreenFlag @>
     let (|SpriteWhenIReceiveCall|_|) = E.(|SpecificCall|_|) <@ fun (s: Sprite) -> s.WhenIReceive @>
 
-    let inline transpileBuilderItem senv f e2 = context {
+    let inline transpileBuilderItem senv ([<InlineIfLambda>] f) e2 = context {
         do! transpileAccAsWhenGreenFlag senv
         do! f senv
         do! transpileItems senv e2

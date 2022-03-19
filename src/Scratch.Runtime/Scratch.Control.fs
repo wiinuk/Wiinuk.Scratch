@@ -15,13 +15,13 @@ with
     interface IGeneratorBuilder
 
 type TightropeBuilder with
-    member inline _.Bind(x: #tightrope<_>, f: _ -> #tightrope<_>): tightrope<_> = upcast Fiber.bind (let f = Func.ofFun f in &f) &x
+    member inline _.Bind(x: #tightrope<_>, [<InlineIfLambda>] f: _ -> #tightrope<_>): tightrope<_> = upcast Fiber.bind (let f = Func.ofFun f in &f) &x
     member inline _.Return x: tightrope<_> = upcast Fiber.result x
     member inline _.ReturnFrom (x: #tightrope<_>) = x
     member inline _.Combine(x1: #tightrope<_>, x2: #tightrope<_>): tightrope<_> = upcast Fiber.combine &x2 &x1
-    member inline _.Delay(f: _ -> #tightrope<_>) = f
+    member inline _.Delay([<InlineIfLambda>] f: _ -> #tightrope<_>) = f
     member inline _.Zero(): tightrope<_> = upcast Fiber.zero
-    member inline _.Run (f: unit -> #tightrope<_>) = Fiber.delay (let f = Func.ofFun f in &f)
+    member inline _.Run ([<InlineIfLambda>] f: unit -> #tightrope<_>) = Fiber.delay (let f = Func.ofFun f in &f)
 
 [<AutoOpen>]
 module GeneratorBuilderOperations =
@@ -35,13 +35,13 @@ module AtomicGeneratorBuilderOperations =
     let atomic = AtomicGeneratorBuilder
 
 type AtomicGeneratorBuilder with
-    member inline _.Bind(x: #tightrope<_>, f: _ -> #tightrope<_>): tightrope<_> = upcast Fiber.bind (let f = Func.ofFun f in &f) &x
+    member inline _.Bind(x: #tightrope<_>, [<InlineIfLambda>] f: _ -> #tightrope<_>): tightrope<_> = upcast Fiber.bind (let f = Func.ofFun f in &f) &x
     member inline _.Return x: tightrope<_> = upcast Fiber.result x
     member inline _.ReturnFrom (x: #tightrope<_>) = x
     member inline _.Combine(x1: #tightrope<_>, x2: #tightrope<_>): tightrope<_> = upcast Fiber.combine &x2 &x1
-    member inline _.Delay(f: _ -> #tightrope<_>) = f
+    member inline _.Delay([<InlineIfLambda>] f: _ -> #tightrope<_>) = f
     member inline _.Zero(): tightrope<_> = upcast Fiber.zero
-    member inline _.Run(f: _ -> #tightrope<_>) =
+    member inline _.Run([<InlineIfLambda>] f: _ -> #tightrope<_>) =
         let f = Fiber.delay (let f = Func.ofFun f in &f)
         Atomic.doAtomic &f
 
@@ -49,8 +49,8 @@ module AtomicGeneratorFull =
     type AtomicGeneratorBuilder with
         member inline _.Yield x = Fiber.singleton x
         member inline _.YieldFrom x = x
-        member inline _.For(xs, action) = Fiber.for' action xs
-        member inline _.While(test, body) = Fiber.while' (let test = Func.ofFun test in &test) (let body = Func.ofFun body in &body)
+        member inline _.For(xs, [<InlineIfLambda>] action) = Fiber.for' action xs
+        member inline _.While([<InlineIfLambda>] test, [<InlineIfLambda>] body) = Fiber.while' (let test = Func.ofFun test in &test) (let body = Func.ofFun body in &body)
         member inline _.TryWith(body, handler) = Fiber.tryWith &body &handler
 
 [<AutoOpen>]

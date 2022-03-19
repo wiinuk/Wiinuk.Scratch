@@ -68,7 +68,7 @@ let nullary prec f = function
     | ComplexExpression(operands = []) -> withPrec prec f
     | _ -> skip()
 
-let inline spriteOnly x f = context {
+let inline spriteOnly x ([<InlineIfLambda>] f) = context {
     let! env = Context.environment
     match env.expressionEnv.self with
     | None -> return! skip()
@@ -91,7 +91,7 @@ let inline spriteMethodOnly spriteMethod x = spriteOnly x <| fun struct(sprite, 
     let! call = prettySpriteMethodCall spriteMethod sprite operands
     return struct(call, Precedence.Call)
 }
-let inline spriteCall1 x f = spriteOnly x <| function
+let inline spriteCall1 x ([<InlineIfLambda>] f) = spriteOnly x <| function
     | struct(sprite, ComplexExpression(operands = [e])) ->
         withPrec Precedence.Call <| f struct(sprite, e)
     | _ -> skip()

@@ -18,7 +18,7 @@ module E = FSharp.Quotations.Patterns
 
 [<AutoOpen>]
 module private Helpers =
-    let inline toResult f = function ValueNone -> f() | ValueSome x -> Ok x
+    let inline toResult ([<InlineIfLambda>] f) = function ValueNone -> f() | ValueSome x -> Ok x
     module TsType =
         let ofType t =
             TypeSpec.underlyingPrimitiveType t

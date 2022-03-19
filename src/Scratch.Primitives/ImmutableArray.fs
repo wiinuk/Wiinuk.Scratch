@@ -116,7 +116,7 @@ module IArray =
     let item index xs: 'T when 'T : not struct = ref index xs
     let head xs = item 0 xs
 
-    let inline mapToArray mapping xs =
+    let inline mapToArray ([<InlineIfLambda>] mapping) xs =
         let result = Array.zeroCreate (length xs)
         for i = 0 to length xs - 1 do
             result[i] <- mapping (xs.Address i)
@@ -133,7 +133,7 @@ module IArray =
     let ofSeq xs = { items = Seq.toArray xs }
 
     let isEmpty xs = length xs = 0
-    let inline map mapping xs =
+    let inline map ([<InlineIfLambda>] mapping) xs =
         if isEmpty xs then empty else
 
         let items = Unchecked.unwrapArray xs
@@ -142,14 +142,14 @@ module IArray =
             items2[i] <- mapping items[i]
         Unchecked.wrapArray items2
         
-    let inline fold folder state (xs: 'A when 'A :> #IStrongReadonlyArray<_,'e> and 'A : struct and 'e :> IEnumerator<_>) =
+    let inline fold ([<InlineIfLambda>] folder) state (xs: 'A when 'A :> #IStrongReadonlyArray<_,'e> and 'A : struct and 'e :> IEnumerator<_>) =
         let mutable state = state
         use mutable e = xs.GetEnumerator()
         while e.MoveNext() do
             state <- folder state e.Current
         state
 
-    let inline findIndex predicate xs =
+    let inline findIndex ([<InlineIfLambda>] predicate) xs =
         let mutable i, result = 0, ValueNone
         while
             if length xs < i then

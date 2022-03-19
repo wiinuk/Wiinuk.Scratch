@@ -688,7 +688,7 @@ let openName specs openName =
 
 let openNames names specs = Seq.fold openName specs names
 
-let inline lookupCore getMap error location name = context {
+let inline lookupCore ([<InlineIfLambda>] getMap) ([<InlineIfLambda>] error) location name = context {
     let! env = Context.environment
     match Map.tryFind name <| getMap env.specs with
     | ValueSome s -> return s

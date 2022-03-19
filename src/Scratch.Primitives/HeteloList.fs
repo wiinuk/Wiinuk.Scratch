@@ -131,7 +131,7 @@ module HList =
     let empty = HUnit
     let singleton x = { head = x; tail = HUnit }
     let cons x xs = { head = x; tail = xs }
-    let inline mapHead f xs = { head = f xs.head; tail = xs.tail }
+    let inline mapHead ([<InlineIfLambda>] f) xs = { head = f xs.head; tail = xs.tail }
 
     let length xs = matchWith { Length.acc = 0 } xs
 

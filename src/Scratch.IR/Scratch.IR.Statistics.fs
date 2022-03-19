@@ -102,7 +102,7 @@ module private Helpers =
         let local a e = match e.value with Atom _ -> Atomic | _ -> a
         flow rider local a NeverYield e
 
-    let inline cached (r: _ byref) create =
+    let inline cached (r: _ byref) ([<InlineIfLambda>] create) =
         match r with
         | ValueSome x -> x
         | _ ->

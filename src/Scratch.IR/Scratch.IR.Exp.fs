@@ -468,7 +468,7 @@ module private ExpStartConstructorHelpers =
     [<Struct>]
     type TestPair<'a> = { expected: 'a; actual: 'a }
     module TestPair =
-        let inline map f x = { expected = f x.expected; actual = f x.actual }
+        let inline map ([<InlineIfLambda>] f) x = { expected = f x.expected; actual = f x.actual }
 
     let locationFootter (source: _ inref) = $"source: ( {Location.pretty &source} ), location: ( %A{Location.source &source} )"
 
@@ -843,12 +843,12 @@ module ExpSmartConstructorExtensions =
         let let' source var value scope =
             Let(var, value, scope) @+ source |> validateShallow
 
-        let inline internal letScope' letSource varSource isMutable varNeme value scope =
+        let inline internal letScope' letSource varSource isMutable varNeme value ([<InlineIfLambda>] scope) =
             let var = Var.newStorage varNeme isMutable (Exp.varType value)
             let v = { value = Var var; source = varSource }
             let' letSource var value (scope v var)
 
-        let inline letScope source varNeme value scope =
+        let inline letScope source varNeme value ([<InlineIfLambda>] scope) =
             let var = Var.newStorage varNeme false (Exp.varType value)
             let v = { value = Var var; source = source }
             let' source var value (scope v)

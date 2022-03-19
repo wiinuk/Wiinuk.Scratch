@@ -920,11 +920,11 @@ module Project =
             | Simple _ -> failwith $"unexpected top level block: %A{b}"
         blocks
 
-    let inline private mapStageOrNone f = function
+    let inline private mapStageOrNone ([<InlineIfLambda>] f) = function
         | Choice1Of2 x -> f x
         | _ -> None
 
-    let inline private mapSpriteOrNone f = function
+    let inline private mapSpriteOrNone ([<InlineIfLambda>] f) = function
         | Choice2Of2 x -> f x |> Some
         | _ -> None
 
