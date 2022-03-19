@@ -121,37 +121,34 @@ type NonEmptyList<'a> = NonEmptyList of 'a * 'a list with
             let mutable current = x
             let mutable list = xs
             let mutable state = 0
-            {
-                new System.Collections.Generic.IEnumerator<_> with
-                    override _.Current = current
-                    override _.Current = box current
-                    override _.MoveNext() =
-                        match state with
-                        | 0 ->
-                            state <- 1
+            { new System.Collections.Generic.IEnumerator<_> with
+                override _.Current = current
+                override _.Current = box current
+                override _.MoveNext() =
+                    match state with
+                    | 0 ->
+                        state <- 1
+                        true
+
+                    | 1 ->
+                        match list with
+                        | x::xs ->
+                            current <- x
+                            list <- xs
                             true
 
-                        | 1 ->
-                            match list with
-                            | x::xs ->
-                                current <- x
-                                list <- xs
-                                true
-
-                            | [] ->
-                                state <- -1
-                                false
-                        | _ ->
+                        | [] ->
+                            state <- -1
                             false
+                    | _ ->
+                        false
 
-                    override _.Reset() =
-                        current <- x
-                        list <- xs
-                        state <- 0
+                override _.Reset() =
+                    current <- x
+                    list <- xs
+                    state <- 0
 
-                    override _.Dispose() = ()
-
-
+                override _.Dispose() = ()
             }
     interface System.Collections.IEnumerable with
         override self.GetEnumerator() =

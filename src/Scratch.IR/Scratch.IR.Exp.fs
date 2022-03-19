@@ -1147,14 +1147,13 @@ module TopBuilderExtensions =
         let builderWith defaultSource = { b = { defaultState = defaultSource } }
 
 module VariableDecl =
-    let make state var persistance: _ VariableDecl =
-        {
-            state = state
-            var = var
-            isPersistent = persistance
-            init = HUnit
-            view = HUnit
-        }
+    let make state var persistance: _ VariableDecl = {
+        state = state
+        var = var
+        isPersistent = persistance
+        init = HUnit
+        view = HUnit
+    }
 
 module ListInitData =
     let make state var init: _ ListDef = {

@@ -408,24 +408,24 @@ let rec prettyExpressionAndPrecedence x = context {
         return struct(prettySValue env.expressionEnv.prettyEnv x, Precedence.Primitive)
     | Complex e -> return! startPlugin (fun p -> p.expression) ComplexExpression.map NotImplementedExpression ComplexExpression.state e
     | Block x -> return! prettyBlock x
-    }
+}
 and prettyExpression x = context {
     let! { precedence = prec } = Context.environment
     let! struct(x, prec') = prettyExpressionAndPrecedence x
     return if prec < prec' then wrap x else x
-    }
+}
 and prettyOperands operands = Context.mapList prettyExpression operands
 and prettyStatement s = context {
     let prec = Precedence.Sequence
     let! struct(x, prec') = localPrecedence prec (startPlugin (fun p -> p.statement) ComplexExpression.map NotImplementedStatement ComplexExpression.state s)
     return if prec < prec' then wrap x else x
-    }
+}
 and prettyBlock (BlockExpression(_, ss)) = context {
     let! ss = Context.mapList (fun x -> context { let! x = prettyStatement x in return x }) ss
     match ss with
     | [] -> return struct(text "()", Precedence.Primitive)
     | ss -> return struct(Document.concat nl ss, Precedence.Sequence)
-    }
+}
 
 // let print x y = atomic {
 //     ...

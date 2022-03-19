@@ -654,58 +654,54 @@ module private BuilderHelpers =
         e.runtimeProcedures.Add(RentStack, Late.create <| RuntimeSpecs.defineRentStack b)
         e.runtimeProcedures.Add(InitDefaultStack, Late.create <| RuntimeSpecs.defineInitDefaultStack b)
 
-    let newStageEntityState children entity =
-        {
-            entity = entity
-            entityStat = EntityStat.make entity
-            parent = None
-            childSprites = Map.ofSeq <| seq { for c in children -> c.objName, (c, EntityStat.make c) }
-            procedureNamespace = Namespace.newEmpty()
-            procedureSpecs = Dictionary()
-            variableOrListNamespace = Namespace.newEmpty()
-            specs = Dictionary()
-            accumulatedVariables = ResizeArray()
-            accumulatedLists = ResizeArray()
-            accumulatedScripts = ResizeArray()
+    let newStageEntityState children entity = {
+        entity = entity
+        entityStat = EntityStat.make entity
+        parent = None
+        childSprites = Map.ofSeq <| seq { for c in children -> c.objName, (c, EntityStat.make c) }
+        procedureNamespace = Namespace.newEmpty()
+        procedureSpecs = Dictionary()
+        variableOrListNamespace = Namespace.newEmpty()
+        specs = Dictionary()
+        accumulatedVariables = ResizeArray()
+        accumulatedLists = ResizeArray()
+        accumulatedScripts = ResizeArray()
 
-            runtimeProcedures = Dictionary()
-            runtimeVariables = Dictionary()
-            runtimeLists = Dictionary()
-        }
+        runtimeProcedures = Dictionary()
+        runtimeVariables = Dictionary()
+        runtimeLists = Dictionary()
+    }
 
-    let newSpriteEntityState parent children entity =
-        {
-            entity = entity
-            entityStat = parent.childSprites[entity.objName] |> snd
-            parent = Some parent
-            childSprites = Map.ofSeq <| seq { for c in children -> c.objName, (c, EntityStat.make c) }
+    let newSpriteEntityState parent children entity = {
+        entity = entity
+        entityStat = parent.childSprites[entity.objName] |> snd
+        parent = Some parent
+        childSprites = Map.ofSeq <| seq { for c in children -> c.objName, (c, EntityStat.make c) }
 
-            // 親の procedure を子は引き継がない
-            procedureNamespace = Namespace.newEmpty()
-            procedureSpecs = Dictionary()
+        // 親の procedure を子は引き継がない
+        procedureNamespace = Namespace.newEmpty()
+        procedureSpecs = Dictionary()
 
-            variableOrListNamespace = Namespace.copy parent.variableOrListNamespace
-            specs = Dictionary parent.specs
+        variableOrListNamespace = Namespace.copy parent.variableOrListNamespace
+        specs = Dictionary parent.specs
 
-            accumulatedVariables = ResizeArray()
-            accumulatedLists = ResizeArray()
-            accumulatedScripts = ResizeArray()
+        accumulatedVariables = ResizeArray()
+        accumulatedLists = ResizeArray()
+        accumulatedScripts = ResizeArray()
 
-            runtimeLists = parent.runtimeLists
-            runtimeVariables = parent.runtimeVariables
-            runtimeProcedures = Dictionary()
-        }
+        runtimeLists = parent.runtimeLists
+        runtimeVariables = parent.runtimeVariables
+        runtimeProcedures = Dictionary()
+    }
 
-    let newProcState parent procedure =
-        let (EntityState e) = parent
-        {
-            localSpecs = Dictionary e.specs
-            parameterNamespace = Namespace.newEmpty()
-            accumulatedStatements = ResizeArray()
-            procedure = procedure
-            parameterCount = 0
-            localCount = 0
-        }
+    let newProcState (EntityState e) procedure = {
+        localSpecs = Dictionary e.specs
+        parameterNamespace = Namespace.newEmpty()
+        accumulatedStatements = ResizeArray()
+        procedure = procedure
+        parameterCount = 0
+        localCount = 0
+    }
 
 module private Builder =
     open BuilderHelpers
@@ -790,15 +786,13 @@ module private Builder =
         p.localSpecs.Add(Var.simple var, ParameterSpec param)
         param
 
-    let newProcedureBuilder (Config c & EntityState e & b) procedure =
-        let procState = newProcState b procedure
-        {
-            EntityBuilder = {
-                Config = c
-                Entity = e
-            }
-            Procedure = procState
+    let newProcedureBuilder (Config c & EntityState e & b) procedure = {
+        EntityBuilder = {
+            Config = c
+            Entity = e
         }
+        Procedure = newProcState b procedure
+    }
 
     let newEntityBuilder config parent children entity =
         match parent with

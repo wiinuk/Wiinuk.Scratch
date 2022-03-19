@@ -378,8 +378,7 @@ let deleteClone state = fiberPoly {
 let rec evaluateBlock state (BlockExpression(_, ss)) = fiber {
     for s in ss do
         do! evaluateStatement state s
-    }
-
+}
 and evaluateProcedureCall state location (ProcedureDefinition(isAtomic = isAtomic; body = body) as proc) args = fiberPoly {
     let state = {
         state with
@@ -393,8 +392,7 @@ and evaluateProcedureCall state location (ProcedureDefinition(isAtomic = isAtomi
         do! g
     | NoAtomic ->
         do! evaluateBlock state body
-    }
-
+}
 and evaluateCall state location name args =
     let proc = getProcedureOrRaise &state location name
     let args = evaluateExpressionsOrRaise &state args
@@ -457,7 +455,7 @@ and evaluateDoRepeat state count body = fiberPoly {
         for _ in 1. .. 1. .. count do
             do! evaluateBlock state body
             yield ThreadYield
-    }
+}
 and evaluateDoUntil state test ifFalse = fiberPoly {
     match state.isAtomic with
     | true ->
@@ -467,7 +465,7 @@ and evaluateDoUntil state test ifFalse = fiberPoly {
         while evaluateExpression state test |> toBool |> not do
             do! evaluateBlock state ifFalse
             yield ThreadYield
-    }
+}
 and evaluateDoForever state body = fiberPoly {
     match state.isAtomic with
     | true ->
@@ -477,7 +475,7 @@ and evaluateDoForever state body = fiberPoly {
         while true do
             do! evaluateBlock state body
             yield ThreadYield
-    }
+}
 and evaluateStatement state (ComplexExpression(location, op, args)) = fiberPoly {
     match op, args, state.self.sprite with
     | O.call, Literal(_, SString name)::callArgs, _ ->
@@ -773,8 +771,7 @@ and evaluateStatement state (ComplexExpression(location, op, args)) = fiberPoly 
     | O.deleteClone, _, _ -> do! deleteClone state
 
     | opxs -> cfailwithf state location $"not implemented %A{opxs}"
-    }
-
+}
 and private broadcastObject location (state: _ inref) name self =
     let name = LowerName.toString name
     match Map.tryFind name self.shared.whenIReceive with

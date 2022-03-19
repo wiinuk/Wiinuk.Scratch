@@ -394,13 +394,12 @@ module Runtime =
             log runtime (RuntimeEvent(EventTag.PlaySound, 0UL, box soundName))
 
     let make config =
-        let rec runtime =
-            {
-                Runtime.scheduler = Scheduler.make config
-                Runtime.stage = stage
-                Runtime.children = ResizeArray()
-                Runtime.log = Some(ResizeArray())
-            }
+        let rec runtime = {
+            Runtime.scheduler = Scheduler.make config
+            Runtime.stage = stage
+            Runtime.children = ResizeArray()
+            Runtime.log = Some(ResizeArray())
+        }
         and stage = Stage { runtime = runtime; prototype = None }
         runtime
 

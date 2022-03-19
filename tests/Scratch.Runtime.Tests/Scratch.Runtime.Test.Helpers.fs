@@ -402,20 +402,18 @@ type Arbs =
     static member ListData() =
         Arb.from
         |> Arb.convert
-            (fun (state, isPersistent, NonNull listName, contents, NormalFloat x, NormalFloat y, NormalFloat width, NormalFloat height, visible) ->
-                {
-                    state = state
-                    isPersistent = isPersistent
-                    listName = listName
-                    contents' = contents
+            (fun (state, isPersistent, NonNull listName, contents, NormalFloat x, NormalFloat y, NormalFloat width, NormalFloat height, visible) -> {
+                state = state
+                isPersistent = isPersistent
+                listName = listName
+                contents' = contents
 
-                    x = x
-                    y = y
-                    width = width
-                    height = height
-                    visible = visible
-                }
-            )
+                x = x
+                y = y
+                width = width
+                height = height
+                visible = visible
+            })
             (fun x -> (x.state, x.isPersistent, NonNull x.listName, x.contents', NormalFloat x.x, NormalFloat x.y, NormalFloat x.width, NormalFloat x.height, x.visible))
 
     static member ProcedureDefinition() =

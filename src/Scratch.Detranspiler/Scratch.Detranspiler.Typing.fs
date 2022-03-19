@@ -540,27 +540,25 @@ let generalizeEntity generalizeExtension env data =
         lists = data.lists |> List.map(ListData.map generalizeTopLevel)
         scripts =
             data.scripts
-            |> List.map (fun s ->
-                {
-                    x = s.x
-                    y = s.y
-                    script =
-                        match s.script with
-                        | Procedure x -> Procedure <| generalizeProcedure typeMap x
-                        | Listener x -> Listener <| generalizeListener env x
-                        | Expression x ->
+            |> List.map (fun s -> {
+                x = s.x
+                y = s.y
+                script =
+                    match s.script with
+                    | Procedure x -> Procedure <| generalizeProcedure typeMap x
+                    | Listener x -> Listener <| generalizeListener env x
+                    | Expression x ->
 
-                            // 実行されないので MonomorphismRestriction 警告は出さない
-                            let tvars = freeVarsComplexExpression typeMap [] x
-                            Expression <| generalizeComplexExpression typeMap tvars x
+                        // 実行されないので MonomorphismRestriction 警告は出さない
+                        let tvars = freeVarsComplexExpression typeMap [] x
+                        Expression <| generalizeComplexExpression typeMap tvars x
 
-                        | Statements x ->
+                    | Statements x ->
 
-                            // 実行されないので MonomorphismRestriction 警告は出さない
-                            let tvars = freeVarsBlock typeMap [] x
-                            Statements <| generalizeBlock typeMap tvars x
-                }
-            )
+                        // 実行されないので MonomorphismRestriction 警告は出さない
+                        let tvars = freeVarsBlock typeMap [] x
+                        Statements <| generalizeBlock typeMap tvars x
+            })
         costumes = data.costumes
         sounds = data.sounds
         currentCostumeIndex = data.currentCostumeIndex

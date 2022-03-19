@@ -702,11 +702,10 @@ and transpilePropertyOrVarGetExpression senv k source =
 
 let transpileBlock senv e = transpileExpression senv e
 
-let transpileProcedureParameter env source v =
-    {
-        parameterIRVar = Var.newVarFromQVar env source v
-        parameterVar = v
-    }
+let transpileProcedureParameter env source v = {
+    parameterIRVar = Var.newVarFromQVar env source v
+    parameterVar = v
+}
 
 let transpileProcedureParameters senv vvs source =
     let vs = Seq.collect id vvs |> Seq.toList
@@ -938,19 +937,17 @@ let typeDatas (_: 'D The when 'D :> _ DataAttribute) (t: Type) =
     t.GetCustomAttributes<'D>(``inherit`` = true)
     |> Seq.map (fun c -> c.GetData())
 
-let fillCostumeData data =
-    let { PartialData.costumeName = costumeName } = data
-    {
-        costumeName = costumeName |> Option.defaultValue ""
-        baseLayerMD5 = data.baseLayerMD5 |> Option.defaultValue ""
-        baseLayerID = data.baseLayerID |> Option.defaultValue nan
-        rotationCenterX = data.rotationCenterX |> Option.defaultValue 0.
-        rotationCenterY = data.rotationCenterY |> Option.defaultValue 0.
+let fillCostumeData ({ PartialData.costumeName = costumeName } as data) = {
+    costumeName = costumeName |> Option.defaultValue ""
+    baseLayerMD5 = data.baseLayerMD5 |> Option.defaultValue ""
+    baseLayerID = data.baseLayerID |> Option.defaultValue nan
+    rotationCenterX = data.rotationCenterX |> Option.defaultValue 0.
+    rotationCenterY = data.rotationCenterY |> Option.defaultValue 0.
 
-        textLayerMD5 = data.textLayerMD5
-        textLayerID = data.textLayerID
-        bitmapResolution = data.bitmapResolution
-    }
+    textLayerMD5 = data.textLayerMD5
+    textLayerID = data.textLayerID
+    bitmapResolution = data.bitmapResolution
+}
 
 let updateSpriteDataByClassAttributes thisType data =
     let costumes = typeDatas the<CostumeAttribute> thisType |> Seq.map fillCostumeData |> Seq.toList

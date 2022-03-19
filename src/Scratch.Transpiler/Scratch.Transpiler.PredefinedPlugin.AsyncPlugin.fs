@@ -124,26 +124,26 @@ module private AsyncHelpers =
             let! x2 = transpileGeneratorBody senv e2
             return Exp.let' (SourceCode.tag source) var x1 x2
         }
-        }
+    }
     and transpileGeneratorSequential senv (e1, e2) = context {
         let! e1 = transpileExpression senv e1
         let! e2 = transpileGeneratorBody senv e2
         return Exp.seq (currentSourceTag senv) e1 e2
-        }
+    }
     and transpileGeneratorCombine senv (e1, e2) = context {
         let! e1 = transpileGeneratorBody senv e1
         let! e2 = transpileGeneratorBody senv e2
         return Exp.seq (currentSourceTag senv) e1 e2
-        }
+    }
     and transpileGeneratorIf senv (testE, ifTrueE, ifFalseE) = context {
         let! test = transpilePrimitiveExpression senv testE
         let! ifTrue = transpileGeneratorBody senv ifTrueE
         let! ifFalse = transpileGeneratorBody senv ifFalseE
         return Exp.if' (currentSourceTag senv) test ifTrue ifFalse
-        }
+    }
     and transpileGeneratorZero senv = context {
         return Exp.empty (currentSourceTag senv)
-        }
+    }
 
     type GeneratorEnvironments<'Tail>
         when 'Tail :> IWithBlockEnvironment<'Tail, BlockEnvironment>

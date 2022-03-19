@@ -696,12 +696,11 @@ let registerProcedure varName parameterTypes =
     let procName = baseName + sigName
     procName
 
-let declareVariable export isPersistent isMutable name varType =
-    {
-        var = Var.newStorage name isMutable varType
-        export = export
-        persistence = isPersistent
-    }
+let declareVariable export isPersistent isMutable name varType = {
+    var = Var.newStorage name isMutable varType
+    export = export
+    persistence = isPersistent
+}
 
 let implementVariable senv source varSpec init = runRef FState senv.s <| fun state ->
     let a = withExportTag (SourceCode.location source) varSpec.export

@@ -50,15 +50,14 @@ type CostumeAttribute private (data: PartialCostumeData) =
 type SoundAttribute(SoundName, SoundID, Md5) =
     inherit DataAttribute<SoundData>()
 
-    let mutable data =
-        {
-            soundName = SoundName
-            soundID = SoundID
-            md5 = Md5
-            sampleCount = None
-            rate = None
-            format = None
-        }
+    let mutable data = {
+        soundName = SoundName
+        soundID = SoundID
+        md5 = Md5
+        sampleCount = None
+        rate = None
+        format = None
+    }
     member _.SampleCount with set v = data <- { data with sampleCount = Some v }
     member _.Rate 
         with set v =

@@ -39,32 +39,28 @@ and [<Struct>] EntityEnv<'a> = {
 and [<Struct>] MemberEnv<'a> = {
     self: EntityData<unit,'a>
 }
-and BlockEnvs<'a> =
-    HTuple<
-        (* procedure: *)ProcedureEnv<'a>,
-        (* script: *)   ScriptEnv<'a>,
-        (* member': *)  MemberEnv<'a>,
-        (* entity: *)   EntityEnv<'a>,
-        (* config: *)   Config<'a>
-    >
-and ScriptEnvs<'a> =
-    HTuple<
-        (* script: *)   ScriptEnv<'a>,
-        (* member': *)  MemberEnv<'a>,
-        (* entity: *)   EntityEnv<'a>,
-        (* config: *)   Config<'a>
-    >
-and MemberEnvs<'a> =
-    HTuple<
-        (* member': *)  MemberEnv<'a>,
-        (* entity: *)   EntityEnv<'a>,
-        (* config: *)   Config<'a>
-    >
-and EntityEnvs<'a> =
-    HTuple<
-        (* entity: *)   EntityEnv<'a>,
-        (* config: *)   Config<'a>
-    >
+and BlockEnvs<'a> = HTuple<
+    (* procedure: *)ProcedureEnv<'a>,
+    (* script: *)   ScriptEnv<'a>,
+    (* member': *)  MemberEnv<'a>,
+    (* entity: *)   EntityEnv<'a>,
+    (* config: *)   Config<'a>
+>
+and ScriptEnvs<'a> = HTuple<
+    (* script: *)   ScriptEnv<'a>,
+    (* member': *)  MemberEnv<'a>,
+    (* entity: *)   EntityEnv<'a>,
+    (* config: *)   Config<'a>
+>
+and MemberEnvs<'a> = HTuple<
+    (* member': *)  MemberEnv<'a>,
+    (* entity: *)   EntityEnv<'a>,
+    (* config: *)   Config<'a>
+>
+and EntityEnvs<'a> = HTuple<
+    (* entity: *)   EntityEnv<'a>,
+    (* config: *)   Config<'a>
+>
 
 module Plugins =
     let empty = {

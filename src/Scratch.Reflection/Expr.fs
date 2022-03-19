@@ -319,16 +319,14 @@ let private (|DebugRange|_|) = function
     | E.NewTuple(E.String "DebugRange"::E.NewTuple(E.String path::E.Int32 l1::E.Int32 c1::E.Int32 l2::E.Int32 c2::_)::_) ->
         ValueSome {
             path = path
-            position1 =
-                {
+            position1 = {
                 line = l1
                 column = c1
-                }
-            position2 =
-                {
+            }
+            position2 = {
                 line = l2
                 column = c2
-                }
+            }
         }
     | _ -> ValueNone
 
