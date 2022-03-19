@@ -68,12 +68,12 @@ let shrinkJsonToken t = seq {
     | JTrue -> JFalse
     | JNumber 0.0 -> JTrue
     | JNumber n ->
-        JNumber 0.0
+        JNumber 0.
         for n in Arb.shrink n do
         JNumber n
 
     | JString null -> ()
-    | JString "" -> JNumber 0.0
+    | JString "" -> JNumber 0.
     | JString s ->
         JString ""
         for s in Arb.shrink s do

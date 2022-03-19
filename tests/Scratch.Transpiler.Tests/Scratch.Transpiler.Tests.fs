@@ -1983,7 +1983,7 @@ let valueOnlyNewUnionCaseTest() =
     ]
 
 [<ReflectedDefinition>]
-let typeFunction<[<Measure>]'u> = LanguagePrimitives.FloatWithMeasure<'u> 123.0
+let typeFunction<[<Measure>]'u> = LanguagePrimitives.FloatWithMeasure<'u> 123.
 
 [<ReflectedDefinition>]
 type CallTypeFunctionInSpriteTestSprite(options) as this =

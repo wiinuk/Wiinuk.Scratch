@@ -21,9 +21,9 @@ type E = FSharp.Quotations.Expr
 [<Fact>]
 let tryParseSNumberTest() =
     let parse = SValue.tryParseSNumber
-    parse "\u3000-0x01Fe0\u3000" =? ValueSome -8160.0
-    parse "\u3000-01234\u3000" =? ValueSome -1234.0
-    parse "\u3000-01.23e4\u3000" =? ValueSome -12300.0
+    parse "\u3000-0x01Fe0\u3000" =? ValueSome -8160.
+    parse "\u3000-01234\u3000" =? ValueSome -1234.
+    parse "\u3000-01.23e4\u3000" =? ValueSome -12300.
     parse "\u3000-.123\u3000" =? ValueSome -0.123
     parse "\u3000-123.\u3000" =? ValueSome -123.
     parse "\u3000-.2e3\u3000" =? ValueSome -200.

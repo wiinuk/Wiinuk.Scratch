@@ -1,7 +1,7 @@
 ﻿<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
     <PropertyGroup>
         <TargetFramework>net6.0</TargetFramework>
-        <OtherFlags>--warnon:1182 --warnon:3390 --warnon:3566</OtherFlags>
+        <OtherFlags>--warnon:1182 --warnon:3390 --warnon:3566 --warnon:3388 --warnon:3389 --warnon:3395</OtherFlags>
         <GenerateDocumentationFile>true</GenerateDocumentationFile>
     </PropertyGroup>
 </Project>

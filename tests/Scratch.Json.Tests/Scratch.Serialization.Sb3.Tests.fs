@@ -82,8 +82,8 @@ let sb3ParseTest() =
             next = None
             parent = Some None
             inputs = Map.ofSeq [
-                Id "input0", DiffBlockShadow(BlockReference(Id ".9gsg{9b;gw{LPXb/]Xd"), MathNumber(SNumber 10.0))
-                Id "input1", DiffBlockShadow(BlockReference(Id "p@h=]fBku?a|H}:Q4]~G"), MathNumber(SNumber 10.0))
+                Id "input0", DiffBlockShadow(BlockReference(Id ".9gsg{9b;gw{LPXb/]Xd"), MathNumber(SNumber 10.))
+                Id "input1", DiffBlockShadow(BlockReference(Id "p@h=]fBku?a|H}:Q4]~G"), MathNumber(SNumber 10.))
             ]
             fields = Map.ofSeq []
             shadow = false
@@ -105,7 +105,7 @@ let sb3ParseTest() =
 
     """[12, "varName", "Z.4Wj|XTRL+Xet*z}.}c-varName-", 123, 456]"""
         |> parse Sb3.jBlock
-        =? Ok(Simple(DataVariable("varName", Id "Z.4Wj|XTRL+Xet*z}.}c-varName-", Some(Position(123.0, 456.0)))))
+        =? Ok(Simple(DataVariable("varName", Id "Z.4Wj|XTRL+Xet*z}.}c-varName-", Some(Position(123, 456)))))
 
 [<Fact>]
 let jSimpleBlockParseTest() =
