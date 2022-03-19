@@ -168,7 +168,7 @@ type Entity(options) as self =
 
     let broadcastEvents = ref Map.empty
 
-    member internal __.InternalObjectName = objectName
+    member internal _.InternalObjectName = objectName
 
     member _.WhenIReceive name = generatorPolyWith <| fun listener ->
         let listener = listener :> generator<Flow, struct(ThreadInfo * Entity), unit>
@@ -181,9 +181,9 @@ type Entity(options) as self =
 
         broadcastEvents := Map.add name listeners !broadcastEvents
 
-    member internal __.InternalEntityDrawingData: _ byref = &data
+    member internal _.InternalEntityDrawingData: _ byref = &data
 
-    member internal __.InternalBroadcastListeners name =
+    member internal _.InternalBroadcastListeners name =
         let name = LowerName.toString name
         match Map.tryFind name !broadcastEvents with
         | ValueNone -> []
@@ -237,11 +237,11 @@ type Sprite(options) as self =
     //    return
     //}
 
-    member private __.PrivateIsClone = isClone
-    member private __.PrivateCloneFunc = cloneFunc
-    member private __.PrivateObjectName = objectName
+    member private _.PrivateIsClone = isClone
+    member private _.PrivateCloneFunc = cloneFunc
+    member private _.PrivateObjectName = objectName
 
-    member private __.PrivateSpriteDrawingData: _ byref = &data
+    member private _.PrivateSpriteDrawingData: _ byref = &data
 
     member self.Clone() =
         let prototype = {

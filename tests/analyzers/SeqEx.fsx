@@ -10,11 +10,11 @@ let trySkip count (source: _ seq) =
         let mutable state = 0
         {
         new IEnumerator<_> with
-            member __.Current = e.Current
-            member __.Dispose() = e.Dispose()
+            member _.Current = e.Current
+            member _.Dispose() = e.Dispose()
 
         interface IEnumerator with
-            member __.MoveNext() =
+            member _.MoveNext() =
                 match state with
                 | 0 ->
                     let mutable i = 0
@@ -26,14 +26,14 @@ let trySkip count (source: _ seq) =
 
                 | _ -> e.MoveNext()
 
-            member __.Current = (e :> IEnumerator).Current
-            member __.Reset() = raise <| NotImplementedException()
+            member _.Current = (e :> IEnumerator).Current
+            member _.Reset() = raise <| NotImplementedException()
         }
     {
     new seq<_> with
-        member __.GetEnumerator() = enumerator()
+        member _.GetEnumerator() = enumerator()
     interface IEnumerable with
-        member __.GetEnumerator() = upcast enumerator()
+        member _.GetEnumerator() = upcast enumerator()
     }
 
 let splitAt index xs =

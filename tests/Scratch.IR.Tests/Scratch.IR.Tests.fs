@@ -93,7 +93,7 @@ module private Helpers =
             let proc, var = b.procAndNewVar(name, [p1; p2], body, ?atomicity = atomicity, ?source = source)
             proc, fun (x1, x2) -> Exp.call (Option.defaultValue b.DefaultSource callSource) var [x1; x2]
 
-        member private __.NewProcVar(name, ps, resultType) =
+        member private _.NewProcVar(name, ps, resultType) =
             let parameterTypes = ps |> List.map (fun x -> Var.varType x.value)
             Var.newProc name parameterTypes resultType
 

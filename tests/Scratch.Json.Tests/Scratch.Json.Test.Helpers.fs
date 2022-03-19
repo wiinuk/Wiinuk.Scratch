@@ -19,7 +19,7 @@ module Diff =
     let private spaces = [| for c in Char.MinValue..Char.MaxValue do if Char.IsWhiteSpace c then c |]
 
     type DiffMatchPatch with
-        member private __.diff_linesToWordsMunge(text, lineArray: ResizeArray<_>, lineHash: Dictionary<_,_>, maxLines) =
+        member private _.diff_linesToWordsMunge(text, lineArray: ResizeArray<_>, lineHash: Dictionary<_,_>, maxLines) =
             let mutable lineStart = 0
             let mutable lineEnd = -1
             let mutable line = ""
