@@ -5,7 +5,7 @@
         "fetch-blob": "^2.1.1",
         "scratch-storage": "^1.3.3",
         "scratch-vm": "^0.2.0-prerelease.20201016122132",
-        "ws": "^7.3.1",
+        "ws": "^7.4.6",
         "yargs": "^16.1.0"
     },
     "dependencies": {}
