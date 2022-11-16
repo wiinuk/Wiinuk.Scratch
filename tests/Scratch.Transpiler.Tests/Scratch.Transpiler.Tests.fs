@@ -2210,3 +2210,23 @@ let volumeBlocksDeclarationTest() =
     @>
     |> startAsStdSprite
     =? ["12"; "34"; ""]
+
+[<Struct>]
+type FieldIsWordTestA = FieldIsWordTestA of N
+
+[<Struct>]
+type FieldIsWordTestB = {
+    n: Field<FieldIsWordTestA, N>
+}
+[<ReflectedDefinition>]
+let nField = Field.defineRecordField <@ fun x -> x.n @>
+
+[<Fact>]
+let fieldIsWordTest() =
+    <@
+        let r = Allocator.allocate()
+        r->*nField <-* Field.unsafeOfNumber<_,_> 123
+        r->.nField |> Field.toNumber |> string |> outLine
+    @>
+    |> startAsStdSprite
+    =? ["123"; ""]
