@@ -9,69 +9,6 @@ type Point = {
     y: double
 }
 
-[<Fact>]
-let simpleTest() =
-    <@
-        let p = { x = 10.; y = 20. }
-
-        out "p.x = "; outLine (string p.x)
-        out "p.y = "; outLine (string p.y)
-
-        Collector.collect()
-        out "totalObjectCount = "; outLine (string Collector.Diagnostics.totalObjectCount)
-    @>
-    |> startAsStdSprite =? [
-        "p.x = 10"
-        "p.y = 20"
-        "totalObjectCount = 1"
-        ""
-    ]
-
-[<Fact>]
-let callLetTest() =
-    <@
-        let outCollectorInfo() =
-            Collector.collect()
-            printfn "totalObjectCount = %d" Collector.Diagnostics.totalObjectCount
-            printfn "totalReferenceCount = %d" Collector.Diagnostics.totalReferenceCount
-
-        let f p1 =
-            let mutable p = p1
-            printfn "p.x = %f" p.x
-            printfn "p.y = %f" p.y
-            outCollectorInfo()
-
-            p <- { x = 30.; y = 40. }
-            printfn "p.x = %f" p.x
-            printfn "p.y = %f" p.y
-            outCollectorInfo()
-
-            p
-
-        let p = f { x = 10.; y = 20. }
-        printfn "p.x = %f" p.x
-        printfn "p.y = %f" p.y
-        outCollectorInfo()
-    @>
-    |> startAsStdSprite =? [
-        "p.x = 10"
-        "p.y = 20"
-        "totalObjectCount = 1"
-        "totalReferenceCount = 2"
-
-        "p.x = 30"
-        "p.y = 40"
-        "totalObjectCount = 2"
-        "totalReferenceCount = 2"
-
-        "p.x = 30"
-        "p.y = 40"
-        "totalObjectCount = 1"
-        "totalReferenceCount = 1"
-
-        ""
-    ]
-
 [<Struct>]
 type Line = {
     pos1: Point
