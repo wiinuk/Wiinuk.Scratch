@@ -18,11 +18,6 @@ type Line = {
 [<Fact>]
 let instructTest() =
     <@
-        let outCollectorInfo() =
-            Collector.collect()
-            printfn "totalObjectCount = %d" Collector.Diagnostics.totalObjectCount
-            printfn "totalReferenceCount = %d" Collector.Diagnostics.totalReferenceCount
-
         let f l =
             printfn "l.pos1 = %f, %f" l.pos1.x l.pos1.y
             printfn "l.pos2 = %f, %f" l.pos2.x l.pos2.y
@@ -34,7 +29,6 @@ let instructTest() =
 
         let x = f { pos1 = { x = 10.; y = 20. }; pos2 = { x = 30.; y = 40. } }
         printfn "x = %f" x
-        outCollectorInfo()
     @>
     |> startAsStdSprite
     =? [
@@ -43,7 +37,5 @@ let instructTest() =
         "l2.pos1 = 100, 200"
         "l2.pos2 = 30, 40"
         "x = 100"
-        "totalObjectCount = 0"
-        "totalReferenceCount = 0"
         ""
     ]
