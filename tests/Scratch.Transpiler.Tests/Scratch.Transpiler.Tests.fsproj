@@ -7,7 +7,6 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="Scratch.Transpiler.Tests.fs" />
-    <Compile Include="Scratch.Transpiler.Collector.Tests.fs" />
     <Compile Include="Program.fs" />
   </ItemGroup>
   <ItemGroup>
