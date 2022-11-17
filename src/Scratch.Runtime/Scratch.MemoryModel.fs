@@ -515,7 +515,10 @@ module Sequence =
     let unsafeReference (Reference p: 'T Sequence Reference) index (Size size: 'T Size): 'T Reference = Reference <| p + index * size
 
 [<Struct>]
-type ('T, 'M) Field = Field of int
+type ('T, 'M) Field = Field of int with
+    interface IWord with
+        member x.Value = let (Field x) = x in SNumber <| double x
+
 module Field =
     open FSharp.Quotations
     type private T = FSharp.Reflection.FSharpType
